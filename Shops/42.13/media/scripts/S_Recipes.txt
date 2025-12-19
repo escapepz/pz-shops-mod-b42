@@ -1,0 +1,47 @@
+module Shops {
+
+ 	craftRecipe BuildPlayerShop
+ 	{
+		timedAction = Making,
+		Time = 150,
+		Tags = InHandCraft;CanBeDoneInDark,
+		Category = Carpentry,
+ 	
+		inputs
+		{
+			item 6 [Base.Plank],
+			item 12 [Base.Nails],
+			item 1 mode:keep [Base.Hammer],
+		}
+		
+		outputs
+		{
+			item 1 Shops.PlayerShop,
+		}
+ 	}
+
+ 	craftRecipe BuildPlayerShopFreezer
+ 	{
+		timedAction = Making,
+		Time = 150,
+		Tags = InHandCraft;CanBeDoneInDark,
+		Category = Carpentry,
+		
+		inputs
+		{
+			item 6 [Base.Plank],
+			item 12 [Base.Nails],
+			item 20 [Base.Screws],
+			item 2 [Radio.ElectricWire],
+			item 4 [Base.SheetMetal],
+			item 10 [Base.ElectronicsScrap],
+			item 1 mode:keep [Base.Hammer],
+			item 1 mode:keep [Base.Screwdriver],
+		}
+		
+		outputs
+		{
+			item 1 Shops.PlayerShopFreezer,
+		}
+ 	}
+}

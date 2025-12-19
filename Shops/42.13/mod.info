@@ -1,0 +1,8 @@
+name=Shops
+id=nshops
+description=Shops
+poster=poster.png
+pack=npcshop
+pack=playershop
+tiledef=npcshop 1212
+tiledef=playershop 1313

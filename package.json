@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "clean": "node ../dist clean",
+    "build": "node ../dist clean && node ../dist build",
+    "watch": "node ../dist clean && node ../dist build && node ../dist watch",
+    "update": "node ../dist update"
+  }
+}

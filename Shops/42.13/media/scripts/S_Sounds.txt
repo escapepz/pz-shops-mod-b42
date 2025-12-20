@@ -1,4 +1,4 @@
-module Shops
+module Base
 {
 	sound CashRegister
 	{

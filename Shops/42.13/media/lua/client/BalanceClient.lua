@@ -32,4 +32,5 @@ local function BS_OnServerCommand(module, command, args)
     end
 end
 
+Events.OnServerCommand.Add(BS_OnServerCommand)
 Events.OnConnected.Add(BClient.OnConnected)

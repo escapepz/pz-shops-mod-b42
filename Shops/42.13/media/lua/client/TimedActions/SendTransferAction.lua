@@ -29,24 +29,22 @@ function SendTransferAction:stop()
 end
 
 function SendTransferAction:perform()
-     local transfer = self.transfer
-     sendClientCommand("BS", "Transfer", {transfer.coin,transfer.specialCoin,transfer.recipient})
-     local transferUI = self.transferUI
-     if transferUI then
-         transferUI:clearAfterTransfer()
-     end
-     ISBaseTimedAction.perform(self)
- end
+    local transfer = self.transfer
+    sendClientCommand("BS", "Transfer", {transfer.coin,transfer.specialCoin,transfer.recipient})
+    local transferUI = self.transferUI
+    transferUI:clearAfterTransfer()
+    ISBaseTimedAction.perform(self)
+end
 
-function SendTransferAction:new(character, transfer, transferUI)
-     local o = {}
-     setmetatable(o, self)
-     self.__index = self
-     o.character = character
-     o.transfer = transfer
-     o.transferUI = transferUI
-     o.stopOnWalk = false
-     o.stopOnRun = true
-     o.maxTime = 100
-     return o
- end
+function SendTransferAction:new(character,transferUI,transfer)
+    local o = {}
+    setmetatable(o, self)
+    self.__index = self
+    o.character = character
+    o.transferUI = transferUI
+    o.transfer = transfer
+    o.stopOnWalk = false
+    o.stopOnRun = true
+    o.maxTime = 100
+    return o
+end 

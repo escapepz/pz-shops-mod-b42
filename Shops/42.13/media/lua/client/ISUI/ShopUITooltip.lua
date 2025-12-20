@@ -39,8 +39,7 @@ function ShopUITooltip:prerender()
 		return
 	end
 	self:doLayout()
-	self:drawRect(0, 0, self.width, self.height, self.backgroundColor.a, self.backgroundColor.r, self.backgroundColor.g,
-		self.backgroundColor.b);
+	self:drawRect(0, 0, self.width, self.height, self.backgroundColor.a, self.backgroundColor.r, self.backgroundColor.g, self.backgroundColor.b);
 end
 
 function ShopUITooltip:render()
@@ -67,8 +66,7 @@ function ShopUITooltip:render()
 		end
 		self:adjustPositionToAvoidOverlap(self.contextMenu.currentOptionRect)
 	elseif self.owner and self.owner.isButton then
-		local ownerRect = { x = self.owner:getAbsoluteX(), y = self.owner:getAbsoluteY(), width = self.owner.width, height =
-		self.owner.height }
+		local ownerRect = { x = self.owner:getAbsoluteX(), y = self.owner:getAbsoluteY(), width = self.owner.width, height = self.owner.height }
 		self:adjustPositionToAvoidOverlap(ownerRect)
 	end
 
@@ -84,19 +82,19 @@ function ShopUITooltip:render()
 	if tooltip then
 		local y = 50
 		local x = 20
-		self:drawText(UIText.Contains .. ":", x - 10, y - 25, 1, 1, 1, 1, UIFont.Small)
+		self:drawText(UIText.Contains..":", x-10, y-25, 1, 1, 1, 1, UIFont.Small)
 		local quantity = nil
-		for k, v in pairs(tooltip) do
+		for k,v in pairs(tooltip) do
 			quantity = ""
 			if v.quantity then
-				quantity = " (" .. v.quantity .. ")"
+				quantity = " ("..v.quantity..")"
 			end
-			self:drawTextureScaled(v.texture, x - 5, y, 15, 15, 1, 1, 1, 1)
-			self:drawText(v.name .. quantity, x + 15, y, 1, 1, 1, 1, UIFont.Small)
-			y = y + 20
+			self:drawTextureScaled(v.texture, x-5, y, 15, 15, 1, 1, 1, 1)
+			self:drawText(v.name..quantity, x+15, y, 1, 1, 1, 1, UIFont.Small)
+			y = y+20
 		end
 		if self.item.drop then
-			self:drawText(UIText.DropOnFloor, x - 15, y + 5, 1, 1, 1, 1, UIFont.Small)
+			self:drawText(UIText.DropOnFloor, x-15, y+5, 1, 1, 1, 1, UIFont.Small)
 		end
 		return
 	end
@@ -104,18 +102,16 @@ function ShopUITooltip:render()
 	local packItems = self.item.items
 	if packItems then
 		local inventoryItems = {}
-		for k, v in pairs(packItems) do
-			local item = nil
-			local success, result = pcall(function() return instanceItem(v.item) end)
-			if success then item = result end
-			if item then
+		for k,v in pairs(packItems) do
+			local item = InventoryItemFactory.CreateItem(v.item)
+			if item then 
 				local data = {}
 				data.texture = item:getTex()
 				data.name = item:getName()
 				if v.quantity then
 					data.quantity = v.quantity
 				end
-				table.insert(inventoryItems, data)
+				table.insert(inventoryItems,data)
 			end
 		end
 		tooltipCache[self.item.type] = inventoryItems
@@ -129,7 +125,7 @@ function ShopUITooltip:doLayout()
 	if self.item.drop then
 		local dropWidth = getTextManager():MeasureStringX(UIFont.Small, UIText.DropOnFloor)
 		if dropWidth > itemNameWidth then
-			itemNameWidth = dropWidth
+			itemNameWidth  = dropWidth
 		end
 		itemsCount = itemsCount + 1
 	end
@@ -139,7 +135,7 @@ function ShopUITooltip:doLayout()
 	else
 		if itemsCount > 0 then
 			local packItems = self.item.items
-			for k, v in pairs(packItems) do
+			for k,v in pairs(packItems) do
 				local itemName = getItemNameFromFullType(v.item)
 				local fixedWidth = getTextManager():MeasureStringX(UIFont.Medium, itemName)
 				if fixedWidth > itemNameWidth then
@@ -151,7 +147,7 @@ function ShopUITooltip:doLayout()
 	end
 
 	itemNameWidth = itemNameWidth + 40
-	local fixedHeight = defaultHeight + (getTextManager():getFontFromEnum(UIFont.Medium):getLineHeight() * itemsCount)
+	local fixedHeight = defaultHeight + (getTextManager():getFontFromEnum(UIFont.Medium):getLineHeight()*itemsCount)
 	self:setWidth(itemNameWidth)
 	self:setHeight(fixedHeight)
 end
@@ -161,46 +157,46 @@ function ShopUITooltip:setOwner(ui)
 end
 
 local function setRGBA(rgba, r, g, b, a)
-	rgba.r = r
-	rgba.g = g
-	rgba.b = b
-	rgba.a = a
-	return rgba
+    rgba.r = r
+    rgba.g = g
+    rgba.b = b
+    rgba.a = a
+    return rgba
 end
 
 function ShopUITooltip:reset()
-	self:setVisible(false)
-	self:noBackground()
-	self.footNote = nil
-	setRGBA(self.borderColor, 0.4, 0.4, 0.4, 1.0)
-	setRGBA(self.backgroundColor, 0.0, 0.0, 0.0, 0.0)
-	self.width = 0
-	self.height = 0
-	self.maxLineWidth = nil
-	self.desiredX = nil
-	self.desiredY = nil
-	self.anchorLeft = true
-	self.anchorRight = false
-	self.anchorTop = true
-	self.anchorBottom = false
-	self.owner = nil
-	self.contextMenu = nil
-	self.followMouse = true
+    self:setVisible(false)
+    self:noBackground()
+    self.footNote = nil
+    setRGBA(self.borderColor, 0.4, 0.4, 0.4, 1.0)
+    setRGBA(self.backgroundColor, 0.0, 0.0, 0.0, 0.0)
+    self.width = 0
+    self.height = 0
+    self.maxLineWidth = nil
+    self.desiredX = nil
+    self.desiredY = nil
+    self.anchorLeft = true
+    self.anchorRight = false
+    self.anchorTop = true
+    self.anchorBottom = false
+    self.owner = nil
+    self.contextMenu = nil
+    self.followMouse = true
 end
 
 function ShopUITooltip:new()
-	local o = ISPanel.new(self, 0, 0, 0, 0);
-	o:noBackground();
-	o.name = nil;
-	o.borderColor = { r = 0.4, g = 0.4, b = 0.4, a = 1 };
-	o.backgroundColor = { r = 0, g = 0, b = 0, a = 0 };
-	o.width = 0;
-	o.height = 0;
-	o.anchorLeft = true;
-	o.anchorRight = false;
-	o.anchorTop = true;
-	o.anchorBottom = false;
-	o.owner = nil
-	o.followMouse = true
-	return o;
+   local o = ISPanel.new(self, 0, 0, 0, 0);
+   o:noBackground();
+   o.name = nil;
+   o.borderColor = {r=0.4, g=0.4, b=0.4, a=1};
+   o.backgroundColor = {r=0, g=0, b=0, a=0};
+   o.width = 0;
+   o.height = 0;
+   o.anchorLeft = true;
+   o.anchorRight = false;
+   o.anchorTop = true;
+   o.anchorBottom = false;
+   o.owner = nil
+   o.followMouse = true
+   return o;
 end

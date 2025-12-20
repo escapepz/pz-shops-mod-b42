@@ -1,48 +1,34 @@
-module Shops {
- 	craftRecipe BuildPlayerShop
- 	{
-		timedAction = Making,
-		Time = 150,
-		Tags = AnySurfaceCraft;CanBeDoneFromFloor,
-		Category = Carpentry,
-		needToBeLearn = False,
- 	
-		inputs
-		{
-			item 6 [Base.Plank],
-			item 12 [Base.Nails],
-			item 1 mode:keep [Base.Hammer],
-		}
-		
-		outputs
-		{
-			item 1 Shops.PlayerShop,
-		}
- 	}
+module Base {
 
- 	craftRecipe BuildPlayerShopFreezer
- 	{
-		timedAction = Making,
-		Time = 150,
-		Tags = AnySurfaceCraft;CanBeDoneFromFloor,
-		Category = Carpentry,
-		needToBeLearn = False,
-		
-		inputs
-		{
-			item 6 [Base.Plank],
-			item 12 [Base.Nails],
-			item 20 [Base.Screws],
-			item 2 [Radio.ElectricWire],
-			item 4 [Base.SheetMetal],
-			item 10 [Base.ElectronicsScrap],
-			item 1 mode:keep [Base.Hammer],
-			item 1 mode:keep [Base.Screwdriver],
-		}
-		
-		outputs
-		{
-			item 1 Shops.PlayerShopFreezer,
-		}
- 	}
+ 	recipe Build Player Shop
+      {
+	    Plank=6,
+	    Nails=12,
+        keep [Recipe.GetItemTypes.Hammer],
+
+        CanBeDoneFromFloor:true
+        Sound:Hammering,
+	    Result:PlayerShop,
+	    Time:150.0,
+	    Category:Carpentry,
+	  }
+
+	recipe Build Player Shop Freezer
+      {
+	    Plank=6,
+	    Nails=12,
+		Screws=20,
+		Radio.ElectricWire=2,
+		SheetMetal=4,
+		ElectronicsScrap=10,
+
+        keep [Recipe.GetItemTypes.Hammer],
+		keep Screwdriver,
+
+        CanBeDoneFromFloor:true
+        Sound:Hammering,
+	    Result:PlayerShopFreezer,
+	    Time:150.0,
+	    Category:Carpentry,
+	  }
 }

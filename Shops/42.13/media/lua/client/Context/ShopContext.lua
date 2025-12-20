@@ -1,5 +1,3 @@
-local isDebug = getCore():getDebug()  -- Enable debug logs when running with -debug flag
-
 local function seekShopTiles(worldobject,spritePrefix)
     local wo = worldobject
     local found = false
@@ -9,7 +7,6 @@ local function seekShopTiles(worldobject,spritePrefix)
     if spriteName then
         if(string.find(spriteName,spritePrefix)) then 
             found = true
-            if isDebug then print("[Shop Debug] seekShopTiles: Found shop tile - " .. spriteName) end
         end
     end
     return wo, found
@@ -25,18 +22,9 @@ function Shop.removeShop(worldobject)
 end
 
 function Shop.ShopContextMenu(playerNum, context, worldobjects)
-    local isSinglePlayer = isServer() or isDebug
-    local isAdminMode = isClient() and isAdmin()
-    local allowAccess = isSinglePlayer or isAdminMode
-    
-    if isDebug then print("[Shop Debug] ShopContextMenu: isServer=" .. tostring(isSinglePlayer) .. ", isAdmin=" .. tostring(isAdminMode) .. ", allowAccess=" .. tostring(allowAccess)) end
-    
-    if not allowAccess then return end
-    
+    if not (isClient() and isAdmin()) then return end
     local wo, found = seekShopTiles(worldobjects[1],Shop.spritePrefix)
     local player = getSpecificPlayer(playerNum)
-    if isDebug then print("[Shop Debug] ShopContextMenu: wo found=" .. tostring(found)) end
-    
     local shop = context:addOption(UIText.AddShop,worldobjects,nil);
     local subShop = context:getNew(context);
     context:addSubMenu(shop, subShop);
@@ -65,15 +53,14 @@ function Shop.shopUI(worldobjects,playerNum,viewMode,clickedSquare)
 end
 
 function Shop.ShopUIContextMenu(playerNum, context, worldobjects)
-    if not (isClient() or isServer() or isDebug) then return end
-    local wo, found = seekShopTiles(worldobjects[1],Shop.spritePrefix)
+    if not isClient() then return end
+    local _,found = seekShopTiles(worldobjects[1],Shop.spritePrefix)
     if not found then return end
-    local clickedSquare = wo:getSquare()
     context:addOption(UIText.Shop, worldobjects, Shop.shopUI, playerNum,false,clickedSquare);
 end
 
 function Shop.ShopViewContextMenu(playerNum, context, worldobjects)
-    if not (isClient() or isServer() or isDebug) then return end
+    if not isClient() then return end
     local _,found = seekShopTiles(worldobjects[1],Shop.spritePrefix)
     if found then return end
     context:addOption(UIText.ShopViewItems, worldobjects, Shop.shopUI, playerNum,true);

@@ -244,7 +244,7 @@ function TransferUI:sendBtn()
     self.sendButton:setVisible(false)
     self.cancelButton.enable = true
     self.cancelButton:setVisible(true)
-    local action = SendTransferAction:new(self.player, transfer, self);
+    local action = SendTransferAction:new(self.player,self,transfer);
     ISTimedActionQueue.add(action);
 end
 

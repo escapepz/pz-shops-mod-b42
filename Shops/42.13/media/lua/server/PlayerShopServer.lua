@@ -28,15 +28,10 @@ end
 function PSServer.ChangeSprite(player,args)
     local sprite = args[1]
     local coords = args[2]
-    print("PSServer.ChangeSprite: sprite=" .. tostring(sprite) .. " coords=" .. tostring(coords))
     local shop = getShopObject(coords)
     if shop then
-        print("PSServer.ChangeSprite: Found shop, changing sprite to " .. sprite)
         shop:setSprite(sprite)
-        shop:transmitCompleteItemToServer()
-        sendServerCommand(nil,"PS", "SyncChangeSprite", {sprite, coords})
-    else
-        print("PSServer.ChangeSprite: Shop not found at coords")
+        shop:sendObjectChange('sprite')
     end
 end
 

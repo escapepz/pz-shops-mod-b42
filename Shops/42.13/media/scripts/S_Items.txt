@@ -1,12 +1,12 @@
 module Shops {
-
-    		
     item GoldCoin
 	{
-		Weight	=	0.01,
-		ItemType	=	base:normal,
-		DisplayName	=	Gold Coin,
-		Icon	=	GoldCoin,
+        DisplayCategory = Mods,
+		Weight = 0.01,
+		ItemType = Normal,
+		DisplayName = Gold Coin,
+		Icon = GoldCoin,
+		StaticModel = GoldCoin,
 		WorldStaticModel = GoldCoin,
 	}
 
@@ -19,10 +19,12 @@ module Shops {
 
 	item CopperCoin
 	{
-		Weight	=	0.01,
-		ItemType	=	base:normal,
-		DisplayName	=	Copper Coin,
-		Icon	=	CopperCoin,
+        DisplayCategory = Mods,
+		Weight = 0.01,
+		ItemType = Normal,
+		DisplayName = Copper Coin,
+		Icon = CopperCoin,
+		StaticModel = CopperCoin,
 		WorldStaticModel = CopperCoin,
 	}
 
@@ -35,10 +37,12 @@ module Shops {
 	
 	item SilverCoin
 	{
-		Weight	=	0.01,
-		ItemType	=	base:normal,
-		DisplayName	=	Silver Coin,
-		Icon	=	SilverCoin,
+        DisplayCategory = Mods,
+		Weight = 0.01,
+		ItemType = Normal,
+		DisplayName = Silver Coin,
+		Icon = SilverCoin,
+		StaticModel = SilverCoin,
 		WorldStaticModel = SilverCoin,
 	}
 
@@ -51,10 +55,12 @@ module Shops {
 
 	item EventCoin
 	{
-		Weight	=	0.01,
-		ItemType	=	base:normal,
-		DisplayName	=	Event Coin,
-		Icon	=	EventCoin,
+        DisplayCategory = Mods,
+		Weight = 0.01,
+		ItemType = Normal,
+		DisplayName = Event Coin,
+		Icon = EventCoin,
+		StaticModel = EventCoin,
 		WorldStaticModel = EventCoin,
 	}
 
@@ -67,28 +73,34 @@ module Shops {
 
 	item SurvivalPack
 	{
-		Weight	=	0.01,
-		ItemType	=	base:normal,
-		DisplayName	= Survival Pack,
-		Icon	=	Present4,
+        DisplayCategory = Mods,
+		Weight = 0.01,
+		ItemType = Normal,
+		DisplayName = Survival Pack,
+		Icon = Present4,
+		StaticModel = Present4,
+		WorldStaticModel = Present4,
 	}
 
 	item PlayerShop
 	{
-		Weight	=	0.01,
-		ItemType	=	base:normal,
-		DisplayName	= Player Shop,
-		Icon	=	PlayerShop,
-		Tags = shops:PlayerShop
+        DisplayCategory = Mods,
+		Weight = 0.01,
+		ItemType = Normal,
+		DisplayName = Player Shop,
+		Icon = PlayerShop,
+		Tags = shops:PlayerShop,
+		WorldObjectSprite = playershop_0,
 	}
 
 	item PlayerShopFreezer
 	{
-		Weight	=	0.01,
-		ItemType	=	base:normal,
-		DisplayName	= Player Shop (Freezer),
-		Icon	=	PlayerShop,
-		Tags = shops:PlayerShopFreezer
+        DisplayCategory = Mods,
+		Weight = 0.01,
+		ItemType = Normal,
+		DisplayName = Player Shop (Freezer),
+		Icon = PlayerShop,
+		Tags = shops:PlayerShopFreezer,
+		WorldObjectSprite = playershop_1,
 	}
-
 }

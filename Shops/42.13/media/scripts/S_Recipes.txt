@@ -1,11 +1,11 @@
 module Shops {
-
  	craftRecipe BuildPlayerShop
  	{
 		timedAction = Making,
 		Time = 150,
-		Tags = InHandCraft;CanBeDoneInDark,
+		Tags = AnySurfaceCraft;CanBeDoneFromFloor,
 		Category = Carpentry,
+		needToBeLearn = False,
  	
 		inputs
 		{
@@ -24,8 +24,9 @@ module Shops {
  	{
 		timedAction = Making,
 		Time = 150,
-		Tags = InHandCraft;CanBeDoneInDark,
+		Tags = AnySurfaceCraft;CanBeDoneFromFloor,
 		Category = Carpentry,
+		needToBeLearn = False,
 		
 		inputs
 		{

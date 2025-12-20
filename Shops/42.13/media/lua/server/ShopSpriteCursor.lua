@@ -14,13 +14,15 @@ function ShopSpriteCursor:create(x, y, z, north, sprite)
 	local square = cell:getGridSquare(x, y, z)
 	local shop = IsoThumpable.new(cell, self.square, sprite, north, self)
 	local isPlayerShop = string.find(sprite,PlayerShop.spritePrefix)
-	local itemTag = ItemTag.shops_PlayerShop
+	local itemTag = nil
 	if isPlayerShop then
 		shop:setIsContainer(true);
 		shop:setCanBeLockByPadlock(true)
 		if isFreezer(sprite) then
 			shop:getContainer():setType("freezer");
-			itemTag = ItemTag.shops_PlayerShopFreezer
+			itemTag = ItemTag.get(ResourceLocation.of("shops:PlayerShopFreezer"))
+		else
+			itemTag = ItemTag.get(ResourceLocation.of("shops:PlayerShop"))
 		end
 	end
 	shop:setSprite(sprite)
@@ -33,8 +35,17 @@ function ShopSpriteCursor:create(x, y, z, north, sprite)
 		shop:transmitModData()
 	end
 	getWorld():getCell():setDrag(nil, 0);
-	local playerShop = self.character:getInventory():getFirstTag(itemTag)
-	self.character:getInventory():Remove(playerShop)
+	if itemTag and isPlayerShop then
+		print("ShopSpriteCursor: itemTag=" .. tostring(itemTag))
+		local playerShop = self.character:getInventory():getFirstTag(itemTag)
+		print("ShopSpriteCursor: playerShop=" .. tostring(playerShop))
+		if playerShop then
+			print("ShopSpriteCursor: Removing item from inventory")
+			self.character:getInventory():Remove(playerShop)
+		end
+	else
+		print("ShopSpriteCursor: itemTag or isPlayerShop is false. itemTag=" .. tostring(itemTag) .. " isPlayerShop=" .. tostring(isPlayerShop))
+	end
 end
 
 function ShopSpriteCursor:render(x, y, z, square)

@@ -102,19 +102,27 @@ function PlayerShop.toggleBusy(shop, username, busy)
 end
 
 function PlayerShop.ChangeSprite(worldobjects, playerNum, sprites, shop)
-    local sprite = shop:getSprite():getName()
-    local spriteNum = string.gsub(sprite, PlayerShop.spritePrefix, "")
+    if not shop or not sprites then return end
+    
+    local currentSprite = shop:getSprite():getName()
     local coords = { x = shop:getX(), y = shop:getY(), z = shop:getZ() }
-    local sprite = nil
-    if (spriteNum % 2 == 0) then
-        sprite = sprites[1]
+    local newSprite = nil
+    
+    -- Keep the same orientation (odd/even) when changing signs
+    -- Check if current sprite ends with odd or even number
+    local lastChar = string.sub(currentSprite, -1)
+    local spriteNum = lastChar and tonumber(lastChar) or 0
+    
+    if spriteNum and (spriteNum % 2 == 0) then
+        newSprite = sprites[1]
     else
-        sprite = sprites[2]
+        newSprite = sprites[2]
     end
-    if sprite then
-        if isClient() then
-            sendClientCommand("PS", 'ChangeSprite', { sprite, coords })
-        end
+    
+    if newSprite then
+        print("ChangeSprite: Sending command with sprite=" .. newSprite)
+        sendClientCommand("PS", 'ChangeSprite', { newSprite, coords })
+        shop:setSprite(newSprite)
     end
 end
 
@@ -125,6 +133,7 @@ function PlayerShop.PlayerShopContextMenu(playerNum, context, worldobjects)
     if found then
         owner = wo:getModData().owner
         local optionView = getText("IGUI_ViewPlayerShop", owner)
+        local clickedSquare = wo:getSquare()
         local viewPS = context:addOption(optionView, worldobjects, PlayerShop.playerShopUI, playerNum, clickedSquare, wo);
         local isBusy = PlayerShop.isBusy(wo)
         if isBusy then viewPS.notAvailable = isBusy end
@@ -155,19 +164,19 @@ function PlayerShop.PlayerShopContextMenu(playerNum, context, worldobjects)
             subShop:addOption(UIText.PickupPlayerShop, worldobjects, PlayerShop.PickupShop, player, wo);
         end
     end
-    if ItemTag.shops_PlayerShop ~= nil then
-        local playerShop = player:getInventory():containsTag(ItemTag.shops_PlayerShop)
-        if playerShop then
-            context:addOption(UIText.AddPlayerShop, worldobjects, PlayerShop.addPlayerShop, playerNum,
-                PlayerShop.sprites.NoSign);
-        end
+
+    local inv = player:getInventory()
+
+    print(inv)
+
+    if inv:containsTag(ItemTag.get(ResourceLocation.of("shops:PlayerShop"))) then
+        context:addOption(UIText.AddPlayerShop, worldobjects, PlayerShop.addPlayerShop, playerNum,
+            PlayerShop.sprites.NoSign);
     end
-    if ItemTag.shops_PlayerShopFreezer ~= nil then
-        local playerShop = player:getInventory():containsTag(ItemTag.shops_PlayerShopFreezer)
-        if playerShop then
-            context:addOption(UIText.AddPlayerShopFreezer, worldobjects, PlayerShop.addPlayerShop, playerNum,
-                PlayerShop.sprites.Freezer);
-        end
+
+    if inv:containsTag(ItemTag.get(ResourceLocation.of("shops:PlayerShopFreezer"))) then
+        context:addOption(UIText.AddPlayerShopFreezer, worldobjects, PlayerShop.addPlayerShop, playerNum,
+            PlayerShop.sprites.Freezer);
     end
 end
 
@@ -183,7 +192,9 @@ function PlayerShop.ItemsSellPrice(playerNum, context, items)
     local container = items[1]:getContainer()
     local player = getPlayer(playerNum)
     if container and container:isInCharacterInventory(player) then
-        if ItemTag.shops_Write ~= nil and player:getInventory():containsTag(ItemTag.shops_Write) then
+        local inv = player:getInventory()
+
+        if ItemTag.Write ~= nil and inv:containsTag(ItemTag.get(ResourceLocation.of("shops:Write"))) then
             context:addOption(UIText.SetPricePlayerShop, worldobjects, PlayerShop.PlayerShopSetPrice, playerNum, items,
                 container);
         end

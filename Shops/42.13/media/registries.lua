@@ -4,10 +4,10 @@
 local function safeRegister(registryName, itemName)
     local registry = _G[registryName]
     if not registry then return end
-    
+
     local keyName = string.gsub(itemName, ":", "_")
     if registry[keyName] then return end -- Already registered
-    
+
     if registryName == "CharacterTrait" then
         CharacterTrait.register(itemName)
     elseif registryName == "CharacterProfession" then

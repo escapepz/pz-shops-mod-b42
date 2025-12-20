@@ -3,10 +3,9 @@
 
 if not isServer() then return end
 
-local BServer = require "BalanceServer"
-
 CurrencyTestServer = {}
 
+local BServer = nil
 local STORE = "CoinBalance"
 local PREFIX = "__TEST__"
 
@@ -182,6 +181,8 @@ function Utilities.IsPlayerAdmin(playerObj)
 end
 
 Events.OnGameBoot.Add(function()
+    BServer = require "BalanceServer"
+
     Events.OnClientCommand.Add(function(module, command, player, args)
         if module ~= "CurrencyTest" then return end
         if command ~= "run" then return end

@@ -1,6 +1,5 @@
 UIText = {
-    
-    ShopUITitle = "Valhalla Shop",
+    ShopUITitle = "B42 Shop",
     TransferUITitle = "Transfer",
 
     ShopViewOnly = getText("IGUI_Shop_ViewOnly"),

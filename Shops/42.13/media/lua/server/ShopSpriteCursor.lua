@@ -14,13 +14,15 @@ function ShopSpriteCursor:create(x, y, z, north, sprite)
 	local square = cell:getGridSquare(x, y, z)
 	local shop = IsoThumpable.new(cell, self.square, sprite, north, self)
 	local isPlayerShop = string.find(sprite,PlayerShop.spritePrefix)
-	local itemTag = "PlayerShop"
+	local itemTag = nil
 	if isPlayerShop then
 		shop:setIsContainer(true);
 		shop:setCanBeLockByPadlock(true)
 		if isFreezer(sprite) then
 			shop:getContainer():setType("freezer");
-			itemTag = "PlayerShopFreezer"
+			itemTag = ItemTag.get(ResourceLocation.of("shops:PlayerShopFreezer"))
+		else
+			itemTag = ItemTag.get(ResourceLocation.of("shops:PlayerShop"))
 		end
 	end
 	shop:setSprite(sprite)

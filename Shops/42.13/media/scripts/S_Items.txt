@@ -1,7 +1,7 @@
 module Shops {
     item GoldCoin
 	{
-        DisplayCategory = Mods,
+        DisplayCategory = Container ,
 		Weight = 0.01,
 		ItemType = Normal,
 		DisplayName = Gold Coin,
@@ -19,7 +19,7 @@ module Shops {
 
 	item CopperCoin
 	{
-        DisplayCategory = Mods,
+        DisplayCategory = Container ,
 		Weight = 0.01,
 		ItemType = Normal,
 		DisplayName = Copper Coin,
@@ -37,7 +37,7 @@ module Shops {
 	
 	item SilverCoin
 	{
-        DisplayCategory = Mods,
+        DisplayCategory = Container ,
 		Weight = 0.01,
 		ItemType = Normal,
 		DisplayName = Silver Coin,
@@ -55,7 +55,7 @@ module Shops {
 
 	item EventCoin
 	{
-        DisplayCategory = Mods,
+        DisplayCategory = Container ,
 		Weight = 0.01,
 		ItemType = Normal,
 		DisplayName = Event Coin,
@@ -73,7 +73,7 @@ module Shops {
 
 	item SurvivalPack
 	{
-        DisplayCategory = Mods,
+        DisplayCategory = Container ,
 		Weight = 0.01,
 		ItemType = Normal,
 		DisplayName = Survival Pack,
@@ -84,7 +84,7 @@ module Shops {
 
 	item PlayerShop
 	{
-        DisplayCategory = Mods,
+        DisplayCategory = Container ,
 		Weight = 0.01,
 		ItemType = Normal,
 		DisplayName = Player Shop,
@@ -95,7 +95,7 @@ module Shops {
 
 	item PlayerShopFreezer
 	{
-        DisplayCategory = Mods,
+        DisplayCategory = Container ,
 		Weight = 0.01,
 		ItemType = Normal,
 		DisplayName = Player Shop (Freezer),

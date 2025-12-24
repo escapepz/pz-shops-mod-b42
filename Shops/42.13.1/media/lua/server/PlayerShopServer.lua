@@ -35,6 +35,31 @@ function PSServer.ChangeSprite(player,args)
     end
 end
 
+function PSServer.SetItemPrice(player, args)
+    local itemID = args.itemID
+    local price = args.price
+    local specialCoin = args.specialCoin
+    
+    if not itemID then return end
+    
+    -- Find item in player inventory by ID
+    local item = player:getInventory():getItemById(itemID)
+    if not item then return end
+    
+    -- Store price on the item itself (persists with item when moved)
+    local modData = item:getModData()
+    if price == nil then
+        modData.price = nil
+        modData.specialCoin = nil
+    else
+        modData.price = price
+        modData.specialCoin = specialCoin
+    end
+    
+    -- Sync item ModData to all clients
+    syncItemModData(player, item)
+end
+
 function PSServer.PickupShop(player, args)
     local coords = args[1]
     local shop = getShopObject(coords)

@@ -8,10 +8,11 @@ SetPriceUI.transferInProgress = false
 local width = 220
 local height = 150
 
-function SetPriceUI:show(player,items,container)
+function SetPriceUI:show(player, items, container)
     if SetPriceUI.instance==nil then
-        SetPriceUI.instance = SetPriceUI:new (0, 0, width, height, player,items);
+        SetPriceUI.instance = SetPriceUI:new (0, 0, width, height, player, items);
         SetPriceUI.instance.container = container
+        SetPriceUI.instance.player = player
         SetPriceUI.instance:initialise();
         SetPriceUI.instance:instantiate();
     end
@@ -100,8 +101,13 @@ function SetPriceUI:setButton()
             price = nil
             isSpecialCoin = nil
         end
-        v:getModData().price = price
-        v:getModData().specialCoin = isSpecialCoin
+        -- Send command to server to set price (stored on item ModData)
+        local args = {
+            itemID = v:getID(),
+            price = price,
+            specialCoin = isSpecialCoin
+        }
+        sendClientCommand("PS", "SetItemPrice", args)
     end
     self:close()
 end

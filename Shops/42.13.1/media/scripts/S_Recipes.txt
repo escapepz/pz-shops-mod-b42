@@ -5,7 +5,8 @@ module Shops {
 		Time = 150,
 		Tags = AnySurfaceCraft;CanBeDoneFromFloor,
 		Category = Carpentry,
-		needToBeLearn = False,
+		needToBeLearn = True,
+		canWalk = false,
  	
 		inputs
 		{
@@ -26,7 +27,8 @@ module Shops {
 		Time = 150,
 		Tags = AnySurfaceCraft;CanBeDoneFromFloor,
 		Category = Carpentry,
-		needToBeLearn = False,
+		needToBeLearn = True,
+		canWalk = false,
 		
 		inputs
 		{

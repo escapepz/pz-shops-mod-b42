@@ -21,5 +21,4 @@ module Shops
 			volume = 0.1,
 		}
 	}
-
 }

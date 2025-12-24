@@ -27,7 +27,19 @@ function ShopBuyAction:stop()
     ISBaseTimedAction.stop(self)
 end
 
+function ShopBuyAction:getDuration()
+    if self.character:isTimedActionInstant() then
+        return 1
+    end
+    return 50
+end
+
 function ShopBuyAction:perform()
+    self.character:playSound("CashRegister")
+    ISBaseTimedAction.perform(self)
+end
+
+function ShopBuyAction:complete()
     local cartItems = self.shopUI.cartItems.items
     local playerInv = self.character:getInventory()
     for k,v in pairs(cartItems) do
@@ -40,29 +52,45 @@ function ShopBuyAction:perform()
                 if drop then
                     if v.quantity then
                         for i = 1,v.quantity,1 do
-                            square:AddWorldInventoryItem(v.item, 0.0, 0.0, 0.0)
+                            local newItem = instanceItem(v.item)
+                            square:AddTileObject(newItem)
+                            newItem:transmitCompleteItemToClients()
                             Nfunction.buildLogShop(v.item)
                         end
                     else
-                        square:AddWorldInventoryItem(v.item, 0.0, 0.0, 0.0)
+                        local newItem = instanceItem(v.item)
+                        square:AddTileObject(newItem)
+                        newItem:transmitCompleteItemToClients()
                         Nfunction.buildLogShop(v.item)
                     end
                 else
                     if v.quantity then 
-                        playerInv:AddItems(v.item,v.quantity);
+                        for i = 1, v.quantity do
+                            local newItem = instanceItem(v.item)
+                            playerInv:AddItem(newItem)
+                            sendAddItemToContainer(playerInv, newItem)
+                        end
                         Nfunction.buildLogShop(v.item,v.quantity)
                     else
-                        playerInv:AddItem(v.item);
+                        local newItem = instanceItem(v.item)
+                        playerInv:AddItem(newItem)
+                        sendAddItemToContainer(playerInv, newItem)
                         Nfunction.buildLogShop(v.item)
                     end
                 end
             end
         else
             if item.quantity then
-                playerInv:AddItems(item.type,item.quantity);
+                for i = 1, item.quantity do
+                    local newItem = instanceItem(item.type)
+                    playerInv:AddItem(newItem)
+                    sendAddItemToContainer(playerInv, newItem)
+                end
                 Nfunction.buildLogShop(item.type,item.quantity)
             else
-                playerInv:AddItem(item.type);
+                local newItem = instanceItem(item.type)
+                playerInv:AddItem(newItem)
+                sendAddItemToContainer(playerInv, newItem)
                 Nfunction.buildLogShop(item.type)
             end
         end 
@@ -75,22 +103,18 @@ function ShopBuyAction:perform()
     }
     Nfunction.logShop(coords)
     local ticket = self.ticket
-    self.character:playSound("CashRegister")
     sendClientCommand("BS", "Withdraw", {ticket.coin,ticket.specialCoin})
     self.shopUI.cartItems:clear()
-    ISBaseTimedAction.perform(self)
+    return true
 end
 
-function ShopBuyAction:new(character,shopUI,ticket)
-    local o = {}
-    setmetatable(o, self)
-    self.__index = self
-    o.character = character
+function ShopBuyAction:new(character, shopUI, ticket)
+    local o = ISBaseTimedAction.new(self, character)
     o.shopUI = shopUI
     o.shop = shopUI.shop
     o.ticket = ticket
     o.stopOnWalk = true
     o.stopOnRun = true
-    o.maxTime = 100
+    o.maxTime = o:getDuration()
     return o
 end 

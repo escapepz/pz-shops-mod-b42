@@ -1,5 +1,8 @@
 IGUI_EN = {
     
+    -- Item Display Categories
+    IGUI_ItemCat_Container = "Container",
+
     IGUI_Loot_All_Coins = "Loot All Coins",
     IGUI_Coins_To_Account = "Move Coins to Account",
     IGUI_Contains = "Contains",
@@ -55,5 +58,4 @@ IGUI_EN = {
     IGUI_Tab_Event = "Event",
 	IGUI_Tab_Vehicles = "Vehicles",
 	IGUI_Tab_Weapons = "Weapons",
-
 }

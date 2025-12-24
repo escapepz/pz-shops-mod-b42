@@ -1,10 +1,9 @@
 module Shops {
-    item GoldCoin
+	item GoldCoin
 	{
-        DisplayCategory = Container ,
+		DisplayCategory = Container,
 		Weight = 0.01,
-		ItemType = Normal,
-		DisplayName = Gold Coin,
+		ItemType = base:normal,
 		Icon = GoldCoin,
 		StaticModel = GoldCoin,
 		WorldStaticModel = GoldCoin,
@@ -19,10 +18,9 @@ module Shops {
 
 	item CopperCoin
 	{
-        DisplayCategory = Container ,
+        DisplayCategory = Container,
 		Weight = 0.01,
-		ItemType = Normal,
-		DisplayName = Copper Coin,
+		ItemType = base:normal,
 		Icon = CopperCoin,
 		StaticModel = CopperCoin,
 		WorldStaticModel = CopperCoin,
@@ -37,10 +35,9 @@ module Shops {
 	
 	item SilverCoin
 	{
-        DisplayCategory = Container ,
+        DisplayCategory = Container,
 		Weight = 0.01,
-		ItemType = Normal,
-		DisplayName = Silver Coin,
+		ItemType = base:normal,
 		Icon = SilverCoin,
 		StaticModel = SilverCoin,
 		WorldStaticModel = SilverCoin,
@@ -55,10 +52,9 @@ module Shops {
 
 	item EventCoin
 	{
-        DisplayCategory = Container ,
+        DisplayCategory = Container,
 		Weight = 0.01,
-		ItemType = Normal,
-		DisplayName = Event Coin,
+		ItemType = base:normal,
 		Icon = EventCoin,
 		StaticModel = EventCoin,
 		WorldStaticModel = EventCoin,
@@ -73,10 +69,9 @@ module Shops {
 
 	item SurvivalPack
 	{
-        DisplayCategory = Container ,
+        DisplayCategory = Container,
 		Weight = 0.01,
-		ItemType = Normal,
-		DisplayName = Survival Pack,
+		ItemType = base:normal,
 		Icon = Present4,
 		StaticModel = Present4,
 		WorldStaticModel = Present4,
@@ -84,10 +79,9 @@ module Shops {
 
 	item PlayerShop
 	{
-        DisplayCategory = Container ,
+        DisplayCategory = Container,
 		Weight = 0.01,
-		ItemType = Normal,
-		DisplayName = Player Shop,
+		ItemType = base:normal,
 		Icon = PlayerShop,
 		Tags = shops:PlayerShop,
 		WorldObjectSprite = playershop_0,
@@ -95,10 +89,9 @@ module Shops {
 
 	item PlayerShopFreezer
 	{
-        DisplayCategory = Container ,
+        DisplayCategory = Container,
 		Weight = 0.01,
-		ItemType = Normal,
-		DisplayName = Player Shop (Freezer),
+		ItemType = base:normal,
 		Icon = PlayerShop,
 		Tags = shops:PlayerShopFreezer,
 		WorldObjectSprite = playershop_1,

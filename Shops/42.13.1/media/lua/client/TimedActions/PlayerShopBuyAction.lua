@@ -26,7 +26,19 @@ function PlayerShopBuyAction:stop()
     ISBaseTimedAction.stop(self)
 end
 
+function PlayerShopBuyAction:getDuration()
+    if self.character:isTimedActionInstant() then
+        return 1
+    end
+    return 50
+end
+
 function PlayerShopBuyAction:perform()
+    self.character:playSound("CashRegister")
+    ISBaseTimedAction.perform(self)
+end
+
+function PlayerShopBuyAction:complete()
     local cartItems = self.shopUI.cartItems.items
     local playerInv = self.character:getInventory()
     local total = 0
@@ -34,11 +46,12 @@ function PlayerShopBuyAction:perform()
     for k,v in pairs(cartItems) do
         local item = v.item
         local invItem = item.invItem
-        shopContainer = self.shop:getContainer()
+        local shopContainer = self.shop:getContainer()
         if shopContainer:contains(invItem) then
             shopContainer:Remove(invItem)
-            shopContainer:removeItemOnServer(invItem)
-            playerInv:addItem(invItem)
+            sendRemoveItemFromContainer(shopContainer, invItem)
+            playerInv:AddItem(invItem)
+            sendAddItemToContainer(playerInv, invItem)
             if SandboxVars.Shops.PurchaseLog then Nfunction.buildLogShop(invItem:getFullType()) end
             if item.specialCoin then
                 totalSpecial = totalSpecial + item.price
@@ -57,7 +70,6 @@ function PlayerShopBuyAction:perform()
         z = shopSquare:getZ(),
     }
     if SandboxVars.Shops.PurchaseLog then Nfunction.logShop(coords,"Purchase") end
-    self.character:playSound("CashRegister")
     local income = self.shop:getModData().income
     local data = {
         b = self.character:getUsername(),
@@ -69,19 +81,16 @@ function PlayerShopBuyAction:perform()
     end
     self.shop:transmitModData()
     self.shopUI:activateFirstTab()
-    ISBaseTimedAction.perform(self)
+    return true
 end
 
-function PlayerShopBuyAction:new(character,shopUI,ticket)
-    local o = {}
-    setmetatable(o, self)
-    self.__index = self
-    o.character = character
+function PlayerShopBuyAction:new(character, shopUI, ticket)
+    local o = ISBaseTimedAction.new(self, character)
     o.shopUI = shopUI
     o.ticket = ticket
     o.shop = shopUI.shop
     o.stopOnWalk = true
     o.stopOnRun = true
-    o.maxTime = 100
+    o.maxTime = o:getDuration()
     return o
 end 

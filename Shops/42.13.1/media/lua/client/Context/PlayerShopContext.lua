@@ -70,12 +70,13 @@ function PlayerShop.PickupShop(worldobjects, player, shop)
         player:setHaloNote(UIText.RemoveIncomePlayerShop, 255, 255, 255, 400);
         return
     end
-    shop:getSquare():transmitRemoveItemFromSquare(shop)
-    local item = "Shops.PlayerShop"
-    if shop:getContainer():getType() == "freezer" then
-        item = "Shops.PlayerShopFreezer"
-    end
-    player:getInventory():AddItem(item)
+    -- Send command to server to handle pickup
+    local coords = {
+        x = shop:getX(),
+        y = shop:getY(),
+        z = shop:getZ()
+    }
+    sendClientCommand("PS", "PickupShop", {coords})
     PlayerShop.toggleBusy(shop, player:getUsername(), false)
 end
 

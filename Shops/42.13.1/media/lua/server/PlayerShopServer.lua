@@ -35,6 +35,38 @@ function PSServer.ChangeSprite(player,args)
     end
 end
 
+function PSServer.PickupShop(player, args)
+    local coords = args[1]
+    local shop = getShopObject(coords)
+    
+    if not shop then return end
+    
+    -- Check if shop is empty
+    local items = shop:getContainer():getItems()
+    if items and items:size() > 0 then
+        return
+    end
+    
+    local income = shop:getModData().income
+    if income and #income > 0 then
+        return
+    end
+    
+    -- Get item type
+    local itemType = "Shops.PlayerShop"
+    if shop:getContainer():getType() == "freezer" then
+        itemType = "Shops.PlayerShopFreezer"
+    end
+    
+    -- Remove shop from world
+    shop:getSquare():transmitRemoveItemFromSquare(shop)
+    
+    -- Add item to player inventory
+    local newItem = instanceItem(itemType)
+    player:getInventory():AddItem(newItem)
+    sendAddItemToContainer(player:getInventory(), newItem)
+end
+
 local function PS_OnClientCommand(module, command, player, args)
     if module == "PS" and PSServer[command] then
         PSServer[command](player, args)

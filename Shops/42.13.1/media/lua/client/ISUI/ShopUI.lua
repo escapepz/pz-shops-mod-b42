@@ -1,4 +1,9 @@
 local Nfunction = require "Nfunction"
+
+local function generateTxnId()
+	return tostring(getGameTime():getWorldAgeHours()) .. "-" .. tostring(ZombRand(1, 1000000000))
+end
+
 ShopUI = ISCollapsableWindow:derive("ShopUI");
 ShopUI.instance = nil;
 ShopUI.SMALL_FONT_HGT = getTextManager():getFontFromEnum(UIFont.Small):getLineHeight()
@@ -552,27 +557,96 @@ function ShopUI:cancelBuyBtn()
     currentAction.action:forceStop()
 end
 
+function ShopUI:buildBuyTicket()
+	local ticket = {
+		txnId = generateTxnId(),
+		coin = 0,
+		specialCoin = 0,
+		items = {}
+	}
+
+	for _, row in ipairs(self.cartItems.items) do
+		local item = row.item
+
+		-- Accumulate price
+		if item.specialCoin then
+			ticket.specialCoin = ticket.specialCoin + item.price
+		else
+			ticket.coin = ticket.coin + item.price
+		end
+
+		-- Handle compound items (packs)
+		if item.items then
+			-- This is a pack item, store with items array
+			local packEntry = {
+				items = {},
+				drop = item.drop
+			}
+			for _, packItem in ipairs(item.items) do
+				table.insert(packEntry.items, {
+					item = packItem.item,
+					quantity = packItem.quantity or 1
+				})
+			end
+			table.insert(ticket.items, packEntry)
+		else
+			-- Simple item
+			table.insert(ticket.items, {
+				type = item.type,
+				quantity = item.quantity or 1
+			})
+		end
+	end
+
+	return ticket
+end
+
 function ShopUI:buyCartBtn()
-    self.actionInProgress = true
-    local ticket = {}
-    ticket.coin = self.total
-    ticket.specialCoin = self.totalSpecial
-    local action = ShopBuyAction:new(self.player, self, ticket);
-    ISTimedActionQueue.add(action);
-    self.buyCartButton.enable = false
-    self.buyCartButton:setVisible(false)
-    self.cancelBuyButton.enable = true
-    self.cancelBuyButton:setVisible(true)
+	self.actionInProgress = true
+
+	local ticket = self:buildBuyTicket()
+	local action = ShopBuyAction:new(self.player, self.shop, ticket)
+
+	ISTimedActionQueue.add(action)
+	self.buyCartButton.enable = false
+	self.buyCartButton:setVisible(false)
+	self.cancelBuyButton.enable = true
+	self.cancelBuyButton:setVisible(true)
+end
+
+function ShopUI:buildSellList()
+	local sellList = {
+		txnId = generateTxnId(),
+		items = {}
+	}
+
+	for _, row in ipairs(self.cartItems.items) do
+		local item = row.item
+		local invItem = item.invItem
+
+		if invItem then
+			table.insert(sellList.items, {
+				itemID = invItem:getID(),
+				price = item.price,
+				specialCoin = item.specialCoin or false
+			})
+		end
+	end
+
+	return sellList
 end
 
 function ShopUI:sellCartBtn()
-    self.actionInProgress = true
-    local action = ShopSellAction:new(self.player, self);
-    ISTimedActionQueue.add(action);
-    self.sellCartButton.enable = false
-    self.sellCartButton:setVisible(false)
-    self.cancelBuyButton.enable = true
-    self.cancelBuyButton:setVisible(true)
+	self.actionInProgress = true
+
+	local sellList = self:buildSellList()
+	local action = ShopSellAction:new(self.player, self.shop, sellList)
+
+	ISTimedActionQueue.add(action)
+	self.sellCartButton.enable = false
+	self.sellCartButton:setVisible(false)
+	self.cancelBuyButton.enable = true
+	self.cancelBuyButton:setVisible(true)
 end
 
 function ShopUI:render()
@@ -580,10 +654,20 @@ function ShopUI:render()
     local actionQueue = ISTimedActionQueue.getTimedActionQueue(self.player)
     local currentAction = actionQueue.queue[1]
     if not currentAction then
+        -- Action completed: clear cart and reset buttons
+        if self.actionInProgress then
+            self.cartItems:clear()
+            self:updateTotal()
+        end
         self.actionInProgress = false
         return
     end
     if not (currentAction.Type == "ShopBuyAction" or currentAction.Type == "ShopSellAction") then
+        -- Different action type: clear shop action state
+        if self.actionInProgress then
+            self.cartItems:clear()
+            self:updateTotal()
+        end
         self.actionInProgress = false
         return
     end

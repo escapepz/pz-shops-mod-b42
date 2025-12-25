@@ -2,8 +2,24 @@ require "TimedActions/ISBaseTimedAction"
 
 ShopSellAction = ISBaseTimedAction:derive("ShopSellAction")
 local Nfunction = require "Nfunction"
-local TransactionRegistry = require "TransactionRegistry"
-local ShopAudit = require "ShopAudit"
+
+-- Lazy-load server modules to avoid initialization order issues
+local TransactionRegistry
+local ShopAudit
+
+local function getTransactionRegistry()
+	if not TransactionRegistry then
+		TransactionRegistry = require "TransactionRegistry"
+	end
+	return TransactionRegistry
+end
+
+local function getShopAudit()
+	if not ShopAudit then
+		ShopAudit = require "ShopAudit"
+	end
+	return ShopAudit
+end
 
 function ShopSellAction:isValid()
 	return self.sellList and self.sellList.items and #self.sellList.items > 0
@@ -45,7 +61,8 @@ function ShopSellAction:complete()
 	local txnId = self.sellList.txnId
 
 	-- Anti-dupe check: reject if already processed
-	if TransactionRegistry.isProcessed(username, txnId) then
+	local TxnRegistry = getTransactionRegistry()
+	if TxnRegistry and TxnRegistry.isProcessed(username, txnId) then
 		return false
 	end
 
@@ -90,17 +107,29 @@ function ShopSellAction:complete()
 
 	-- Deposit virtual balance (no coin items created)
 	if total > 0 or totalSpecial > 0 then
-		Balance.deposit(username, total, totalSpecial)
+		-- Direct ModData manipulation since we're on server
+		local account = ModData.get("CoinBalance")[username]
+		if not account then return false end
+
+		account.coin = account.coin + total
+		account.specialCoin = account.specialCoin + totalSpecial
+		ModData.transmit("CoinBalance")
 	end
 
 	-- Mark transaction as processed
-	TransactionRegistry.markProcessed(username, txnId)
+	local TxnRegistry = getTransactionRegistry()
+	if TxnRegistry then
+		TxnRegistry.markProcessed(username, txnId)
+	end
 
 	-- Audit log entry (after successful transaction)
 	local coin, specialCoin = Balance.getUserBalance(username)
 	local shopSquare = self.shop:getSquare()
 
-	ShopAudit.append({
+	local Audit = getShopAudit()
+	if not Audit then return true end
+
+	Audit.append({
 		time = os.time(),
 		worldHours = getGameTime():getWorldAgeHours(),
 		txnId = txnId,

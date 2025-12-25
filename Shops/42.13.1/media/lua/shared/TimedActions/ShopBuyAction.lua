@@ -2,8 +2,24 @@ require "TimedActions/ISBaseTimedAction"
 
 ShopBuyAction = ISBaseTimedAction:derive("ShopBuyAction")
 local Nfunction = require "Nfunction"
-local TransactionRegistry = require "TransactionRegistry"
-local ShopAudit = require "ShopAudit"
+
+-- Lazy-load server modules to avoid initialization order issues
+local TransactionRegistry
+local ShopAudit
+
+local function getTransactionRegistry()
+	if not TransactionRegistry then
+		TransactionRegistry = require "TransactionRegistry"
+	end
+	return TransactionRegistry
+end
+
+local function getShopAudit()
+	if not ShopAudit then
+		ShopAudit = require "ShopAudit"
+	end
+	return ShopAudit
+end
 
 function ShopBuyAction:isValid()
 	local username = self.character:getUsername()
@@ -46,7 +62,8 @@ function ShopBuyAction:complete()
 	local txnId = self.ticket.txnId
 
 	-- Anti-dupe check: reject if already processed
-	if TransactionRegistry.isProcessed(username, txnId) then
+	local TxnRegistry = getTransactionRegistry()
+	if TxnRegistry and TxnRegistry.isProcessed(username, txnId) then
 		return false
 	end
 
@@ -58,9 +75,14 @@ function ShopBuyAction:complete()
 	end
 
 	-- Withdraw balance from virtual wallet
-	if not Balance.withdraw(username, ticket.coin, ticket.specialCoin) then
-		return false
-	end
+	-- Direct ModData manipulation since we're on server
+	local account = ModData.get("CoinBalance")[username]
+	if not account then return false end
+	if account.coin < ticket.coin or account.specialCoin < ticket.specialCoin then return false end
+
+	account.coin = account.coin - ticket.coin
+	account.specialCoin = account.specialCoin - ticket.specialCoin
+	ModData.transmit("CoinBalance")
 
 	-- Spawn purchased items
 	local playerInv = self.character:getInventory()
@@ -100,20 +122,21 @@ function ShopBuyAction:complete()
 		end
 	end
 
-	-- Log transaction
-	local coords = {
-		x = shopSquare:getX(),
-		y = shopSquare:getY(),
-		z = shopSquare:getZ(),
-	}
-	Nfunction.logShop(coords)
+	-- Note: Nfunction.logShop() is client-side only, skipping on server
+	-- Audit logging is handled by ShopAudit.append() below
 
 	-- Mark transaction as processed
-	TransactionRegistry.markProcessed(username, txnId)
+	local TxnRegistry = getTransactionRegistry()
+	if TxnRegistry then
+		TxnRegistry.markProcessed(username, txnId)
+	end
 
 	-- Audit log entry (after successful transaction)
 	local coin, specialCoin = Balance.getUserBalance(username)
-	ShopAudit.append({
+	local Audit = getShopAudit()
+	if not Audit then return true end
+
+	Audit.append({
 		time = os.time(),
 		worldHours = getGameTime():getWorldAgeHours(),
 		txnId = txnId,

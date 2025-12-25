@@ -36,10 +36,13 @@ function Currency.LootCoinsObjectContextMenu(playerNum, context, items)
 end
 
 function Currency.coinsToAccount(worldobjects, items, coinQuantity)
+    local itemIDs = {}
     for k, v in pairs(items) do
+        table.insert(itemIDs, v:getID())
+        -- Remove item from main inventory immediately (optimistic update)
         v:getContainer():Remove(v)
     end
-    sendClientCommand("BS", "Deposit", { coinQuantity.coin, coinQuantity.specialCoin })
+    sendClientCommand("BS", "Deposit", { coinQuantity.coin, coinQuantity.specialCoin, itemIDs })
 end
 
 function Currency.CoinsToAccountObjectContextMenu(playerNum, context, items)

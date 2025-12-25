@@ -70,6 +70,16 @@ function BServer.Deposit(player,args)
     msg = string.format(msg,username,account.coin-args[1],account.specialCoin-args[2],account.coin,account.specialCoin)
     BServer.writeLog(msg)
 
+    -- Remove coin items from player inventory if provided
+    if args[3] and type(args[3]) == "table" then
+        for i, itemID in ipairs(args[3]) do
+            local item = player:getInventory():getItemById(itemID)
+            if item then
+                item:getContainer():Remove(item)
+            end
+        end
+    end
+
     ModData.transmit("CoinBalance")
 end
 

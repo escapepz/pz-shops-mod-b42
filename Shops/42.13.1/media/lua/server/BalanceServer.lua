@@ -107,6 +107,19 @@ function BServer.Withdraw(player,args)
     ModData.transmit("CoinBalance")
 end
 
+function BServer.UnlinkWallet(player,args)
+    local username = player:getUsername()
+    local account = ModData.get("CoinBalance")[username]
+    if not account then return end
+    account.linkedTo = nil
+
+    msg = "Unlink: %s unlinked wallet"
+    msg = string.format(msg,username)
+    BServer.writeLog(msg)
+
+    ModData.transmit("CoinBalance")
+end
+
 local function BS_OnClientCommand(module, command, player, args)
     if module == "BS" and BServer[command] then
         BServer[command](player, args)

@@ -92,6 +92,7 @@ function Currency.linkWallet(worldobjects,wallet,player)
     wallet:getModData().belongsTo = username
     wallet:getModData().linkedTo = linkedTo
     sendClientCommand("BS", "CreateAccount", {linkedTo})
+    ModData.request("CoinBalance")
 end
 
 function Currency.LinkWalletObjectContextMenu(playerNum, context, items)
@@ -109,7 +110,9 @@ end
 
 function Currency.unlinkWallet(worldobjects,wallet)
     wallet:getModData().belongsTo = nil
-    wallet:getModData().linkedTo = nil 
+    wallet:getModData().linkedTo = nil
+    sendClientCommand("BS", "UnlinkWallet", {})
+    ModData.request("CoinBalance")
 end
 
 function Currency.UnlinkWalletObjectContextMenu(playerNum, context, items)

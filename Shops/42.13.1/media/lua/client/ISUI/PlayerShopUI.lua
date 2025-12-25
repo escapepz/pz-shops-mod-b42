@@ -375,7 +375,22 @@ function PlayerShopUI:buyCartBtn()
     local ticket = {}
     ticket.coin = self.total
     ticket.specialCoin = self.totalSpecial
-    local action = PlayerShopBuyAction:new(self.player,self,ticket);
+    
+    -- Build cart items list with IDs for server validation
+    ticket.items = {}
+    for k, v in pairs(self.cartItems.items) do
+        local item = v.item
+        local invItem = item.invItem
+        if invItem then
+            table.insert(ticket.items, {
+                itemID = invItem:getID(),
+                price = item.price,
+                specialCoin = item.specialCoin
+            })
+        end
+    end
+    
+    local action = PlayerShopBuyAction:new(self.player, shop, ticket);
     ISTimedActionQueue.add(action);
     self.buyCartButton.enable = false
     self.buyCartButton:setVisible(false)
@@ -387,8 +402,30 @@ function PlayerShopUI:render()
     ISCollapsableWindow.render(self);
     local actionQueue = ISTimedActionQueue.getTimedActionQueue(self.player)
     local currentAction = actionQueue.queue[1]
-    if not currentAction then self.actionInProgress = false return end
-    if not (currentAction.Type == "PlayerShopBuyAction") then self.actionInProgress = false return end
+    if not currentAction then 
+        if self.actionInProgress then
+            -- Action just completed, clear cart and reset UI
+            self:clearCart()
+            self.buyCartButton.enable = true
+            self.buyCartButton:setVisible(true)
+            self.cancelBuyButton.enable = false
+            self.cancelBuyButton:setVisible(false)
+        end
+        self.actionInProgress = false 
+        return 
+    end
+    if not (currentAction.Type == "PlayerShopBuyAction") then 
+        if self.actionInProgress then
+            -- Action just completed, clear cart and reset UI
+            self:clearCart()
+            self.buyCartButton.enable = true
+            self.buyCartButton:setVisible(true)
+            self.cancelBuyButton.enable = false
+            self.cancelBuyButton:setVisible(false)
+        end
+        self.actionInProgress = false 
+        return 
+    end
     self:drawProgressBar((self.width / 2)+180, 420, 120, 10, currentAction.action:getJobDelta(), self.fgBar)
 end
 

@@ -21,23 +21,41 @@ end
 
 function BServer.CreateAccount(player,args)
     local username = player:getUsername()
+    local linkedTo = args[1]
+    local walletID = args[2]
     local account = ModData.get("CoinBalance")[username]
 
     if account then
-        account.linkedTo = args[1]
+        account.linkedTo = linkedTo
 
         msg= "Link: %s linked new wallet: %s"
-        msg = string.format(msg,username,args[1])
+        msg = string.format(msg,username,linkedTo)
         BServer.writeLog(msg)
 
     else
-        ModData.get("CoinBalance")[username] = {coin = 0, specialCoin = 0, linkedTo = args[1]}
+        ModData.get("CoinBalance")[username] = {coin = 0, specialCoin = 0, linkedTo = linkedTo}
 
         msg= "NewAccount: %s, Coin: 0 SpecialCoin: 0"
-        msg = string.format(msg,username,args[1])
+        msg = string.format(msg,username,linkedTo)
         BServer.writeLog(msg)
 
     end
+    
+    -- Sync wallet modData to all clients if wallet ID is provided
+    if walletID then
+        local wallet = player:getInventory():getItemById(walletID)
+        if wallet then
+            -- Set wallet modData on server to match client state
+            local walletModData = wallet:getModData()
+            walletModData.belongsTo = username
+            walletModData.linkedTo = linkedTo
+            print("[BalanceServer] CreateAccount: Syncing wallet modData - walletID=" .. tostring(walletID) .. ", belongsTo=" .. tostring(walletModData.belongsTo) .. ", linkedTo=" .. tostring(walletModData.linkedTo))
+            syncItemModData(player, wallet)
+        else
+            print("[BalanceServer] CreateAccount: Wallet not found - walletID=" .. tostring(walletID))
+        end
+    end
+    
     ModData.transmit("CoinBalance")
 end
 
@@ -109,6 +127,7 @@ end
 
 function BServer.UnlinkWallet(player,args)
     local username = player:getUsername()
+    local walletID = args[1]
     local account = ModData.get("CoinBalance")[username]
     if not account then return end
     account.linkedTo = nil
@@ -116,6 +135,21 @@ function BServer.UnlinkWallet(player,args)
     msg = "Unlink: %s unlinked wallet"
     msg = string.format(msg,username)
     BServer.writeLog(msg)
+
+    -- Sync wallet modData to all clients if wallet ID is provided
+    if walletID then
+        local wallet = player:getInventory():getItemById(walletID)
+        if wallet then
+            -- Clear wallet modData on server to match client state
+            local walletModData = wallet:getModData()
+            walletModData.belongsTo = nil
+            walletModData.linkedTo = nil
+            print("[BalanceServer] UnlinkWallet: Syncing wallet modData - walletID=" .. tostring(walletID) .. ", belongsTo=" .. tostring(walletModData.belongsTo) .. ", linkedTo=" .. tostring(walletModData.linkedTo))
+            syncItemModData(player, wallet)
+        else
+            print("[BalanceServer] UnlinkWallet: Wallet not found - walletID=" .. tostring(walletID))
+        end
+    end
 
     ModData.transmit("CoinBalance")
 end

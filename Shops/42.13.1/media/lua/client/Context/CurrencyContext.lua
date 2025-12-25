@@ -1,97 +1,99 @@
 local Utilities = require("HelperFunction/Utilities");
 
-function Currency.lootCoins(worldobjects,playerNum,player)
+function Currency.lootCoins(worldobjects, playerNum, player)
     local containers = getPlayerLoot(playerNum).inventoryPane.inventoryPage.backpacks
     local coinsList = ArrayList.new();
-    for k,v in pairs(containers) do
-        local container = v.inventory 
+    for k, v in pairs(containers) do
+        local container = v.inventory
         if container then
-            for k,v in pairs(Currency.Coins) do
+            for k, v in pairs(Currency.Coins) do
                 local coins = container:getItemsFromFullType(k)
-                if coins:size() > 0 then 
+                if coins:size() > 0 then
                     coinsList:addAll(coins)
                 end
             end
         end
     end
-    if coinsList:size() > 0 then 
+    if coinsList:size() > 0 then
         local playerInv = getPlayerInventory(playerNum).inventory
-        for i=0, coinsList:size() - 1 do
+        for i = 0, coinsList:size() - 1 do
             local coin = coinsList:get(i)
             ISTimedActionQueue.add(ISInventoryTransferAction:new(player, coin, coin:getContainer(), playerInv))
-        end        
+        end
     end
 end
 
 function Currency.LootCoinsObjectContextMenu(playerNum, context, items)
     local player = getSpecificPlayer(playerNum);
-    if(player:getVehicle() ~= nil) then return end
+    if (player:getVehicle() ~= nil) then return end
     items = ISInventoryPane.getActualItems(items)
     if not items then return end
-    if #items< 1 then return end  
+    if #items < 1 then return end
     if items[1]:isInPlayerInventory() then return end
     local coin = Currency.Coins[items[1]:getFullType()]
     if not coin then return end
-    context:addOption(UIText.LootAllCoins, worldobjects, Currency.lootCoins,playerNum, player);
+    context:addOption(UIText.LootAllCoins, worldobjects, Currency.lootCoins, playerNum, player);
 end
 
-function Currency.coinsToAccount(worldobjects,items,coinQuantity)
-    for k,v in pairs(items) do
+function Currency.coinsToAccount(worldobjects, items, coinQuantity)
+    for k, v in pairs(items) do
         v:getContainer():Remove(v)
     end
-    sendClientCommand("BS", "Deposit", {coinQuantity.coin,coinQuantity.specialCoin})
+    sendClientCommand("BS", "Deposit", { coinQuantity.coin, coinQuantity.specialCoin })
 end
 
 function Currency.CoinsToAccountObjectContextMenu(playerNum, context, items)
-     items = ISInventoryPane.getActualItems(items)
-     if not items or #items < 1 then return end
-     local playerInv = getPlayerInventory(playerNum).backpacks[1].inventory
-     local wallet = nil
-     local player = getSpecificPlayer(playerNum)
-     local username = player:getUsername()
-     for k,v in pairs(Currency.Wallets) do
-         local walletItems = playerInv:getItemsFromFullType(k)
-         for i=0, walletItems:size() - 1 do
-             local w = walletItems:get(i)
-             if w:getModData().belongsTo == username and w:getModData().linkedTo then
-                 wallet = w
-                 break;
-             end
-         end
-         if wallet then break end
-     end
-     if not wallet then return end
-     local coinQuantity = {}
-     coinQuantity.coin = 0
-     coinQuantity.specialCoin = 0
-     for k, v in pairs(items) do
-         if not v:isInPlayerInventory() then 
-            return 
-         end
-         local coin = Currency.Coins[v:getFullType()]
-         if not coin then 
-            return 
-         end
-         if not coin.specialCoin then
-             coinQuantity.coin = coinQuantity.coin + coin.value
-         else
-             coinQuantity.specialCoin = coinQuantity.specialCoin + 1
-         end
-     end
-     local isSinglePlayer = Utilities.IsClientOrSinglePlayer()
-     if isSinglePlayer or (Balance and Balance.getUserAccount(username)) then
-         if (coinQuantity.coin > 0 or coinQuantity.specialCoin > 0 ) then
-             context:addOption(UIText.CoinsToAccount, worldobjects, Currency.coinsToAccount,items,coinQuantity);
-         end
-     end
+    items = ISInventoryPane.getActualItems(items)
+    if not items or #items < 1 then return end
+    local playerInv = getPlayerInventory(playerNum).backpacks[1].inventory
+    local wallet = nil
+    local player = getSpecificPlayer(playerNum)
+    local username = player:getUsername()
+    for k, v in pairs(Currency.Wallets) do
+        local walletItems = playerInv:getItemsFromFullType(k)
+        for i = 0, walletItems:size() - 1 do
+            local w = walletItems:get(i)
+            if w:getModData().belongsTo == username and w:getModData().linkedTo then
+                wallet = w
+                break;
+            end
+        end
+        if wallet then break end
+    end
+    if not wallet then return end
+    local coinQuantity = {}
+    coinQuantity.coin = 0
+    coinQuantity.specialCoin = 0
+    for k, v in pairs(items) do
+        if not v:isInPlayerInventory() then
+            return
+        end
+        local coin = Currency.Coins[v:getFullType()]
+        if not coin then
+            return
+        end
+        if not coin.specialCoin then
+            coinQuantity.coin = coinQuantity.coin + coin.value
+        else
+            coinQuantity.specialCoin = coinQuantity.specialCoin + 1
+        end
+    end
+    local isSinglePlayer = Utilities.IsClientOrSinglePlayer()
+    if isSinglePlayer or (Balance and Balance.getUserAccount(username)) then
+        if (coinQuantity.coin > 0 or coinQuantity.specialCoin > 0) then
+            context:addOption(UIText.CoinsToAccount, worldobjects, Currency.coinsToAccount, items, coinQuantity);
+        end
+    end
 end
 
-function Currency.linkWallet(worldobjects,wallet,player)
+function Currency.linkWallet(worldobjects, wallet, player)
     local username = player:getUsername()
-    local linkedTo = username..getTimestampMs()
+    local linkedTo = username .. getTimestampMs()
     wallet:getModData().belongsTo = username
     wallet:getModData().linkedTo = linkedTo
-    sendClientCommand("BS", "CreateAccount", {linkedTo})
+    print("[Currency] Link: Set wallet modData - belongsTo=" ..
+    tostring(wallet:getModData().belongsTo) .. ", linkedTo=" .. tostring(wallet:getModData().linkedTo))
+    sendClientCommand("BS", "CreateAccount", { linkedTo, wallet:getID() })
     ModData.request("CoinBalance")
 end
 
@@ -105,13 +107,29 @@ function Currency.LinkWalletObjectContextMenu(playerNum, context, items)
     if not item:isInPlayerInventory() then return end
     if item:getModData().linkedTo then return end
     local player = getSpecificPlayer(playerNum)
-    context:addOption(UIText.Link, worldobjects, Currency.linkWallet,item,player);
+    local username = player:getUsername()
+
+    -- Check if player already has a linked wallet in main inventory
+    local playerInv = getPlayerInventory(playerNum).backpacks[1].inventory
+    for k, v in pairs(Currency.Wallets) do
+        local walletItems = playerInv:getItemsFromFullType(k)
+        for i = 0, walletItems:size() - 1 do
+            local w = walletItems:get(i)
+            if w:getModData().belongsTo == username and w:getModData().linkedTo then
+                return -- Player already has a linked wallet, don't show Link option
+            end
+        end
+    end
+
+    context:addOption(UIText.Link, worldobjects, Currency.linkWallet, item, player);
 end
 
-function Currency.unlinkWallet(worldobjects,wallet)
+function Currency.unlinkWallet(worldobjects, wallet)
     wallet:getModData().belongsTo = nil
     wallet:getModData().linkedTo = nil
-    sendClientCommand("BS", "UnlinkWallet", {})
+    print("[Currency] Unlink: Cleared wallet modData - belongsTo=" ..
+    tostring(wallet:getModData().belongsTo) .. ", linkedTo=" .. tostring(wallet:getModData().linkedTo))
+    sendClientCommand("BS", "UnlinkWallet", { wallet:getID() })
     ModData.request("CoinBalance")
 end
 
@@ -125,12 +143,18 @@ function Currency.UnlinkWalletObjectContextMenu(playerNum, context, items)
     if not item:isInPlayerInventory() then return end
     local player = getSpecificPlayer(playerNum)
     local username = player:getUsername()
-    if not (item:getModData().belongsTo == username) then return end
-    context:addOption(UIText.Transfer, worldobjects, Currency.transfer,item,player);
-    context:addOption(UIText.Unlink, worldobjects, Currency.unlinkWallet,item);
+    local modData = item:getModData()
+    if not (modData.belongsTo == username and modData.linkedTo) then return end
+
+    -- Validate wallet modData matches server account to prevent stale wallet operations
+    local account = Balance.getUserAccount(username)
+    if not account or account.linkedTo ~= modData.linkedTo then return end
+
+    context:addOption(UIText.Transfer, worldobjects, Currency.transfer, item, player);
+    context:addOption(UIText.Unlink, worldobjects, Currency.unlinkWallet, item);
 end
 
-function Currency.transfer(worldobjects,wallet,player)
+function Currency.transfer(worldobjects, wallet, player)
     TransferUI:show(player)
 end
 

@@ -32,6 +32,7 @@ UIText = {
     Transfer = getText("IGUI_Balance_Transfer"),
     TransferTo = getText("IGUI_Balance_TransferTo"),
     Send = getText("IGUI_Balance_Send"),
+    ClaimOfflineMailbox = getText("IGUI_Balance_ClaimMailbox"),
     Shop = getText("IGUI_Shop"),
     Search = getText("IGUI_Shop_Search"),
     ClearCart = getText("IGUI_Shop_ClearCart"),

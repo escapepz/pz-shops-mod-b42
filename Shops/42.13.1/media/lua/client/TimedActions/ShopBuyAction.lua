@@ -103,7 +103,15 @@ function ShopBuyAction:complete()
     }
     Nfunction.logShop(coords)
     local ticket = self.ticket
-    sendClientCommand("BS", "Withdraw", {ticket.coin,ticket.specialCoin})
+    sendClientCommand(
+        self.character,
+        "BS",
+        "Withdraw",
+        {
+            coin = ticket.coin,
+            specialCoin = ticket.specialCoin
+        }
+    )
     self.shopUI.cartItems:clear()
     return true
 end

@@ -169,7 +169,15 @@ end
 function IncomeUI:getBtn()
     local account =  Balance.getUserAccount(self.character:getUsername())
     if account then
-        sendClientCommand("BS", "Deposit", {total,totalSpecial})
+        sendClientCommand(
+            self.character,
+            "BS",
+            "Deposit",
+            {
+                coin = total,
+                specialCoin = totalSpecial
+            }
+        )
         IncomeUI.instance.shop:getModData().income = {}
         IncomeUI.instance.shop:transmitModData()
         self.character:playSound("CashRegister")

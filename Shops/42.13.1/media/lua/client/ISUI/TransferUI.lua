@@ -1,3 +1,5 @@
+require "TimedActions/SendTransferAction"
+
 TransferUI = ISCollapsableWindow:derive("TransferUI");
 TransferUI.instance = nil;
 TransferUI.SMALL_FONT_HGT = getTextManager():getFontFromEnum(UIFont.Small):getLineHeight()
@@ -5,6 +7,13 @@ TransferUI.MEDIUM_FONT_HGT = getTextManager():getFontFromEnum(UIFont.Medium):get
 TransferUI.removeButtonX = 300
 TransferUI.transferInProgress = false
 TransferUI.accountsCache = {}
+TransferUI.TRANSFER_STATE_IDLE = "idle"
+TransferUI.TRANSFER_STATE_PENDING = "pending"
+TransferUI.TRANSFER_STATE_CONFIRMED = "confirmed"
+TransferUI.TRANSFER_STATE_REJECTED = "rejected"
+TransferUI.TRANSFER_STATE_CANCELLED = "cancelled"
+TransferUI.rejectionTimeout = 5000  -- milliseconds
+TransferUI.COOLDOWN_MS = 1500  -- client-side UI cooldown (mirrors server minIntervalMs)
 
 local width = 280
 local height = 300
@@ -24,20 +33,36 @@ end
 
 function TransferUI:update()
     local username = self.player:getUsername()    
-    local coin,specialCoin = Balance.getUserBalance(username)
+    local coin, specialCoin = Balance.getUserBalance(username)
     local coinFormatted = Currency.format(coin)
     self.balanceCoinLabel:setName(""..coinFormatted)
     local specialCoinFormatted = Currency.format(specialCoin)
     self.balanceSpecialCoinLabel:setName(""..specialCoinFormatted)
 
+    -- Check for rejection timeout (server didn't confirm within timeout window)
+    if self.state == self.TRANSFER_STATE_PENDING and self.pendingTransferTime then
+        local elapsed = getTimestampMs() - self.pendingTransferTime
+        if elapsed > self.rejectionTimeout then
+            self:onRejectionTimeout()
+        end
+    end
+
+    -- Don't allow UI changes while transfer in progress
     if self.transferInProgress then return end
+
     local transferCoin = tonumber(self.transferCoin:getInternalText())
     if transferCoin == nil then transferCoin = 0 end
     local transferSpecialCoin = tonumber(self.transferSpecialCoin:getInternalText())
     if transferSpecialCoin == nil then transferSpecialCoin = 0 end
-    if (transferCoin <= 0 and transferSpecialCoin <=0)
+
+    -- Check cooldown (non-authoritative, UX only)
+    local now = getTimestampMs()
+    local inCooldown = self.cooldownUntil and (now < self.cooldownUntil)
+
+    if (transferCoin <= 0 and transferSpecialCoin <= 0)
      or not self.recipient 
-     or (transferCoin > coin or transferSpecialCoin > specialCoin) 
+     or (transferCoin > coin or transferSpecialCoin > specialCoin)
+     or inCooldown
     then
         self.sendButton.enable = false
         self.sendButton:setVisible(true)
@@ -218,11 +243,50 @@ function TransferUI:clearAfterTransfer()
     self.transferSpecialCoin:setText("0");
 end
 
-function TransferUI:cancelBtn()
+function TransferUI:onBalanceUpdate(data)
+    -- Only reconcile if waiting for confirmation
+    if self.state ~= self.TRANSFER_STATE_PENDING then return end
+
+    local username = self.player:getUsername()
+    local account = data[username]
+    if not account then return end
+
+    -- Server accepted and processed transfer
+    self.state = self.TRANSFER_STATE_CONFIRMED
+    self.transferInProgress = false
+    self:clearAfterTransfer()
+
     self.sendButton.enable = true
     self.sendButton:setVisible(true)
     self.cancelButton.enable = false
     self.cancelButton:setVisible(false)
+end
+
+function TransferUI:onRejectionTimeout()
+    -- If still pending after timeout, assume server rejected
+    if self.state ~= self.TRANSFER_STATE_PENDING then return end
+
+    self.state = self.TRANSFER_STATE_REJECTED
+    self.transferInProgress = false
+
+    self.sendButton.enable = true
+    self.sendButton:setVisible(true)
+    self.cancelButton.enable = false
+    self.cancelButton:setVisible(false)
+end
+
+function TransferUI:cancelBtn()
+    -- Only allow cancel before server dispatch
+    if self.state ~= self.TRANSFER_STATE_PENDING then return end
+
+    self.state = self.TRANSFER_STATE_CANCELLED
+    self.transferInProgress = false
+    self.sendButton.enable = true
+    self.sendButton:setVisible(true)
+    self.cancelButton.enable = false
+    self.cancelButton:setVisible(false)
+
+    -- Cancel only the timed action animation, not server mutation
     local actionQueue = ISTimedActionQueue.getTimedActionQueue(self.player)
     local currentAction = actionQueue.queue[1]
     if not currentAction then return end
@@ -231,21 +295,26 @@ function TransferUI:cancelBtn()
 end
 
 function TransferUI:sendBtn()
+    self.state = self.TRANSFER_STATE_PENDING
     self.transferInProgress = true
-    local transfer = {}
-    transfer.coin = tonumber(self.transferCoin:getInternalText())
-    if transfer.coin == nil then transfer.coin = 0 end
-    transfer.specialCoin = tonumber(self.transferSpecialCoin:getInternalText())
-    if transfer.specialCoin == nil then transfer.specialCoin = 0 end
-    transfer.recipient = self.recipient
-    transfer.coin = math.abs(transfer.coin)
-    transfer.specialCoin = math.abs(transfer.specialCoin)
+    self.pendingTransferTime = getTimestampMs()
+    self.cooldownUntil = self.pendingTransferTime + self.COOLDOWN_MS
+
+    local coin = tonumber(self.transferCoin:getInternalText())
+    if coin == nil then coin = 0 end
+    local specialCoin = tonumber(self.transferSpecialCoin:getInternalText())
+    if specialCoin == nil then specialCoin = 0 end
+    local recipient = self.recipient
+    coin = math.abs(coin)
+    specialCoin = math.abs(specialCoin)
+
     self.sendButton.enable = false
     self.sendButton:setVisible(false)
     self.cancelButton.enable = true
     self.cancelButton:setVisible(true)
-    local action = SendTransferAction:new(self.player,self,transfer);
-    ISTimedActionQueue.add(action);
+
+    local action = SendTransferAction:new(self.player, coin, specialCoin, recipient)
+    ISTimedActionQueue.add(action)
 end
 
 function TransferUI:render()
@@ -279,5 +348,17 @@ function TransferUI:new(x, y, width, height, player)
     o.player = player
     o.recipient = nil
     o.resizable = false;
+    o.state = self.TRANSFER_STATE_IDLE
+    o.pendingTransferTime = nil
+    o.cooldownUntil = nil
     return o
 end
+
+-- Hook ModData updates for transfer confirmation
+local function onReceiveTransferUpdate(key, data)
+    if key ~= "CoinBalance" then return end
+    if not TransferUI.instance then return end
+    TransferUI.instance:onBalanceUpdate(data)
+end
+
+Events.OnReceiveGlobalModData.Add(onReceiveTransferUpdate)

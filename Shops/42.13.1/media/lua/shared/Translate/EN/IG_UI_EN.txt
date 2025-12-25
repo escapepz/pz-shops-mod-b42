@@ -46,6 +46,9 @@ IGUI_EN = {
     IGUI_Balance_Send = "Send",
     IGUI_Balance_TransferReceived = "Transfer Received, Sender: %1, Coins: %2",
     IGUI_Balance_TransferReceivedSpecial = "Transfer Received, Sender: %1, Coins: %2, Event Coins: %3",
+    IGUI_Balance_MailboxReceived = "Mailbox Claimed, Coins: %1 from %2 transfers",
+    IGUI_Balance_MailboxReceivedSpecial = "Mailbox Claimed, Coins: %1, Event Coins: %2 from %3 transfers",
+    IGUI_Balance_ClaimMailbox = "Claim Offline Mailbox",
     IGUI_Balance_AccountNeeded = "Account not found, please create one",
 
 

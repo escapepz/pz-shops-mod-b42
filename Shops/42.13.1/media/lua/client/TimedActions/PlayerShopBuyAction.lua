@@ -76,7 +76,15 @@ function PlayerShopBuyAction:complete()
         t = {tl = total, tls = totalSpecial}
     }
     if total > 0 or totalSpecial > 0 then
-        sendClientCommand("BS", "Withdraw", {total,totalSpecial})
+        sendClientCommand(
+            self.character,
+            "BS",
+            "Withdraw",
+            {
+                coin = total,
+                specialCoin = totalSpecial
+            }
+        )
         table.insert(income,data)
     end
     self.shop:transmitModData()

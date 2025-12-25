@@ -26,6 +26,20 @@ function BClient.TransferReceived(noti)
     player:setHaloNote(msg, 255,255,255,400);
 end
 
+function BClient.MailboxReceived(noti)
+    local player = getPlayer()
+    local coin = Currency.format(noti.coin)
+    local specialCoin = Currency.format(noti.specialCoin)
+    local entryCount = noti.entryCount or 0
+    
+    local msg = getText("IGUI_Balance_MailboxReceivedSpecial", coin, specialCoin, entryCount)
+    if not Currency.UseSpecialCoin then
+        msg = getText("IGUI_Balance_MailboxReceived", coin, entryCount)
+    end
+    player:playSound("Notification")
+    player:setHaloNote(msg, 255,255,255,400);
+end
+
 local function BS_OnServerCommand(module, command, args)
     if module== "BS" and BClient[command] then
         BClient[command](args)

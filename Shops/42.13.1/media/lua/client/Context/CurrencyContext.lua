@@ -36,13 +36,23 @@ function Currency.LootCoinsObjectContextMenu(playerNum, context, items)
 end
 
 function Currency.coinsToAccount(worldobjects, items, coinQuantity)
+    local player = getPlayer()
     local itemIDs = {}
     for k, v in pairs(items) do
         table.insert(itemIDs, v:getID())
         -- Remove item from main inventory immediately (optimistic update)
         v:getContainer():Remove(v)
     end
-    sendClientCommand("BS", "Deposit", { coinQuantity.coin, coinQuantity.specialCoin, itemIDs })
+    sendClientCommand(
+        player,
+        "BS",
+        "Deposit",
+        {
+            coin = coinQuantity.coin,
+            specialCoin = coinQuantity.specialCoin,
+            itemIDs = itemIDs
+        }
+    )
 end
 
 function Currency.CoinsToAccountObjectContextMenu(playerNum, context, items)
@@ -103,7 +113,15 @@ function Currency.linkWallet(worldobjects, wallet, player)
     wallet:getModData().linkedTo = linkedTo
     print("[Currency] Link: Set wallet modData - belongsTo=" ..
     tostring(wallet:getModData().belongsTo) .. ", linkedTo=" .. tostring(wallet:getModData().linkedTo))
-    sendClientCommand("BS", "CreateAccount", { linkedTo, wallet:getID() })
+    sendClientCommand(
+        player,
+        "BS",
+        "CreateAccount",
+        {
+            linkedTo = linkedTo,
+            walletID = wallet:getID()
+        }
+    )
     ModData.request("CoinBalance")
 end
 
@@ -146,11 +164,19 @@ function Currency.LinkWalletObjectContextMenu(playerNum, context, items)
 end
 
 function Currency.unlinkWallet(worldobjects, wallet)
+    local player = getPlayer()
     wallet:getModData().belongsTo = nil
     wallet:getModData().linkedTo = nil
     print("[Currency] Unlink: Cleared wallet modData - belongsTo=" ..
     tostring(wallet:getModData().belongsTo) .. ", linkedTo=" .. tostring(wallet:getModData().linkedTo))
-    sendClientCommand("BS", "UnlinkWallet", { wallet:getID() })
+    sendClientCommand(
+        player,
+        "BS",
+        "UnlinkWallet",
+        {
+            walletID = wallet:getID()
+        }
+    )
     ModData.request("CoinBalance")
 end
 
@@ -172,11 +198,31 @@ function Currency.UnlinkWalletObjectContextMenu(playerNum, context, items)
     if not account or account.linkedTo ~= modData.linkedTo then return end
 
     context:addOption(UIText.Transfer, worldobjects, Currency.transfer, item, player);
+    
+    -- Show "Claim Offline Mailbox" only if player has pending mailbox funds
+    if account and account.hasMailbox then
+        context:addOption(UIText.ClaimOfflineMailbox, worldobjects, Currency.claimOfflineMailbox, item, player);
+    end
+    
     context:addOption(UIText.Unlink, worldobjects, Currency.unlinkWallet, item);
 end
 
 function Currency.transfer(worldobjects, wallet, player)
     TransferUI:show(player)
+end
+
+function Currency.claimOfflineMailbox(worldobjects, wallet, player)
+    local username = player:getUsername()
+    sendClientCommand(
+        player,
+        "BS",
+        "ClaimMailbox",
+        {
+            walletID = wallet:getID()
+        }
+    )
+    print(string.format("[Currency] Claim Offline Mailbox: Requested for %s", username))
+    ModData.request("CoinBalance")
 end
 
 Events.OnPreFillInventoryObjectContextMenu.Add(Currency.LootCoinsObjectContextMenu);

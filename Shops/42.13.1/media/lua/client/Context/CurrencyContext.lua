@@ -52,18 +52,25 @@ function Currency.CoinsToAccountObjectContextMenu(playerNum, context, items)
     local wallet = nil
     local player = getSpecificPlayer(playerNum)
     local username = player:getUsername()
+    local account = Balance.getUserAccount(username)
+    
+    -- Find any valid wallet (not stale) across all wallet types
     for k, v in pairs(Currency.Wallets) do
         local walletItems = playerInv:getItemsFromFullType(k)
         for i = 0, walletItems:size() - 1 do
             local w = walletItems:get(i)
             if w:getModData().belongsTo == username and w:getModData().linkedTo then
-                wallet = w
-                break;
+                -- Check if wallet is valid (not stale)
+                if account and account.linkedTo == w:getModData().linkedTo then
+                    wallet = w
+                    break;
+                end
             end
         end
         if wallet then break end
     end
     if not wallet then return end
+    
     local coinQuantity = {}
     coinQuantity.coin = 0
     coinQuantity.specialCoin = 0
@@ -82,7 +89,7 @@ function Currency.CoinsToAccountObjectContextMenu(playerNum, context, items)
         end
     end
     local isSinglePlayer = Utilities.IsClientOrSinglePlayer()
-    if isSinglePlayer or (Balance and Balance.getUserAccount(username)) then
+    if isSinglePlayer or account then
         if (coinQuantity.coin > 0 or coinQuantity.specialCoin > 0) then
             context:addOption(UIText.CoinsToAccount, worldobjects, Currency.coinsToAccount, items, coinQuantity);
         end
@@ -108,18 +115,29 @@ function Currency.LinkWalletObjectContextMenu(playerNum, context, items)
     local itemType = item:getFullType()
     if not Currency.Wallets[itemType] then return end
     if not item:isInPlayerInventory() then return end
-    if item:getModData().linkedTo then return end
     local player = getSpecificPlayer(playerNum)
     local username = player:getUsername()
+    local modData = item:getModData()
+    
+    -- Allow linking unlinked wallets or stale wallets (where linkedTo doesn't match server)
+    local account = Balance.getUserAccount(username)
+    local isStaleWallet = modData.linkedTo and (not account or account.linkedTo ~= modData.linkedTo)
+    if modData.linkedTo and not isStaleWallet then
+        return -- Wallet is already linked and not stale
+    end
 
-    -- Check if player already has a linked wallet in main inventory
+    -- Check if player already has a valid linked wallet in main inventory
     local playerInv = getPlayerInventory(playerNum).backpacks[1].inventory
     for k, v in pairs(Currency.Wallets) do
         local walletItems = playerInv:getItemsFromFullType(k)
         for i = 0, walletItems:size() - 1 do
             local w = walletItems:get(i)
             if w:getModData().belongsTo == username and w:getModData().linkedTo then
-                return -- Player already has a linked wallet, don't show Link option
+                -- Check if this wallet is valid (not stale)
+                local wAccount = Balance.getUserAccount(username)
+                if wAccount and wAccount.linkedTo == w:getModData().linkedTo then
+                    return -- Player has a valid linked wallet, don't show Link option
+                end
             end
         end
     end

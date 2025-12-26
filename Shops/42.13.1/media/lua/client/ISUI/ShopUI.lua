@@ -310,7 +310,14 @@ function ShopUI:onActivateView()
                         end
                         v.priceFull = price
                         price = Nfunction.drainablePrice(item, price)
-                        v.price = price
+                        local context = {
+                            shopId = self.shop and self.shop:getName() or "Unknown",
+                            quantity = 1,
+                            isSpecialCoin = v.specialCoin or false,
+                            isBroken = isBroken,
+                        }
+                        local dynamicPrice = Shop.CalculateSellPrice(character, item, context)
+                        v.price = dynamicPrice or price
                         v.id = item:getID()
                         v.name = Nfunction.trimString(item:getName(), 42)
                         v.invItem = item
@@ -344,7 +351,14 @@ function ShopUI:onActivateView()
             local shopItemDef = Shop.Items[k]
             local item = self:getItemInstance(k)
             if shopItemDef then
-                v.price = shopItemDef.price
+                local context = {
+                    shopId = self.shop and self.shop:getName() or "Unknown",
+                    quantity = 1,
+                    isSpecialCoin = shopItemDef.specialCoin or false,
+                    isBroken = false,
+                }
+                local dynamicPrice = Shop.CalculateBuyPrice(character, k, context)
+                v.price = dynamicPrice or shopItemDef.price
             end
             if item then
                 local VehicleID = item:getModData().VehicleID
@@ -389,6 +403,14 @@ function ShopUI:onActivateView()
                     v.texture = item:getTex()
                 end
                 v.name = Nfunction.trimString(item:getName(), 42)
+                local context = {
+                    shopId = self.shop and self.shop:getName() or "Unknown",
+                    quantity = 1,
+                    isSpecialCoin = v.specialCoin or false,
+                    isBroken = false,
+                }
+                local dynamicPrice = Shop.CalculateBuyPrice(character, k, context)
+                v.price = dynamicPrice or v.price
                 shopItems:addItem(k, v);
             end
         end
@@ -583,11 +605,24 @@ function ShopUI:buildBuyTicket()
 	for _, row in ipairs(self.cartItems.items) do
 		local item = row.item
 
+		-- Recalculate price on client for preview (server will recompute authoritatively)
+		local itemPrice = item.price
+		if item.type and Shop.Items[item.type] then
+			local context = {
+				shopId = self.shop and self.shop:getName() or "Unknown",
+				quantity = item.quantity or 1,
+				isSpecialCoin = item.specialCoin or false,
+				isBroken = false,
+			}
+			local dynamicPrice = Shop.CalculateBuyPrice(self.player, item.type, context)
+			itemPrice = dynamicPrice or item.price
+		end
+
 		-- Accumulate price
 		if item.specialCoin then
-			ticket.specialCoin = ticket.specialCoin + item.price
+			ticket.specialCoin = ticket.specialCoin + itemPrice
 		else
-			ticket.coin = ticket.coin + item.price
+			ticket.coin = ticket.coin + itemPrice
 		end
 
 		-- Handle compound items (packs)
@@ -640,9 +675,22 @@ function ShopUI:buildSellList()
 		local invItem = item.invItem
 
 		if invItem then
+			-- Recalculate price on client for preview (server will recompute authoritatively)
+			local itemPrice = item.price
+			local context = {
+				shopId = self.shop and self.shop:getName() or "Unknown",
+				quantity = 1,
+				isSpecialCoin = item.specialCoin or false,
+				isBroken = item.isBroken or false,
+			}
+			local dynamicPrice = Shop.CalculateSellPrice(self.player, invItem, context)
+			if dynamicPrice then
+				itemPrice = dynamicPrice
+			end
+			
 			table.insert(sellList.items, {
 				itemID = invItem:getID(),
-				price = item.price,
+				price = itemPrice,
 				specialCoin = item.specialCoin or false
 			})
 		end

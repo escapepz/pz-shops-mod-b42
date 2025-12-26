@@ -1,6 +1,7 @@
 .serena
 Helper/
 tmp/
+mods/
 
 .libraries# Compiled Lua sources
 luac.out

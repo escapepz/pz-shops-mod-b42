@@ -1,3 +1,4 @@
-Shop.Items["Base.OatsRaw"] = {
-	tab = Tab.Food, price = 20,
-}
+Shop.RegisterItem("Base.OatsRaw", {
+	tab = Tab.Food,
+	price = 20,
+})

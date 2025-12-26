@@ -1,3 +1,4 @@
-Shop.Items["PinkSlip.CarNormal"] = {
-	tab = Tab.Vehicles, price = 500,
-}
+Shop.RegisterItem("PinkSlip.CarNormal", {
+	tab = Tab.Vehicles,
+	price = 500,
+})

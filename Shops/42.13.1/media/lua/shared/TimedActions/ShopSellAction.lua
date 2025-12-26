@@ -74,19 +74,34 @@ function ShopSellAction:complete()
 	for _, entry in ipairs(self.sellList.items) do
 		local item = inv:getItemById(entry.itemID)
 		if item then
+			-- Recompute sell price authoritatively on server
+			local context = {
+				shopId = self.shop:getName(),
+				quantity = 1,
+				isSpecialCoin = entry.specialCoin or false,
+				isBroken = false,
+			}
+			local finalPrice = Shop.CalculateSellPrice(self.character, item, context)
+			local itemPrice = finalPrice or entry.price
+			if itemPrice == nil then
+				-- Blacklisted item or invalid, skip
+				goto continue
+			end
+
 			-- Remove item from inventory
 			inv:Remove(item)
 			sendRemoveItemFromContainer(inv, item)
 
-			-- Accumulate payment
+			-- Accumulate payment with recomputed price
 			if entry.specialCoin then
-				totalSpecial = totalSpecial + entry.price
+				totalSpecial = totalSpecial + itemPrice
 			else
-				total = total + entry.price
+				total = total + itemPrice
 			end
 
 			-- Log sale
 			Nfunction.buildLogShop(item:getFullType())
+			::continue::
 		end
 	end
 

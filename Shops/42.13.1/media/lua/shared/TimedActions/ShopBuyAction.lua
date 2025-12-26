@@ -74,10 +74,36 @@ function ShopBuyAction:complete()
 		return false
 	end
 
-	-- Re-validate balance (authoritative server-side check)
-	local coin, specialCoin = Balance.getUserBalance(username)
+	-- Recompute prices authoritatively on server
+	local totalCoin = 0
+	local totalSpecialCoin = 0
 	local ticket = self.ticket
-	if coin < ticket.coin or specialCoin < ticket.specialCoin then
+	
+	-- First pass: validate and compute final prices
+	for _, entry in ipairs(ticket.items) do
+		local itemType = entry.type
+		local quantity = entry.quantity or 1
+		if itemType and Shop.Items[itemType] then
+			local context = {
+				shopId = self.shop:getName(),
+				quantity = quantity,
+				isSpecialCoin = Shop.Items[itemType].specialCoin or false,
+				isBroken = false,
+			}
+			local finalPrice = Shop.CalculateBuyPrice(self.character, itemType, context)
+			if not finalPrice then finalPrice = Shop.Items[itemType].price end
+			
+			if Shop.Items[itemType].specialCoin then
+				totalSpecialCoin = totalSpecialCoin + (finalPrice * quantity)
+			else
+				totalCoin = totalCoin + (finalPrice * quantity)
+			end
+		end
+	end
+
+	-- Re-validate balance with authoritative server-computed prices
+	local coin, specialCoin = Balance.getUserBalance(username)
+	if coin < totalCoin or specialCoin < totalSpecialCoin then
 		return false
 	end
 
@@ -85,10 +111,10 @@ function ShopBuyAction:complete()
 	-- Direct ModData manipulation since we're on server
 	local account = ModData.get("CoinBalance")[username]
 	if not account then return false end
-	if account.coin < ticket.coin or account.specialCoin < ticket.specialCoin then return false end
+	if account.coin < totalCoin or account.specialCoin < totalSpecialCoin then return false end
 
-	account.coin = account.coin - ticket.coin
-	account.specialCoin = account.specialCoin - ticket.specialCoin
+	account.coin = account.coin - totalCoin
+	account.specialCoin = account.specialCoin - totalSpecialCoin
 	ModData.transmit("CoinBalance")
 
 	-- Spawn purchased items

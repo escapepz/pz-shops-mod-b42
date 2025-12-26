@@ -3,7 +3,8 @@
   "title": "[UNOFFICIAL] Shops B42",
   "authors": [],
   "workshop": {
-    "visibility": "public",
+    "id": 3631768689,
+    "visibility": "unlisted",
     "tags": ["Build 42", "Multiplayer", "Interface", "Silly/Fun", "Textures"],
     "excludes": []
   },

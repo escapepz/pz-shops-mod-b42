@@ -1,6 +1,17 @@
 Shop = Shop or {}
 Shop.Items = Shop.Items or {}
 Shop.Tabs = Shop.Tabs or {}
+
+require "ShopRegistry"
+require "ShopEvents"
+require "ShopInit"
+require "ShopSellRegistry"
+require "ShopSellEvents"
+require "ShopSellInit"
+require "ShopPriceEvents"
+require "ShopPriceUtils"
+require "ShopPriceBuy"
+require "ShopPriceSell"
 Shop.Sell = Shop.Sell or {}
 Shop.SellisBlacklist = false
 Shop.SellisWhitelist = false

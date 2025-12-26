@@ -84,8 +84,10 @@ function ShopBuyAction:complete()
 					else
 						container:AddItem(newItem)
 						sendAddItemToContainer(container, newItem)
-					end
-					Nfunction.buildLogShop(packEntry.item)
+						end
+						if isClient() then
+						Nfunction.buildLogShop(packEntry.item)
+						end
 				end
 			end
 		else
@@ -96,17 +98,21 @@ function ShopBuyAction:complete()
 				playerInv:AddItem(newItem)
 				sendAddItemToContainer(playerInv, newItem)
 			end
-			Nfunction.buildLogShop(entry.type, quantity)
+			if isClient() then
+				Nfunction.buildLogShop(entry.type, quantity)
+			end
 		end
 	end
 
-	-- Log transaction
+	-- Log transaction (client-side only: Nfunction.logShop uses getPlayer())
 	local coords = {
 		x = shopSquare:getX(),
 		y = shopSquare:getY(),
 		z = shopSquare:getZ(),
 	}
-	Nfunction.logShop(coords)
+	if isClient() then
+		Nfunction.logShop(coords)
+	end
 
 	-- Mark transaction as processed
 	TransactionRegistry.markProcessed(username, txnId)

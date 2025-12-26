@@ -61,6 +61,12 @@ function BServer.CreateAccount(player, args)
     if walletID then
         local wallet = player:getInventory():getItemById(walletID)
         if wallet then
+            -- Validate wallet ownership: confirm wallet is in player's inventory
+            if wallet:getContainer() ~= player:getInventory() then
+                print("[BalanceServer] CreateAccount: REJECTED - wallet not in player inventory - walletID=" .. tostring(walletID))
+                return
+            end
+            
             -- Set wallet modData on server to match client state
             local walletModData = wallet:getModData()
             walletModData.belongsTo = username

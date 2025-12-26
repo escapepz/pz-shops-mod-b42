@@ -64,7 +64,6 @@ function ContainerViewerUI:toggleTooltip(show,item)
             currentTooltip:setItem(item)
             currentTooltip:setVisible(true)
             currentTooltip:setOwner(self)
-            currentTooltip:render();
         end
     end
     if not show and currentTooltip then

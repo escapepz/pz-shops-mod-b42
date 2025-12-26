@@ -86,13 +86,11 @@ function ShopSellAction:complete()
 			end
 
 			-- Log sale
-			if SandboxVars.Shops.SellLog then
-				Nfunction.buildLogShop(item:getFullType())
-			end
+			Nfunction.buildLogShop(item:getFullType())
 		end
 	end
 
-	-- Log transaction
+	-- Log transaction (client-side only: Nfunction.logShop uses getPlayer())
 	if total > 0 or totalSpecial > 0 then
 		local shopSquare = self.shop:getSquare()
 		local coords = {
@@ -100,7 +98,7 @@ function ShopSellAction:complete()
 			y = shopSquare:getY(),
 			z = shopSquare:getZ(),
 		}
-		if SandboxVars.Shops.SellLog then
+		if isClient() then
 			Nfunction.logShop(coords, "Sell")
 		end
 	end

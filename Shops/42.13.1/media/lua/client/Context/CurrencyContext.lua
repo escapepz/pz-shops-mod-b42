@@ -40,9 +40,8 @@ function Currency.coinsToAccount(worldobjects, items, coinQuantity)
     local itemIDs = {}
     for k, v in pairs(items) do
         table.insert(itemIDs, v:getID())
-        -- Remove item from main inventory immediately (optimistic update)
-        v:getContainer():Remove(v)
     end
+    -- Server will remove items from inventory after validation
     sendClientCommand(
         player,
         "BS",

@@ -55,9 +55,8 @@ function ShopSpriteCursor:create(x, y, z, north, sprite)
 	if itemTag then
 		local playerShop = self.character:getInventory():getFirstTag(itemTag)
 		if playerShop then
-			self.character:getInventory():Remove(playerShop)
-			sendRemoveItemFromContainer(self.character:getInventory(), playerShop)
-			print("[Shop Debug] ShopSpriteCursor:create() - Item removed from inventory and synced")
+			-- Item removal is handled server-side via onClientCommand to prevent client-side inventory mutations
+			print("[Shop Debug] ShopSpriteCursor:create() - Shop created, item removal delegated to server command")
 		end
 	end
 	print("[Shop Debug] ShopSpriteCursor:create() - Complete")

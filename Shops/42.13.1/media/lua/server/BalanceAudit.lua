@@ -2,6 +2,12 @@ if not isServer() then return end
 
 local BalanceAudit = {}
 
+-- Maximum number of audit entries before oldest is pruned
+local MAX_ENTRIES = 10000
+
+-- Maximum age of audit entries in seconds (30 days)
+local MAX_AGE_SECONDS = 30 * 24 * 60 * 60
+
 -- Audit record schema (immutable, append-only)
 -- {
 --     ts = number,             -- timestamp ms
@@ -24,6 +30,30 @@ local function makeActionId(sender, recipient)
     )
 end
 
+-- Prune old entries and enforce max count
+function BalanceAudit.prune()
+    local data = ModData.get("BalanceAudit")
+    if not data then return end
+
+    local now = os.time()
+    local i = 1
+
+    -- Remove entries older than MAX_AGE_SECONDS
+    while i <= #data do
+        local entry = data[i]
+        if entry.ts and (now - (entry.ts / 1000)) > MAX_AGE_SECONDS then
+            table.remove(data, i)
+        else
+            i = i + 1
+        end
+    end
+
+    -- Enforce max entry count (FIFO pruning if still over limit)
+    while #data > MAX_ENTRIES do
+        table.remove(data, 1)
+    end
+end
+
 -- Append audit entry to immutable log
 function BalanceAudit.append(entry)
     if not entry then return end
@@ -43,6 +73,9 @@ function BalanceAudit.append(entry)
 
     -- Add to log (append-only)
     table.insert(data, entry)
+
+    -- Prune old entries and enforce max count
+    BalanceAudit.prune()
 
     -- Transmit to all clients (read-only for admins)
     ModData.transmit("BalanceAudit")

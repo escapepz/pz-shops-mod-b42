@@ -61,6 +61,17 @@ function PSServer.SetItemPrice(player, args)
     syncItemModData(player, item)
 end
 
+function PSServer.RemoveItemFromInventory(player, args)
+	local itemID = args.itemID
+	if not itemID then return end
+	
+	local item = player:getInventory():getItemById(itemID)
+	if item then
+		item:getContainer():Remove(item)
+		print("[PlayerShop] Inventory item removed on server - ID: " .. tostring(itemID))
+	end
+end
+
 function PSServer.PickupShop(player, args)
 	local coords = args[1]
 	local shop = getShopObject(coords)

@@ -17,7 +17,8 @@ function TransactionRegistry.isProcessed(username, txnId)
 		return false
 	end
 
-	return data[username][txnId] == true
+	local status = data[username][txnId]
+	return status == "processed" or status == "rolled_back"
 end
 
 -- Mark a transaction as processed on the server
@@ -32,6 +33,25 @@ function TransactionRegistry.markProcessed(username, txnId)
 		data[username] = {}
 	end
 
-	data[username][txnId] = true
+	data[username][txnId] = "processed"
 	ModData.transmit("ShopTransactions")
+end
+
+-- Mark a transaction as rolled back (prevented duplicate rollback processing)
+-- Must only be called on the server during rollback procedures
+function TransactionRegistry.markRolledBack(username, txnId)
+	if not isServer() then
+		return
+	end
+
+	local data = TransactionRegistry.get()
+	if not data[username] then
+		data[username] = {}
+	end
+
+	-- Prevent re-rollback: mark status only if not already marked
+	if not data[username][txnId] then
+		data[username][txnId] = "rolled_back"
+		ModData.transmit("ShopTransactions")
+	end
 end

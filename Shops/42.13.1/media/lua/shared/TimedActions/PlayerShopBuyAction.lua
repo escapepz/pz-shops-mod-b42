@@ -89,10 +89,8 @@ function PlayerShopBuyAction:complete()
 				totalCoin = totalCoin + cartEntry.price
 			end
 
-			-- Log if enabled
-			if SandboxVars.Shops.PurchaseLog then
-				Nfunction.buildLogShop(invItem:getFullType())
-			end
+			-- Log item
+			Nfunction.buildLogShop(invItem:getFullType())
 		end
 	end
 
@@ -120,8 +118,8 @@ function PlayerShopBuyAction:complete()
 	-- Step 5: Sync shop state
 	self.shop:transmitModData()
 
-	-- Step 6: Log transaction to audit
-	if SandboxVars.Shops.PurchaseLog then
+	-- Step 6: Log transaction (client-side only: Nfunction.logShop uses getPlayer())
+	if isClient() then
 		Nfunction.logShop({
 			x = shopSquare:getX(),
 			y = shopSquare:getY(),

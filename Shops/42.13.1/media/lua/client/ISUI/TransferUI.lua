@@ -328,7 +328,18 @@ end
 
 function TransferUI:close()
 	ISCollapsableWindow.close(self);
+    -- Reset UI state flags to prevent stale state
+    self.transferInProgress = false
+    self.state = self.TRANSFER_STATE_IDLE
+    self.pendingTransferTime = nil
+    self.cooldownUntil = nil
+    
+    -- Reset form fields and selection
     TransferUI.recipient = nil
+    if self.filterEntry then
+        self.filterEntry:setText("")
+    end
+    
     TransferUI.instance:removeFromUIManager()
     TransferUI.instance = nil
     self:removeFromUIManager()

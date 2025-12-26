@@ -16,7 +16,7 @@ ShopUI.totalSpecial = 0
 ShopUI.actionInProgress = false
 ShopUI.reloadItems = false
 ShopUI.lastTab = "none"
-ShopUI.ItemInstanceCache = {}
+ShopUI.ItemExistsCache = {}
 local posX = 0
 local posY = 0
 
@@ -182,7 +182,6 @@ function ShopUI:toggleTooltip(show, item)
         currentTooltip:addToUIManager()
         currentTooltip:setItem(item);
         currentTooltip:setOwner(self)
-        currentTooltip:render();
         currentTooltip:setVisible(true)
     end
     if not show and currentTooltip then
@@ -240,15 +239,15 @@ function ShopUI:createCategories()
 end
 
 function ShopUI:getItemInstance(type)
-     local item = self.ItemInstanceCache[type]
-     if not item then
-         local success, result = pcall(function() return instanceItem(type) end)
-         if success and result then
-             item = result
-             self.ItemInstanceCache[type] = item
-         end
+     -- Always recreate item to avoid holding stale object references
+     local success, result = pcall(function() return instanceItem(type) end)
+     if success and result then
+         self.ItemExistsCache[type] = true
+         return result
+     else
+         self.ItemExistsCache[type] = nil
+         return nil
      end
-     return item
  end
 
 function ShopUI:onActivateView()
@@ -540,6 +539,9 @@ function ShopUI:clearCartBtn()
 end
 
 function ShopUI:cancelBuyBtn()
+    -- Reset action in progress flag
+    self.actionInProgress = false
+    
     local tabType = self.panel.activeView.view.tabType
     if tabType == Tab.Sell then
         self.sellCartButton.enable = true
@@ -734,6 +736,12 @@ end
 
 function ShopUI:close()
     ISCollapsableWindow.close(self);
+    
+    -- Reset UI state flags to prevent stale state
+    self.actionInProgress = false
+    self.reloadItems = false
+    self.selected = nil
+    
     if PreviewUI.instance then PreviewUI.instance:close() end
     if ShopUI.instance then
         ShopUI.instance:removeFromUIManager()

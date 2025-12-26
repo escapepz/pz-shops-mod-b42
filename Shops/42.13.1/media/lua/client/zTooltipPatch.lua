@@ -5,6 +5,9 @@ local fontConfig = {
 }
 
 local function injectTooltip(self)
+    if not self or not self.tooltip or not self.item then return end
+    if not self.item.getModData then return end
+    
     local item = self.item
     local belongsTo = item:getModData().belongsTo
     local price = item:getModData().price

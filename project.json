@@ -1,18 +1,16 @@
 {
-    "$schema": "https://raw.githubusercontent.com/Konijima/project-zomboid-studio/master/pzstudio.schema.json",
-    "title": "Shopsb42",
-    "authors": [],
-    "workshop": {
-        "visibility": "public",
-        "tags": [
-            "Build 41"
-        ],
-        "excludes": []
-    },
-    "mods": {
-        "Shops": {
-            "name": "Shopsb42",
-            "description": ""
-        }
+  "$schema": "https://raw.githubusercontent.com/Konijima/project-zomboid-studio/master/pzstudio.schema.json",
+  "title": "[UNOFFICIAL] Shops B42",
+  "authors": [],
+  "workshop": {
+    "visibility": "public",
+    "tags": ["Build 42", "Multiplayer", "Interface", "Silly/Fun", "Textures"],
+    "excludes": []
+  },
+  "mods": {
+    "Shops": {
+      "name": "Shopsb42",
+      "description": ""
     }
+  }
 }

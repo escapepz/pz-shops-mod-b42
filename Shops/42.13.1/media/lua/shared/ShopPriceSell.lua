@@ -16,14 +16,16 @@ function Shop.CalculateSellPrice(player, item, context)
 
 	local modifiers = {}
 
-	Events.OnShopModifySellPrice.Trigger(
+	-- Phase 1: Trigger modify hooks (allow mods to add multipliers/modifiers)
+	ShopPriceEvents.triggerOnShopModifySellPrice(
 		player, item, base, context, modifiers
 	)
 
 	local price = PriceUtils.applyModifiers(base, modifiers)
 
+	-- Phase 2: Trigger override hooks (allow mods to replace price entirely)
 	local override =
-		Events.OnShopOverrideSellPrice.Trigger(
+		ShopPriceEvents.triggerOnShopOverrideSellPrice(
 			player, item, price, context
 		)
 

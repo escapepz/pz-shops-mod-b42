@@ -22,8 +22,9 @@ end
 function Shop.FinalizeRegistry()
 	if Shop._locked then return end
 
-	-- Phase 1: allow mods to register via event
-	Events.OnShopRegisterItems.Trigger()
+	-- Phase 1: allow mods to register via custom event dispatcher
+	-- Mods call ShopEvents.registerOnShopRegisterItems() during load
+	ShopEvents.triggerOnShopRegisterItems()
 
 	-- Phase 2: fallback to defaults if no external registrations
 	if not Shop._hasExternalRegistrations then

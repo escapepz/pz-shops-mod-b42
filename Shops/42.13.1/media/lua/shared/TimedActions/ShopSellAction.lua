@@ -83,25 +83,22 @@ function ShopSellAction:complete()
 			}
 			local finalPrice = Shop.CalculateSellPrice(self.character, item, context)
 			local itemPrice = finalPrice or entry.price
-			if itemPrice == nil then
-				-- Blacklisted item or invalid, skip
-				goto continue
+			if itemPrice ~= nil then
+				-- Remove item from inventory
+				inv:Remove(item)
+				sendRemoveItemFromContainer(inv, item)
+
+				-- Accumulate payment with recomputed price
+				if entry.specialCoin then
+					totalSpecial = totalSpecial + itemPrice
+				else
+					total = total + itemPrice
+				end
+
+				-- Log sale
+				Nfunction.buildLogShop(item:getFullType())
 			end
-
-			-- Remove item from inventory
-			inv:Remove(item)
-			sendRemoveItemFromContainer(inv, item)
-
-			-- Accumulate payment with recomputed price
-			if entry.specialCoin then
-				totalSpecial = totalSpecial + itemPrice
-			else
-				total = total + itemPrice
-			end
-
-			-- Log sale
-			Nfunction.buildLogShop(item:getFullType())
-			::continue::
+			-- If itemPrice is nil (blacklisted/invalid), simply skip this item
 		end
 	end
 

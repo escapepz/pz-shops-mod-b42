@@ -2,6 +2,17 @@ Shop = Shop or {}
 Shop.Items = Shop.Items or {}
 Shop.Tabs = Shop.Tabs or {}
 
+-- Define Tab constants early so ShopItems can reference them
+Tab = Tab or {}
+Tab["Favorite"] = "Favorite"
+Tab["Sell"] = "Sell"
+Tab["All"] = "All"
+Tab["Food"] = "Food"
+Tab["Weapons"] = "Weapons"
+Tab["Vehicles"] = "Vehicles"
+Tab["FirstAid"]= "FirstAid"
+Tab["Event"] = "Event"
+
 require "ShopRegistry"
 require "ShopEvents"
 require "ShopInit"
@@ -12,6 +23,7 @@ require "ShopPriceEvents"
 require "ShopPriceUtils"
 require "ShopPriceBuy"
 require "ShopPriceSell"
+
 Shop.Sell = Shop.Sell or {}
 Shop.SellisBlacklist = false
 Shop.SellisWhitelist = false
@@ -67,17 +79,7 @@ Shop.textures = {
 	},
 }
 
-Tab = Tab or {}
-Tab["Favorite"] = "Favorite"
-Tab["Sell"] = "Sell"
-Tab["All"] = "All"
-
-Tab["Food"] = "Food"
-Tab["Weapons"] = "Weapons"
-Tab["Vehicles"] = "Vehicles"
-Tab["FirstAid"]= "FirstAid"
-Tab["Event"] = "Event"
-
+-- Register tab display names (Tab constants already defined at top)
 Shop.Tabs[Tab.Favorite] = getText("IGUI_Tab_Favorite")
 Shop.Tabs[Tab.Sell] = getText("IGUI_Tab_Sell")
 Shop.Tabs[Tab.All] = getText("IGUI_Tab_All")

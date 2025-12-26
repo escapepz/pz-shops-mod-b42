@@ -67,7 +67,9 @@ function PSServer.RemoveItemFromInventory(player, args)
 	
 	local item = player:getInventory():getItemById(itemID)
 	if item then
-		item:getContainer():Remove(item)
+		local container = item:getContainer()
+		container:Remove(item)
+		sendRemoveItemFromContainer(container, item)
 		writeLog("Shops", "[SERVER] PlayerShop inventory item removed - ID: " .. tostring(itemID))
 	end
 end

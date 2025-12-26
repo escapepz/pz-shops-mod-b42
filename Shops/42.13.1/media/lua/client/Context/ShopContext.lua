@@ -1,4 +1,5 @@
 local isDebug = getCore():getDebug()  -- Enable debug logs when running with -debug flag
+local Utilities = require "HelperFunction/Utilities"
 
 local function seekShopTiles(worldobject,spritePrefix)
     local wo = worldobject
@@ -27,15 +28,12 @@ function Shop.removeShop(worldobject)
 end
 
 function Shop.ShopContextMenu(playerNum, context, worldobjects)
-    local isSinglePlayer = isServer() or isDebug
-    local isAdminMode = isClient() and isAdmin()
-    local allowAccess = isSinglePlayer or isAdminMode
+    -- Allow access if client is admin or in single-player debug mode
+    if not Utilities.IsClientAdmin() then return end
     
     if isDebug then 
-         writeLog("Shops", "[CLIENT] ShopContextMenu: isServer=" .. tostring(isSinglePlayer) .. ", isAdmin=" .. tostring(isAdminMode) .. ", allowAccess=" .. tostring(allowAccess))
+         writeLog("Shops", "[CLIENT] ShopContextMenu: Admin access granted")
      end
-      
-      if not allowAccess then return end
       
       local wo, found = seekShopTiles(worldobjects[1],Shop.spritePrefix)
       local player = getSpecificPlayer(playerNum)

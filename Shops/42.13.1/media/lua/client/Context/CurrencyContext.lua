@@ -106,13 +106,13 @@ function Currency.CoinsToAccountObjectContextMenu(playerNum, context, items)
 end
 
 function Currency.linkWallet(worldobjects, wallet, player)
-    local username = player:getUsername()
-    local linkedTo = username .. getTimestampMs()
-    wallet:getModData().belongsTo = username
-    wallet:getModData().linkedTo = linkedTo
-    print("[Currency] Link: Set wallet modData - belongsTo=" ..
-    tostring(wallet:getModData().belongsTo) .. ", linkedTo=" .. tostring(wallet:getModData().linkedTo))
-    sendClientCommand(
+     local username = player:getUsername()
+     local linkedTo = username .. getTimestampMs()
+     wallet:getModData().belongsTo = username
+     wallet:getModData().linkedTo = linkedTo
+     writeLog("Shops", "[CLIENT] Link: Set wallet modData - belongsTo=" ..
+     tostring(wallet:getModData().belongsTo) .. ", linkedTo=" .. tostring(wallet:getModData().linkedTo))
+     sendClientCommand(
         player,
         "BS",
         "CreateAccount",
@@ -163,12 +163,12 @@ function Currency.LinkWalletObjectContextMenu(playerNum, context, items)
 end
 
 function Currency.unlinkWallet(worldobjects, wallet)
-    local player = getPlayer()
-    wallet:getModData().belongsTo = nil
-    wallet:getModData().linkedTo = nil
-    print("[Currency] Unlink: Cleared wallet modData - belongsTo=" ..
-    tostring(wallet:getModData().belongsTo) .. ", linkedTo=" .. tostring(wallet:getModData().linkedTo))
-    sendClientCommand(
+     local player = getPlayer()
+     wallet:getModData().belongsTo = nil
+     wallet:getModData().linkedTo = nil
+     writeLog("Shops", "[CLIENT] Unlink: Cleared wallet modData - belongsTo=" ..
+     tostring(wallet:getModData().belongsTo) .. ", linkedTo=" .. tostring(wallet:getModData().linkedTo))
+     sendClientCommand(
         player,
         "BS",
         "UnlinkWallet",
@@ -211,18 +211,18 @@ function Currency.transfer(worldobjects, wallet, player)
 end
 
 function Currency.claimOfflineMailbox(worldobjects, wallet, player)
-    local username = player:getUsername()
-    sendClientCommand(
-        player,
-        "BS",
-        "ClaimMailbox",
-        {
-            walletID = wallet:getID()
-        }
-    )
-    print(string.format("[Currency] Claim Offline Mailbox: Requested for %s", username))
-    ModData.request("CoinBalance")
-end
+     local username = player:getUsername()
+     sendClientCommand(
+         player,
+         "BS",
+         "ClaimMailbox",
+         {
+             walletID = wallet:getID()
+         }
+     )
+     writeLog("Shops", string.format("[CLIENT] Claim Offline Mailbox: Requested for %s", username))
+     ModData.request("CoinBalance")
+ end
 
 Events.OnPreFillInventoryObjectContextMenu.Add(Currency.LootCoinsObjectContextMenu);
 Events.OnPreFillInventoryObjectContextMenu.Add(Currency.LinkWalletObjectContextMenu);

@@ -13,23 +13,23 @@ local function writeLogToFile(message)
 		if file then
 			file:write(os.date("%Y-%m-%d %H:%M:%S") .. " - " .. message .. "\n")
 			file:close()
-			if isDebug then print("[Shop Debug] Log written to file: " .. logfile) end
+			if isDebug then writeLog("Shops", "[SERVER] Log written to file: " .. logfile) end
 		else
-			if isDebug then print("[Shop Debug] Failed to open log file: " .. logfile) end
+			if isDebug then writeLog("Shops", "[SERVER] Failed to open log file: " .. logfile) end
 		end
 	end)
 	if not success and isDebug then
-		print("[Shop Debug] Error writing log file: " .. tostring(err))
+		writeLog("Shops", "[SERVER] Error writing log file: " .. tostring(err))
 	end
 end
 
 function LServer.TransactionShopLog(player, args)
 	msg = args[1]
-	if isDebug then print("[Shop Debug] TransactionShopLog received: " .. msg) end
+	if isDebug then writeLog("Shops", "[SERVER] TransactionShopLog received: " .. msg) end
 	if Valhalla and Valhalla.Commands then
 		local args = { file = logfile, line = msg }
 		Valhalla.Commands.writeToLog(nil, args)
-		if isDebug then print("[Shop Debug] Log written via Valhalla") end
+		if isDebug then writeLog("Shops", "[SERVER] Log written via Valhalla") end
 	else
 		writeLogToFile(msg)
 	end

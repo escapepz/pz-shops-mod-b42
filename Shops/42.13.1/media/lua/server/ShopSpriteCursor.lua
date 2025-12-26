@@ -10,23 +10,23 @@ local function isFreezer(sprite)
 end
 
 function ShopSpriteCursor:create(x, y, z, north, sprite)
-	print("[Shop Debug] ShopSpriteCursor:create() called with sprite=" .. sprite .. ", pos=" .. x .. "," .. y .. "," .. z)
+	writeLog("Shops", "[SERVER] ShopSpriteCursor:create() called with sprite=" .. sprite .. ", pos=" .. x .. "," .. y .. "," .. z)
 	local cell = getWorld():getCell()
 	local square = cell:getGridSquare(x, y, z)
 	if not square then
-		print("[Shop Error] ShopSpriteCursor:create() - Failed to get square at " .. x .. "," .. y .. "," .. z)
+		writeLog("Shops", "[SERVER] ShopSpriteCursor:create() - Failed to get square at " .. x .. "," .. y .. "," .. z)
 		return
 	end
 	local shop = IsoThumpable.new(cell, square, sprite, north, self)
 	if not shop then
-		print("[Shop Error] ShopSpriteCursor:create() - Failed to create IsoThumpable")
+		writeLog("Shops", "[SERVER] ShopSpriteCursor:create() - Failed to create IsoThumpable")
 		return
 	end
-	print("[Shop Debug] ShopSpriteCursor:create() - IsoThumpable created, sprite=" .. sprite)
+	writeLog("Shops", "[SERVER] ShopSpriteCursor:create() - IsoThumpable created, sprite=" .. sprite)
 	local isPlayerShop = string.find(sprite,PlayerShop.spritePrefix)
 	local itemTag = nil
 	if isPlayerShop then
-		print("[Shop Debug] ShopSpriteCursor:create() - Detected PlayerShop")
+		writeLog("Shops", "[SERVER] ShopSpriteCursor:create() - Detected PlayerShop")
 		shop:setIsContainer(true);
 		shop:setCanBeLockByPadlock(true)
 		if isFreezer(sprite) then
@@ -38,28 +38,28 @@ function ShopSpriteCursor:create(x, y, z, north, sprite)
 	end
 	shop:setSprite(sprite)
 	shop:setIsThumpable(false);
-	print("[Shop Debug] ShopSpriteCursor:create() - About to add special object, sprite confirmed as " .. tostring(shop:getSprite():getName()))
+	writeLog("Shops", "[SERVER] ShopSpriteCursor:create() - About to add special object, sprite confirmed as " .. tostring(shop:getSprite():getName()))
 	square:AddSpecialObject(shop)
-	print("[Shop Debug] ShopSpriteCursor:create() - Shop added to special objects")
+	writeLog("Shops", "[SERVER] ShopSpriteCursor:create() - Shop added to special objects")
 	if shop.transmitCompleteItemToServer then
 		shop:transmitCompleteItemToServer()
 	end
-	print("[Shop Debug] ShopSpriteCursor:create() - Synced to clients")
+	writeLog("Shops", "[SERVER] ShopSpriteCursor:create() - Synced to clients")
 	if isPlayerShop then
 		shop:getModData().owner = self.character:getUsername()
 		shop:getModData().income = {}
 		shop:transmitModData()
-		print("[Shop Debug] ShopSpriteCursor:create() - ModData set and transmitted")
+		writeLog("Shops", "[SERVER] ShopSpriteCursor:create() - ModData set and transmitted")
 	end
 	getWorld():getCell():setDrag(nil, 0);
 	if itemTag then
 		local playerShop = self.character:getInventory():getFirstTag(itemTag)
 		if playerShop then
 			-- Item removal is handled server-side via onClientCommand to prevent client-side inventory mutations
-			print("[Shop Debug] ShopSpriteCursor:create() - Shop created, item removal delegated to server command")
+			writeLog("Shops", "[SERVER] ShopSpriteCursor:create() - Shop created, item removal delegated to server command")
 		end
 	end
-	print("[Shop Debug] ShopSpriteCursor:create() - Complete")
+	writeLog("Shops", "[SERVER] ShopSpriteCursor:create() - Complete")
 end
 
 function ShopSpriteCursor:render(x, y, z, square)

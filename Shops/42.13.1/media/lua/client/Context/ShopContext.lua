@@ -7,11 +7,13 @@ local function seekShopTiles(worldobject,spritePrefix)
     local sprite = wo:getSprite()
     local spriteName = sprite:getName()
     if spriteName then
-        if(string.find(spriteName,spritePrefix)) then 
-            found = true
-            if isDebug then print("[Shop Debug] seekShopTiles: Found shop tile - " .. spriteName) end
-        end
-    end
+         if(string.find(spriteName,spritePrefix)) then 
+             found = true
+             if isDebug then 
+                 writeLog("Shops", "[CLIENT] seekShopTiles: Found shop tile - " .. spriteName)
+             end
+         end
+     end
     return wo, found
 end
 
@@ -29,13 +31,17 @@ function Shop.ShopContextMenu(playerNum, context, worldobjects)
     local isAdminMode = isClient() and isAdmin()
     local allowAccess = isSinglePlayer or isAdminMode
     
-    if isDebug then print("[Shop Debug] ShopContextMenu: isServer=" .. tostring(isSinglePlayer) .. ", isAdmin=" .. tostring(isAdminMode) .. ", allowAccess=" .. tostring(allowAccess)) end
-    
-    if not allowAccess then return end
-    
-    local wo, found = seekShopTiles(worldobjects[1],Shop.spritePrefix)
-    local player = getSpecificPlayer(playerNum)
-    if isDebug then print("[Shop Debug] ShopContextMenu: wo found=" .. tostring(found)) end
+    if isDebug then 
+         writeLog("Shops", "[CLIENT] ShopContextMenu: isServer=" .. tostring(isSinglePlayer) .. ", isAdmin=" .. tostring(isAdminMode) .. ", allowAccess=" .. tostring(allowAccess))
+     end
+      
+      if not allowAccess then return end
+      
+      local wo, found = seekShopTiles(worldobjects[1],Shop.spritePrefix)
+      local player = getSpecificPlayer(playerNum)
+      if isDebug then 
+         writeLog("Shops", "[CLIENT] ShopContextMenu: wo found=" .. tostring(found))
+      end
     
     local shop = context:addOption(UIText.AddShop,worldobjects,nil);
     local subShop = context:getNew(context);

@@ -121,26 +121,26 @@ function PlayerShopUI:onMouseDown(x, y)
 end
 
 function PlayerShopUI:onMouseDownCartItem(x, y)
-    ISScrollingListBox.onMouseDown(self,x, y)
-    if PreviewUI.instance then PreviewUI.instance:close() end
-    if ContainerViewerUI.instance then ContainerViewerUI.instance:close() end
-	if self.selectedRow then
-        local selectedRow = self.items[self.selectedRow]
-        if not selectedRow then return end
-        if self.previewBtn then
-            if selectedRow.item.invItem:IsInventoryContainer() then
-                ContainerViewerUI:show(selectedRow.item.invItem)
-                return
-            end
-            if not selectedRow.item.VehicleID then return end
-            PreviewUI:show(selectedRow.item.name,selectedRow.item.VehicleID)
-            return
-        end
-        if self.removeBtn then
-		    PlayerShopUI.instance:removeFromCart(selectedRow)
-        end
-    end
-end
+     ISScrollingListBox.onMouseDown(self,x, y)
+     if PreviewUI.instance then PreviewUI.instance:close() end
+     if ContainerViewerUI.instance then ContainerViewerUI.instance:close() end
+ 	if self.selectedRow then
+         local selectedRow = self.items[self.selectedRow]
+         if not selectedRow then return end
+         if self.previewBtn then
+             if selectedRow.item.invItem:IsInventoryContainer() then
+                 ContainerViewerUI:show(selectedRow.item.invItem)
+                 return
+             end
+             if not selectedRow.item.VehicleID then return end
+             PreviewUI:show(selectedRow.item.name,selectedRow.item.VehicleID)
+             return
+         end
+         if self.removeBtn then
+ 		    PlayerShopUI.instance:removeFromCart(self.selectedRow)
+         end
+     end
+ end
 
 local currentTooltip = nil
 function PlayerShopUI:toggleTooltip(show,item)
@@ -336,13 +336,16 @@ function PlayerShopUI:activateFirstTab()
     end
 end
 
-function PlayerShopUI:removeFromCart(selectedRow)
-    if self.actionInProgress then return end
-    self:toggleTooltip(false)
-    local tab = self.panel.activeView.view
-    tab.shopItems:addItem(selectedRow.item.type,selectedRow.item)
-    self.cartItems:removeItem(selectedRow.text)
-end
+function PlayerShopUI:removeFromCart(selectedRowIndex)
+     if self.actionInProgress then return end
+     self:toggleTooltip(false)
+     local selectedRow = self.cartItems.items[selectedRowIndex]
+     if not selectedRow then return end
+     
+     local tab = self.panel.activeView.view
+     tab.shopItems:addItem(selectedRow.item.type,selectedRow.item)
+     self.cartItems:removeItemByIndex(selectedRowIndex)
+ end
 
 function PlayerShopUI:clearCartBtn()
     if self.actionInProgress then return end
@@ -399,34 +402,28 @@ function PlayerShopUI:buyCartBtn()
 end
 
 function PlayerShopUI:render()
-    ISCollapsableWindow.render(self);
-    local actionQueue = ISTimedActionQueue.getTimedActionQueue(self.player)
-    local currentAction = actionQueue.queue[1]
-    if not currentAction then 
-        if self.actionInProgress then
-            -- Action just completed, clear cart and reset UI
-            self:clearCart()
-            self.buyCartButton.enable = true
-            self.buyCartButton:setVisible(true)
-            self.cancelBuyButton.enable = false
-            self.cancelBuyButton:setVisible(false)
-        end
-        self.actionInProgress = false 
-        return 
-    end
-    if not (currentAction.Type == "PlayerShopBuyAction") then 
-        if self.actionInProgress then
-            -- Action just completed, clear cart and reset UI
-            self:clearCart()
-            self.buyCartButton.enable = true
-            self.buyCartButton:setVisible(true)
-            self.cancelBuyButton.enable = false
-            self.cancelBuyButton:setVisible(false)
-        end
-        self.actionInProgress = false 
-        return 
-    end
-    self:drawProgressBar((self.width / 2)+180, 420, 120, 10, currentAction.action:getJobDelta(), self.fgBar)
+     ISCollapsableWindow.render(self);
+     local actionQueue = ISTimedActionQueue.getTimedActionQueue(self.player)
+     local currentAction = actionQueue.queue[1]
+     if not currentAction then 
+         -- Action completed: clear cart and reset buttons
+         if self.actionInProgress then
+             self.cartItems:clear()
+             self:updateTotal()
+         end
+         self.actionInProgress = false
+         return 
+     end
+     if not (currentAction.Type == "PlayerShopBuyAction") then 
+         -- Different action type: clear shop action state
+         if self.actionInProgress then
+             self.cartItems:clear()
+             self:updateTotal()
+         end
+         self.actionInProgress = false
+         return 
+     end
+     self:drawProgressBar((self.width / 2)+180, 420, 120, 10, currentAction.action:getJobDelta(), self.fgBar)
 end
 
 function PlayerShopUI:updateTotal()

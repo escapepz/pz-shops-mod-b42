@@ -11,13 +11,13 @@
 #### Placement
 
 - [ ] Craft Player Shop (Carpentry tab)
-- [ ] Place via **world context menu**, not item
-- [ ] Rotate shop (R key) → both positions valid
+- [x] Place via **world context menu**, not item
+- [x] Rotate shop (R key) -> both positions valid
 
 #### Pricing & Selling
 
 - [ ] Item with `Write` tag required to set price
-- [ ] Right-click item → **Set Price**
+- [ ] Right-click item -> **Set Price**
 - [ ] UI allows normal + special currency
 - [ ] Highest currency value used as sale price
 - [ ] Item must be transferred to shop container
@@ -36,9 +36,9 @@
 - [ ] Lock shop container
 - [ ] Unlock shop container
 - [ ] View Income UI shows buyer + payment
-- [ ] Get Income → sent to linked account
+- [ ] Get Income -> sent to linked account
 - [ ] Pick up shop only if empty + no income
-- [ ] Change sign → all 10 options available
+- [ ] Change sign -> all 10 options available
 
 #### Concurrency & Safety
 
@@ -55,6 +55,6 @@
 - [ ] Cannot remove items from container
 - [ ] Purchase updates seller income
 - [ ] Purchase updates buyer inventory
-- [ ] Relog → purchases persist
+- [ ] Relog -> purchases persist
 
 ---

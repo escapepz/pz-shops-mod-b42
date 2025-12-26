@@ -78,8 +78,8 @@ It separates **player-visible logging** from **server-authoritative audit loggin
 
 **Sandbox Control**
 
-- `SandboxVars.Shops.PurchaseLog` → BUY actions
-- `SandboxVars.Shops.SellLog` → SELL actions
+- `SandboxVars.Shops.PurchaseLog` -> BUY actions
+- `SandboxVars.Shops.SellLog` -> SELL actions
 
 **Rules**
 
@@ -178,9 +178,9 @@ File logs must never replace ModData as the source of truth.
 
 To avoid confusion:
 
-- `log*` → cosmetic, sandbox-controlled
-- `audit*` → authoritative, unconditional
-- `debug*` → developer-only
+- `log*` -> cosmetic, sandbox-controlled
+- `audit*` -> authoritative, unconditional
+- `debug*` -> developer-only
 
 Example:
 

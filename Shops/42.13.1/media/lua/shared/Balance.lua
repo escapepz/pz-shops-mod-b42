@@ -29,3 +29,29 @@ function Balance.getAccountsList()
     end
     return accounts
 end
+
+-- Virtual balance deposit (no physical coin items required)
+-- Used for player shop income, quest rewards, and other sources of virtual currency
+function Balance.deposit(username, coin, specialCoin)
+    if not isClient() then return end
+    
+    coin = coin or 0
+    specialCoin = specialCoin or 0
+    
+    -- Reject zero-value deposits
+    if coin <= 0 and specialCoin <= 0 then
+        return
+    end
+    
+    sendClientCommand(
+        getPlayer(),
+        "shops",
+        "VirtualDeposit",
+        {
+            username = username,
+            coin = coin,
+            specialCoin = specialCoin,
+            source = "PlayerShopIncome"
+        }
+    )
+end

@@ -32,7 +32,7 @@ function BServer.writeLog(msg)
         Valhalla.Commands.writeToLog(nil, args)
         return
     end
-    print(msg)
+    writeLog("Shops", "[SERVER] " .. msg)
 end
 
 function BServer.CreateAccount(player, args)
@@ -63,7 +63,7 @@ function BServer.CreateAccount(player, args)
         if wallet then
             -- Validate wallet ownership: confirm wallet is in player's inventory
             if wallet:getContainer() ~= player:getInventory() then
-                print("[BalanceServer] CreateAccount: REJECTED - wallet not in player inventory - walletID=" .. tostring(walletID))
+                writeLog("Shops", "[SERVER] CreateAccount: REJECTED - wallet not in player inventory - walletID=" .. tostring(walletID))
                 return
             end
             
@@ -71,72 +71,119 @@ function BServer.CreateAccount(player, args)
             local walletModData = wallet:getModData()
             walletModData.belongsTo = username
             walletModData.linkedTo = linkedTo
-            print("[BalanceServer] CreateAccount: Syncing wallet modData - walletID=" ..
+            writeLog("Shops", "[SERVER] CreateAccount: Syncing wallet modData - walletID=" ..
             tostring(walletID) ..
             ", belongsTo=" .. tostring(walletModData.belongsTo) .. ", linkedTo=" .. tostring(walletModData.linkedTo))
             syncItemModData(player, wallet)
         else
-            print("[BalanceServer] CreateAccount: Wallet not found - walletID=" .. tostring(walletID))
+            writeLog("Shops", "[SERVER] CreateAccount: Wallet not found - walletID=" .. tostring(walletID))
         end
     end
 
     ModData.transmit("CoinBalance")
+end
+
+function BServer.VirtualDeposit(player, args)
+      if not player or not args then return end
+      if not args.username then return end
+
+      local username = args.username
+      local coin = tonumber(args.coin) or 0
+      local specialCoin = tonumber(args.specialCoin) or 0
+      local source = args.source or "Unknown"
+
+      local account = ModData.get("CoinBalance")[username]
+      if not account then return end
+
+      -- Validate amounts are non-negative
+      if coin < 0 or specialCoin < 0 then return end
+
+      -- Reject zero-value deposits
+      if coin == 0 and specialCoin == 0 then return end
+
+      -- Store old balance for logging
+      local oldCoin = account.coin
+      local oldSpecialCoin = account.specialCoin
+
+      -- Perform atomic mutation (no inventory changes)
+      account.coin = account.coin + coin
+      account.specialCoin = account.specialCoin + specialCoin
+
+      msg = "VirtualDeposit: %s (%s) oldBalance: Coin: %s SpecialCoin %s newBalance: Coin: %s SpecialCoin %s"
+      msg = string.format(msg, username, source, oldCoin, oldSpecialCoin, account.coin, account.specialCoin)
+      BServer.writeLog(msg)
+
+      ModData.transmit("CoinBalance")
 end
 
 function BServer.Deposit(player, args)
-    if not player or not args then return end
+      if not player or not args then return end
 
-    local username = player:getUsername()
-    local coin = tonumber(args.coin) or 0
-    local specialCoin = tonumber(args.specialCoin) or 0
-    local itemIDs = args.itemIDs
+      local username = player:getUsername()
+      local coin = tonumber(args.coin) or 0
+      local specialCoin = tonumber(args.specialCoin) or 0
+      local itemIDs = args.itemIDs
 
-    local account = ModData.get("CoinBalance")[username]
-    if not account then return end
+      local account = ModData.get("CoinBalance")[username]
+      if not account then return end
 
-    -- Validate amounts are non-negative
-    if coin < 0 or specialCoin < 0 then return end
+      -- Validate amounts are non-negative
+      if coin < 0 or specialCoin < 0 then return end
 
-    -- Store old balance for logging
-    local oldCoin = account.coin
-    local oldSpecialCoin = account.specialCoin
+      -- CRITICAL: itemIDs must be provided to prevent infinite balance exploit
+      if not itemIDs or type(itemIDs) ~= "table" or #itemIDs == 0 then
+          writeLog("Shops", "[SERVER] Deposit REJECTED: no itemIDs provided - " .. username)
+          return
+      end
 
-    -- Perform atomic mutation
-    account.coin = account.coin + coin
-    account.specialCoin = account.specialCoin + specialCoin
+      -- Verify all items exist in inventory before deducting balance
+      local itemsToRemove = {}
+      for i, itemID in ipairs(itemIDs) do
+          local item = player:getInventory():getItemById(itemID)
+          if not item then
+              writeLog("Shops", "[SERVER] Deposit REJECTED: item " .. tostring(itemID) .. " not found in inventory - " .. username)
+              return
+          end
+          table.insert(itemsToRemove, item)
+      end
 
-    msg = "Deposit: %s oldBalance: Coin: %s SpecialCoin %s newBalance: Coin: %s SpecialCoin %s"
-    msg = string.format(msg, username, oldCoin, oldSpecialCoin, account.coin, account.specialCoin)
-    BServer.writeLog(msg)
+      -- Store old balance for logging
+      local oldCoin = account.coin
+      local oldSpecialCoin = account.specialCoin
 
-    -- Remove coin items from player inventory if provided
-    if itemIDs and type(itemIDs) == "table" then
-        for i, itemID in ipairs(itemIDs) do
-            local item = player:getInventory():getItemById(itemID)
-            if item then
-                item:getContainer():Remove(item)
-            end
-        end
-    end
+      -- Perform atomic mutation
+      account.coin = account.coin + coin
+      account.specialCoin = account.specialCoin + specialCoin
 
-    ModData.transmit("CoinBalance")
+      msg = "Deposit: %s oldBalance: Coin: %s SpecialCoin %s newBalance: Coin: %s SpecialCoin %s"
+      msg = string.format(msg, username, oldCoin, oldSpecialCoin, account.coin, account.specialCoin)
+      BServer.writeLog(msg)
+
+      -- Remove coin items from player inventory
+      for i, item in ipairs(itemsToRemove) do
+          local container = item:getContainer()
+          container:Remove(item)
+          sendRemoveItemFromContainer(container, item)
+      end
+
+      ModData.transmit("CoinBalance")
 end
 
 function BServer.Transfer(player, args)
-    -- Validate arguments
-    if not player or not args then
-        print("[BS.Transfer] ERROR: player or args is nil")
-        return
-    end
+     -- Validate arguments
+     if not player or not args then
+         writeLog("Shops", "[SERVER] Transfer ERROR: player or args is nil")
+         return
+     end
 
-    local sender = player:getUsername()
-    local coin = tonumber(args.coin)
-    local specialCoin = tonumber(args.specialCoin)
-    local recipient = args.recipient
-    local now = getTimestampMs()
+     local sender = player:getUsername()
+     local coin = tonumber(args.coin)
+     local specialCoin = tonumber(args.specialCoin)
+     local recipient = args.recipient
+     local now = getTimestampMs()
 
-    print(string.format("[BS.Transfer] START: sender=%s, recipient=%s, coin=%s, specialCoin=%s",
-        sender, recipient, coin, specialCoin))
+     writeLog("Shops", string.format("[SERVER] Transfer START: sender=%s, recipient=%s, coin=%s, specialCoin=%s",
+         sender, recipient, coin, specialCoin))
 
     -- Rate limit enforcement (top priority)
     local r = BServer.rate[sender]
@@ -147,7 +194,7 @@ function BServer.Transfer(player, args)
 
     -- Hard minimum interval between requests
     if now - r.lastTs < RATE_LIMIT.minIntervalMs then
-        print(string.format("[BS.Transfer] REJECTED: rate limit interval %d < %d", now - r.lastTs,
+        writeLog("Shops", string.format("[SERVER] Transfer REJECTED: rate limit interval %d < %d", now - r.lastTs,
             RATE_LIMIT.minIntervalMs))
         return
     end
@@ -163,35 +210,35 @@ function BServer.Transfer(player, args)
 
     -- Reject if over limit (silent rejection)
     if r.count > RATE_LIMIT.maxRequests then
-        print(string.format("[BS.Transfer] REJECTED: rate limit exceeded %d > %d", r.count, RATE_LIMIT.maxRequests))
+        writeLog("Shops", string.format("[SERVER] Transfer REJECTED: rate limit exceeded %d > %d", r.count, RATE_LIMIT.maxRequests))
         return
     end
 
     -- Reject invalid arguments
     if not recipient or recipient == sender then
-        print(string.format("[BS.Transfer] REJECTED: invalid recipient (nil=%s, same=%s)", not recipient,
+        writeLog("Shops", string.format("[SERVER] Transfer REJECTED: invalid recipient (nil=%s, same=%s)", not recipient,
             recipient == sender))
         return
     end
     if not coin or not specialCoin then
-        print(string.format("[BS.Transfer] REJECTED: coin or specialCoin is nil (coin=%s, sc=%s)", coin, specialCoin))
+        writeLog("Shops", string.format("[SERVER] Transfer REJECTED: coin or specialCoin is nil (coin=%s, sc=%s)", coin, specialCoin))
         return
     end
     if coin < 0 or specialCoin < 0 then
-        print(string.format("[BS.Transfer] REJECTED: negative amounts (coin=%s, sc=%s)", coin, specialCoin))
+        writeLog("Shops", string.format("[SERVER] Transfer REJECTED: negative amounts (coin=%s, sc=%s)", coin, specialCoin))
         return
     end
 
     -- Guard: reject zero-value transfers
     if coin == 0 and specialCoin == 0 then
-        print("[BS.Transfer] REJECTED: zero-value transfer")
+        writeLog("Shops", "[SERVER] Transfer REJECTED: zero-value transfer")
         return
     end
 
     -- Resolve authoritative accounts (server-side truth)
     local coinBalance = ModData.get("CoinBalance")
     if not coinBalance then
-        print("[BS.Transfer] ERROR: CoinBalance ModData not found")
+        writeLog("Shops", "[SERVER] Transfer ERROR: CoinBalance ModData not found")
         return
     end
 
@@ -199,29 +246,29 @@ function BServer.Transfer(player, args)
     local recipientAccount = coinBalance[recipient]
 
     if not account or not recipientAccount then
-        print(string.format("[BS.Transfer] REJECTED: account not found (sender=%s, recipient=%s)",
+        writeLog("Shops", string.format("[SERVER] Transfer REJECTED: account not found (sender=%s, recipient=%s)",
             account == nil, recipientAccount == nil))
         return
     end
 
     -- Validate balances (server-side authority)
     if account.coin < coin then
-        print(string.format("[BS.Transfer] REJECTED: insufficient coin (%d < %d)", account.coin, coin))
+        writeLog("Shops", string.format("[SERVER] Transfer REJECTED: insufficient coin (%d < %d)", account.coin, coin))
         return
     end
     if account.specialCoin < specialCoin then
-        print(string.format("[BS.Transfer] REJECTED: insufficient specialCoin (%d < %d)", account.specialCoin,
+        writeLog("Shops", string.format("[SERVER] Transfer REJECTED: insufficient specialCoin (%d < %d)", account.specialCoin,
             specialCoin))
         return
     end
 
-    print(string.format("[BS.Transfer] VALIDATION PASSED: sender has coin=%d (need %d), specialCoin=%d (need %d)",
+    writeLog("Shops", string.format("[SERVER] Transfer VALIDATION PASSED: sender has coin=%d (need %d), specialCoin=%d (need %d)",
         account.coin, coin, account.specialCoin, specialCoin))
 
     -- Per-recipient throttle (prevent griefing via notification floods)
     local rr = BServer.recipientRate[recipient] or { lastTs = 0 }
     if now - rr.lastTs < 500 then
-        print(string.format("[BS.Transfer] REJECTED: recipient throttle %d < 500", now - rr.lastTs))
+        writeLog("Shops", string.format("[SERVER] Transfer REJECTED: recipient throttle %d < 500", now - rr.lastTs))
         return
     end
     rr.lastTs = now
@@ -234,7 +281,7 @@ function BServer.Transfer(player, args)
     account.coin = account.coin - coin
     account.specialCoin = account.specialCoin - specialCoin
 
-    print(string.format("[BS.Transfer] DEDUCTED: sender balance coin %d->%d, specialCoin %d->%d",
+    writeLog("Shops", string.format("[SERVER] Transfer DEDUCTED: sender balance coin %d->%d, specialCoin %d->%d",
         oldSenderCoin, account.coin, oldSenderSpecialCoin, account.specialCoin))
 
     -- Check if recipient is online
@@ -267,7 +314,7 @@ function BServer.Transfer(player, args)
         msg = string.format(msg, sender, oldSenderCoin, oldSenderSpecialCoin, account.coin, account.specialCoin,
             recipient, oldRecipientCoin, oldRecipientSpecialCoin, recipientAccount.coin, recipientAccount.specialCoin)
         BServer.writeLog(msg)
-        print(string.format("[BS.Transfer] actionId: %s | %s -> %s | %d / %d [ONLINE]", actionId, sender, recipient, coin,
+        writeLog("Shops", string.format("[SERVER] Transfer actionId: %s | %s -> %s | %d / %d [ONLINE]", actionId, sender, recipient, coin,
             specialCoin))
 
         -- Notify recipient
@@ -298,7 +345,7 @@ function BServer.Transfer(player, args)
         msg = string.format(msg, sender, oldSenderCoin, oldSenderSpecialCoin, account.coin, account.specialCoin,
             recipient)
         BServer.writeLog(msg)
-        print(string.format("[BS.Transfer] actionId: %s | %s -> %s | %d / %d [OFFLINE MAILBOX]", actionId, sender,
+        writeLog("Shops", string.format("[SERVER] Transfer actionId: %s | %s -> %s | %d / %d [OFFLINE MAILBOX]", actionId, sender,
             recipient, coin, specialCoin))
 
         ModData.transmit("BalanceMailbox")
@@ -361,12 +408,12 @@ function BServer.UnlinkWallet(player, args)
             local walletModData = wallet:getModData()
             walletModData.belongsTo = nil
             walletModData.linkedTo = nil
-            print("[BalanceServer] UnlinkWallet: Syncing wallet modData - walletID=" ..
+            writeLog("Shops", "[SERVER] UnlinkWallet: Syncing wallet modData - walletID=" ..
             tostring(walletID) ..
             ", belongsTo=" .. tostring(walletModData.belongsTo) .. ", linkedTo=" .. tostring(walletModData.linkedTo))
             syncItemModData(player, wallet)
-        else
-            print("[BalanceServer] UnlinkWallet: Wallet not found - walletID=" .. tostring(walletID))
+            else
+            writeLog("Shops", "[SERVER] UnlinkWallet: Wallet not found - walletID=" .. tostring(walletID))
         end
     end
 
@@ -375,41 +422,41 @@ end
 
 -- Deliver queued mailbox entries on player login
 function BServer.deliverMailbox(player)
-    local username = player:getUsername()
-    local mailbox = ModData.get("BalanceMailbox")
-    if not mailbox or not mailbox[username] then return end
+     local username = player:getUsername()
+     local mailbox = ModData.get("BalanceMailbox")
+     if not mailbox or not mailbox[username] then return end
 
-    local account = ModData.get("CoinBalance")[username]
-    if not account then return end
+     local account = ModData.get("CoinBalance")[username]
+     if not account then return end
 
-    local totalCoin = 0
-    local totalSpecialCoin = 0
-    local entryCount = #mailbox[username]
-    for _, entry in ipairs(mailbox[username]) do
-        account.coin = account.coin + entry.coin
-        account.specialCoin = account.specialCoin + entry.specialCoin
-        totalCoin = totalCoin + entry.coin
-        totalSpecialCoin = totalSpecialCoin + entry.specialCoin
-    end
+     local totalCoin = 0
+     local totalSpecialCoin = 0
+     local entryCount = #mailbox[username]
+     for _, entry in ipairs(mailbox[username]) do
+         account.coin = account.coin + entry.coin
+         account.specialCoin = account.specialCoin + entry.specialCoin
+         totalCoin = totalCoin + entry.coin
+         totalSpecialCoin = totalSpecialCoin + entry.specialCoin
+     end
 
-    mailbox[username] = nil -- clear mailbox
-    account.hasMailbox = nil -- clear mailbox flag
-    ModData.transmit("BalanceMailbox")
-    ModData.transmit("CoinBalance")
+     mailbox[username] = nil -- clear mailbox
+     account.hasMailbox = nil -- clear mailbox flag
+     ModData.transmit("BalanceMailbox")
+     ModData.transmit("CoinBalance")
 
-    msg = string.format("MailboxClaimed: %s received coin=%d specialCoin=%d from %d entries",
-        username, totalCoin, totalSpecialCoin, entryCount)
-    BServer.writeLog(msg)
-    print(string.format("[BS.Mailbox] Delivered to %s: coin=%d specialCoin=%d from %d entries", username, totalCoin,
-        totalSpecialCoin, entryCount))
+     msg = string.format("MailboxClaimed: %s received coin=%d specialCoin=%d from %d entries",
+         username, totalCoin, totalSpecialCoin, entryCount)
+     BServer.writeLog(msg)
+     writeLog("Shops", string.format("[SERVER] Mailbox Delivered to %s: coin=%d specialCoin=%d from %d entries", username, totalCoin,
+         totalSpecialCoin, entryCount))
 end
 
 -- Handle explicit mailbox claim via context menu
 function BServer.ClaimMailbox(player, args)
-    if not player or not args then return end
+     if not player or not args then return end
 
-    local username = player:getUsername()
-    print(string.format("[BS.ClaimMailbox] Requested by %s", username))
+     local username = player:getUsername()
+     writeLog("Shops", string.format("[SERVER] ClaimMailbox Requested by %s", username))
 
     -- Get mailbox entries before delivery
     local mailbox = ModData.get("BalanceMailbox")
@@ -442,92 +489,94 @@ end
 
 -- Admin-only rollback for a specific transfer by actionId
 function BServer.Rollback(player, args)
-    if not player or not args then return end
+     if not player or not args then return end
 
-    -- Verify admin privilege
-    if not player:isAdmin() then
-        print("[BS.Rollback] Non-admin attempt:", player:getUsername())
-        return
-    end
+     -- Verify admin privilege
+     if not player:isAdmin() then
+         writeLog("Shops", "[SERVER] Rollback Non-admin attempt: " .. player:getUsername())
+         return
+     end
 
-    local actionId = args.actionId
-    if not actionId then return end
+     local actionId = args.actionId
+     if not actionId then return end
 
-    -- Find the audit entry
-    local entry = BalanceAudit.findEntry(actionId)
-    if not entry then
-        print("[BS.Rollback] Entry not found:", actionId)
-        return
-    end
+     -- Find the audit entry
+     local entry = BalanceAudit.findEntry(actionId)
+     if not entry then
+         writeLog("Shops", "[SERVER] Rollback Entry not found: " .. actionId)
+         return
+     end
 
-    -- Resolve accounts
-    local coinBalance = ModData.get("CoinBalance")
-    if not coinBalance then return end
+     -- Resolve accounts
+     local coinBalance = ModData.get("CoinBalance")
+     if not coinBalance then return end
 
-    local senderAcc = coinBalance[entry.sender]
-    local recAcc = coinBalance[entry.recipient]
+     local senderAcc = coinBalance[entry.sender]
+     local recAcc = coinBalance[entry.recipient]
 
-    if not senderAcc or not recAcc then
-        print("[BS.Rollback] Account not found for actionId:", actionId)
-        return
-    end
+     if not senderAcc or not recAcc then
+         writeLog("Shops", "[SERVER] Rollback Account not found for actionId: " .. actionId)
+         return
+     end
 
-    -- Check if this transfer was delivered online or is in mailbox (offline)
-    local mailbox = ModData.getOrCreate("BalanceMailbox")
-    local isInMailbox = false
-    if mailbox[entry.recipient] then
-        for i, mentry in ipairs(mailbox[entry.recipient]) do
-            if mentry.actionId == actionId then
-                isInMailbox = true
-                -- Remove from mailbox instead of reversing account balances
-                table.remove(mailbox[entry.recipient], i)
-                if #mailbox[entry.recipient] == 0 then
-                    mailbox[entry.recipient] = nil
-                end
-                break
-            end
-        end
-    end
+     -- Check if this transfer was delivered online or is in mailbox (offline)
+     local mailbox = ModData.getOrCreate("BalanceMailbox")
+     local isInMailbox = false
+     if mailbox[entry.recipient] then
+         for i, mentry in ipairs(mailbox[entry.recipient]) do
+             if mentry.actionId == actionId then
+                 isInMailbox = true
+                 -- Remove from mailbox instead of reversing account balances
+                 table.remove(mailbox[entry.recipient], i)
+                 if #mailbox[entry.recipient] == 0 then
+                     mailbox[entry.recipient] = nil
+                 end
+                 break
+             end
+         end
+     end
 
-    if isInMailbox then
-        -- Mailbox case: just remove entry, refund sender
-        senderAcc.coin = senderAcc.coin + entry.coin
-        senderAcc.specialCoin = senderAcc.specialCoin + entry.specialCoin
-    else
-        -- Online delivery: verify balances are sufficient for rollback
-        if recAcc.coin < entry.coin or recAcc.specialCoin < entry.specialCoin then
-            print("[BS.Rollback] Insufficient balance in recipient account:", actionId)
-            return
-        end
+     if isInMailbox then
+         -- Mailbox case: just remove entry, refund sender
+         senderAcc.coin = senderAcc.coin + entry.coin
+         senderAcc.specialCoin = senderAcc.specialCoin + entry.specialCoin
+     else
+         -- Online delivery: verify balances are sufficient for rollback
+         if recAcc.coin < entry.coin or recAcc.specialCoin < entry.specialCoin then
+             writeLog("Shops", "[SERVER] Rollback Insufficient balance in recipient account: " .. actionId)
+             return
+         end
 
-        -- Reverse the mutation (return to sender, deduct from recipient)
-        senderAcc.coin = senderAcc.coin + entry.coin
-        senderAcc.specialCoin = senderAcc.specialCoin + entry.specialCoin
-        recAcc.coin = recAcc.coin - entry.coin
-        recAcc.specialCoin = recAcc.specialCoin - entry.specialCoin
-    end
+         -- Reverse the mutation (return to sender, deduct from recipient)
+         senderAcc.coin = senderAcc.coin + entry.coin
+         senderAcc.specialCoin = senderAcc.specialCoin + entry.specialCoin
+         recAcc.coin = recAcc.coin - entry.coin
+         recAcc.specialCoin = recAcc.specialCoin - entry.specialCoin
+     end
 
-    -- Log the rollback
-    local status = isInMailbox and "[MAILBOX]" or "[ONLINE]"
-    local msg = string.format(
-        "[BS.Rollback] actionId: %s | reversed %s -> %s | %d / %d | %s | by admin: %s",
-        actionId, entry.sender, entry.recipient, entry.coin, entry.specialCoin,
-        status, player:getUsername()
-    )
-    BServer.writeLog(msg)
-    print(msg)
+     -- Log the rollback
+     local status = isInMailbox and "[MAILBOX]" or "[ONLINE]"
+     local msg = string.format(
+         "[SERVER] Rollback actionId: %s | reversed %s -> %s | %d / %d | %s | by admin: %s",
+         actionId, entry.sender, entry.recipient, entry.coin, entry.specialCoin,
+         status, player:getUsername()
+     )
+     BServer.writeLog(msg)
+     writeLog("Shops", msg)
 
-    -- Sync updated balances
-    ModData.transmit("CoinBalance")
-    if isInMailbox then
-        ModData.transmit("BalanceMailbox")
-    end
+     -- Sync updated balances
+     ModData.transmit("CoinBalance")
+     if isInMailbox then
+         ModData.transmit("BalanceMailbox")
+     end
 end
 
 local function BS_OnClientCommand(module, command, player, args)
-    if module == "BS" and BServer[command] then
-        BServer[command](player, args)
-    end
+     if module == "BS" and BServer[command] then
+         BServer[command](player, args)
+     elseif module == "shops" and BServer[command] then
+         BServer[command](player, args)
+     end
 end
 
 Events.OnClientCommand.Add(BS_OnClientCommand)

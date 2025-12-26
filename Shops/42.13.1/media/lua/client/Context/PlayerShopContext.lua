@@ -4,30 +4,30 @@ local shopLockTime = minutes * 60 * 1000
 local isDebug = getCore():getDebug()
 
 local function seekShopTiles(worldobject, spritePrefix)
-    local wo = worldobject
-    local found = false
-    if not wo then
-        if isDebug then print("[Shop Debug] seekShopTiles: worldobject is nil") end
-        return wo, found
-    end
-    local sprite = wo:getSprite()
-    if not sprite then
-        if isDebug then print("[Shop Debug] seekShopTiles: sprite is nil") end
-        return wo, found
-    end
-    local spriteName = sprite:getName()
-    if spriteName then
-        if (string.find(spriteName, spritePrefix)) then
-            found = true
-            if isDebug then print("[Shop Debug] seekShopTiles: Found shop tile - " .. spriteName) end
-        else
-            if isDebug then print("[Shop Debug] seekShopTiles: sprite '" .. spriteName .. "' does not match prefix '" .. spritePrefix .. "'") end
-        end
-    else
-        if isDebug then print("[Shop Debug] seekShopTiles: spriteName is nil") end
-    end
-    return wo, found
-end
+     local wo = worldobject
+     local found = false
+     if not wo then
+         if isDebug then writeLog("Shops", "[CLIENT] seekShopTiles: worldobject is nil") end
+         return wo, found
+     end
+     local sprite = wo:getSprite()
+     if not sprite then
+         if isDebug then writeLog("Shops", "[CLIENT] seekShopTiles: sprite is nil") end
+         return wo, found
+     end
+     local spriteName = sprite:getName()
+     if spriteName then
+         if (string.find(spriteName, spritePrefix)) then
+             found = true
+             if isDebug then writeLog("Shops", "[CLIENT] seekShopTiles: Found shop tile - " .. spriteName) end
+         else
+             if isDebug then writeLog("Shops", "[CLIENT] seekShopTiles: sprite '" .. spriteName .. "' does not match prefix '" .. spritePrefix .. "'") end
+         end
+     else
+         if isDebug then writeLog("Shops", "[CLIENT] seekShopTiles: spriteName is nil") end
+     end
+     return wo, found
+ end
 
 function PlayerShop.playerShopUI(worldobjects, playerNum, clickedSquare, shop)
     local player = getSpecificPlayer(playerNum)
@@ -135,17 +135,17 @@ function PlayerShop.ChangeSprite(worldobjects, playerNum, sprites, shop)
     end
     
     if newSprite then
-        print("ChangeSprite: Sending command with sprite=" .. newSprite)
-        sendClientCommand("PS", 'ChangeSprite', { newSprite, coords })
-        shop:setSprite(newSprite)
-    end
+         writeLog("Shops", "[CLIENT] ChangeSprite: Sending command with sprite=" .. newSprite)
+         sendClientCommand("PS", 'ChangeSprite', { newSprite, coords })
+         shop:setSprite(newSprite)
+     end
 end
 
 function PlayerShop.PlayerShopContextMenu(playerNum, context, worldobjects)
-    local player = getSpecificPlayer(playerNum)
-    if isDebug then print("[Shop Debug] PlayerShopContextMenu: worldobjects=" .. (worldobjects and "table" or "nil")) end
-    local wo, found = seekShopTiles(worldobjects[1], PlayerShop.spritePrefix)
-    if isDebug then print("[Shop Debug] PlayerShopContextMenu: wo found=" .. tostring(found)) end
+     local player = getSpecificPlayer(playerNum)
+     if isDebug then writeLog("Shops", "[CLIENT] PlayerShopContextMenu: worldobjects=" .. (worldobjects and "table" or "nil")) end
+     local wo, found = seekShopTiles(worldobjects[1], PlayerShop.spritePrefix)
+     if isDebug then writeLog("Shops", "[CLIENT] PlayerShopContextMenu: wo found=" .. tostring(found)) end
     local owner = ""
     if found then
         owner = wo:getModData().owner
@@ -183,8 +183,6 @@ function PlayerShop.PlayerShopContextMenu(playerNum, context, worldobjects)
     end
 
     local inv = player:getInventory()
-
-    print(inv)
 
     if inv:containsTag(ItemTag.get(ResourceLocation.of("shops:PlayerShop"))) then
         context:addOption(UIText.AddPlayerShop, worldobjects, PlayerShop.addPlayerShop, playerNum,

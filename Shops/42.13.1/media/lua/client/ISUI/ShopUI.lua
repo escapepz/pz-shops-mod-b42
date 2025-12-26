@@ -23,6 +23,7 @@ local posY = 0
 local removeBtn = Shop.textures.RemoveButton;
 local previewBtn = Shop.textures.PreviewButton;
 local cartImg = Shop.textures.Cart;
+local browseBtn = Shop.textures.Browse;
 local width = 995
 local height = 550
 
@@ -106,6 +107,9 @@ function ShopUI:doDrawCartItem(y, item, alt)
             texture = item.item.invItem:getTex()
         end
         self:drawTextureScaledAspect(texture, 6, y + 5, 30, 30, 1, 1, 1, 1)
+        if item.item.invItem and item.item.invItem:IsInventoryContainer() then
+            self:drawTextureScaledAspect(browseBtn.texture, self.parent.previewButtonX, y + 10, browseBtn.scale, browseBtn.scale, 1, 1, 1, 1)
+        end
     end
 
     self:drawTextureScaledAspect(removeBtn.texture, self.parent.removeButtonX, y + 10, removeBtn.scale, removeBtn.scale,
@@ -137,21 +141,26 @@ function ShopUI:onMouseDown(x, y)
 end
 
 function ShopUI:onMouseDownCartItem(x, y)
-    ISScrollingListBox.onMouseDown(self, x, y)
-    if PreviewUI.instance then PreviewUI.instance:close() end
-    if self.selectedRow then
-        local selectedRow = self.items[self.selectedRow]
-        if not selectedRow then return end
-        if self.previewBtn then
-            if not selectedRow.item.VehicleID then return end
-            PreviewUI:show(selectedRow.item.name, selectedRow.item.VehicleID)
-            return
-        end
-        if self.removeBtn then
-            ShopUI.instance:removeFromCart(selectedRow)
-        end
-    end
-end
+     ISScrollingListBox.onMouseDown(self, x, y)
+     if PreviewUI.instance then PreviewUI.instance:close() end
+     if ContainerViewerUI.instance then ContainerViewerUI.instance:close() end
+     if self.selectedRow then
+         local selectedRow = self.items[self.selectedRow]
+         if not selectedRow then return end
+         if self.previewBtn then
+             if selectedRow.item.invItem and selectedRow.item.invItem:IsInventoryContainer() then
+                 ContainerViewerUI:show(selectedRow.item.invItem)
+                 return
+             end
+             if not selectedRow.item.VehicleID then return end
+             PreviewUI:show(selectedRow.item.name, selectedRow.item.VehicleID)
+             return
+         end
+         if self.removeBtn then
+             ShopUI.instance:removeFromCart(self.selectedRow)
+         end
+     end
+ end
 
 local currentTooltip = nil
 local invTooltip = nil
@@ -515,16 +524,19 @@ function ShopUI:activateFirstTab()
     end
 end
 
-function ShopUI:removeFromCart(selectedRow)
-    if self.actionInProgress then return end
-    self:toggleTooltip(false)
-    local tab = self.panel.activeView.view
-    local tabType = tab.tabType
-    if tabType == Tab.Sell then
-        tab.shopItems:addItem(selectedRow.item.type, selectedRow.item)
-    end
-    self.cartItems:removeItem(selectedRow.text)
-end
+function ShopUI:removeFromCart(selectedRowIndex)
+     if self.actionInProgress then return end
+     self:toggleTooltip(false)
+     local selectedRow = self.cartItems.items[selectedRowIndex]
+     if not selectedRow then return end
+     
+     local tab = self.panel.activeView.view
+     local tabType = tab.tabType
+     if tabType == Tab.Sell then
+         tab.shopItems:addItem(selectedRow.item.type, selectedRow.item)
+     end
+     self.cartItems:removeItemByIndex(selectedRowIndex)
+ end
 
 function ShopUI:clearCartBtn()
     if self.actionInProgress then return end
@@ -743,6 +755,7 @@ function ShopUI:close()
     self.selected = nil
     
     if PreviewUI.instance then PreviewUI.instance:close() end
+    if ContainerViewerUI.instance then ContainerViewerUI.instance:close() end
     if ShopUI.instance then
         ShopUI.instance:removeFromUIManager()
         ShopUI.instance = nil

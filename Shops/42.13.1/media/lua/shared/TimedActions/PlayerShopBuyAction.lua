@@ -44,18 +44,24 @@ function PlayerShopBuyAction:complete()
 	local username = self.character:getUsername()
 	local ticket = self.ticket
 
-	-- Step 1: Re-validate balance (defensive check)
+	-- Step 1: Server-side proximity validation (enforce purchase-at-shop rule)
+	local shopSquare = self.shop:getSquare()
+	local distance = self.character:DistTo(shopSquare:getX(), shopSquare:getY())
+	if distance > 2 then
+		return false
+	end
+
+	-- Step 2: Re-validate balance (defensive check)
 	local coin, specialCoin = Balance.getUserBalance(username)
 	if coin < ticket.coin or specialCoin < ticket.specialCoin then
 		return false
 	end
 
-	-- Step 2: Re-locate shop from world (do not trust cached references)
-	local shopSquare = self.shop:getSquare()
+	-- Step 3: Re-locate shop from world (do not trust cached references)
 	local shopContainer = self.shop:getContainer()
 	if not shopContainer then return false end
 
-	-- Step 3: Iterate cart items and transfer
+	-- Step 4: Iterate cart items and transfer
 	local playerInv = self.character:getInventory()
 	local shopModData = self.shop:getModData()
 	local income = shopModData.income or {}
@@ -94,7 +100,7 @@ function PlayerShopBuyAction:complete()
 		end
 	end
 
-	-- Step 4: Withdraw currency (server-initiated)
+	-- Step 5: Withdraw currency (server-initiated)
 	if totalCoin > 0 or totalSpecial > 0 then
 		sendClientCommand(
 			self.character,
@@ -115,10 +121,10 @@ function PlayerShopBuyAction:complete()
 		shopModData.income = income
 	end
 
-	-- Step 5: Sync shop state
+	-- Step 6: Sync shop state
 	self.shop:transmitModData()
 
-	-- Step 6: Log transaction (client-side only: Nfunction.logShop uses getPlayer())
+	-- Step 7: Log transaction (client-side only: Nfunction.logShop uses getPlayer())
 	if isClient() then
 		Nfunction.logShop({
 			x = shopSquare:getX(),

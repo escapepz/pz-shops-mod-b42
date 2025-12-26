@@ -56,7 +56,7 @@ function ShopAudit.append(entry)
 	end)
 
 	if not success then
-		print("ShopAudit.append error: " .. tostring(err))
+		writeLog("Shops", "[ShopAudit] append error: " .. tostring(err))
 	end
 end
 

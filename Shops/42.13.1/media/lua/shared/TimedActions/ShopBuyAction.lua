@@ -67,6 +67,13 @@ function ShopBuyAction:complete()
 		return false
 	end
 
+	-- Server-side proximity validation (enforce purchase-at-kiosk rule)
+	local shopSquare = self.shop:getSquare()
+	local distance = self.character:DistTo(shopSquare:getX(), shopSquare:getY())
+	if distance > 2 then
+		return false
+	end
+
 	-- Re-validate balance (authoritative server-side check)
 	local coin, specialCoin = Balance.getUserBalance(username)
 	local ticket = self.ticket

@@ -32,11 +32,13 @@ function Nfunction.logShop(coords, action)
 	local sandboxVarKey = action == "Sell" and "SellLog" or "PurchaseLog"
 	local isEnabled = SandboxVars.Shops[sandboxVarKey]
 	if isDebug then
-		print("[Shop Debug] logShop called - action=" ..
+		writeLog("Shops", "[logShop] called - action=" ..
 			action .. ", sandboxVar=" .. sandboxVarKey .. ", enabled=" .. tostring(isEnabled))
 	end
 	if not isEnabled then
-		if isDebug then print("[Shop Debug] Logging suppressed for " .. action) end
+		if isDebug then 
+			writeLog("Shops", "[logShop] Logging suppressed for " .. action)
+		end
 		return -- Exit early if logging is disabled for this action type
 	end
 
@@ -51,7 +53,9 @@ function Nfunction.logShop(coords, action)
 		end
 	end
 	log = log .. "]"
-	if isDebug then print("[Shop Debug] Sending log: " .. log) end
+	if isDebug then 
+		writeLog("Shops", "[logShop] Sending log: " .. log)
+	end
 	shopItems = {}
 	sendClientCommand("LS", "TransactionShopLog", { log })
 end

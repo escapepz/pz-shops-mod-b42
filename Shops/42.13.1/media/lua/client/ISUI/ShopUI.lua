@@ -327,6 +327,7 @@ function ShopUI:onActivateView()
                 end
             end
         end
+        self.shopItemsCache[tabType] = shopItems.items
         return
     else
         if self.sellCartButton then

@@ -167,25 +167,27 @@ function IncomeUI:createChildren()
 end
 
 function IncomeUI:getBtn()
-    local account =  Balance.getUserAccount(self.character:getUsername())
-    if account then
-        sendClientCommand(
-            self.character,
-            "BS",
-            "Deposit",
-            {
-                coin = total,
-                specialCoin = totalSpecial
-            }
-        )
-        IncomeUI.instance.shop:getModData().income = {}
-        IncomeUI.instance.shop:transmitModData()
-        self.character:playSound("CashRegister")
-    else
-        self.character:setHaloNote(UIText.AccountNeeded, 255,255,255,400);
-    end
-    self:close()
-end
+     local account =  Balance.getUserAccount(self.character:getUsername())
+     if account then
+         sendClientCommand(
+             self.character,
+             "BS",
+             "VirtualDeposit",
+             {
+                 username = self.character:getUsername(),
+                 coin = total,
+                 specialCoin = totalSpecial,
+                 source = "ShopIncome"
+             }
+         )
+         IncomeUI.instance.shop:getModData().income = {}
+         IncomeUI.instance.shop:transmitModData()
+         self.character:playSound("CashRegister")
+     else
+         self.character:setHaloNote(UIText.AccountNeeded, 255,255,255,400);
+     end
+     self:close()
+ end
 
 function IncomeUI:close()
 	ISCollapsableWindow.close(self);

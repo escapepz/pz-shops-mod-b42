@@ -7,6 +7,7 @@ ShopTabUI.favoriteButtonX = ShopTabUI.addButtonX - 20
 
 local addBtn = Shop.textures.AddButton;
 local previewBtn = Shop.textures.PreviewButton;
+local browseBtn = Shop.textures.Browse;
 
 function ShopTabUI:initialise()
     ISPanelJoypad.initialise(self);
@@ -75,41 +76,50 @@ function ShopTabUI:doDrawShopItem(y, item, alt)
     end
 
     if item.item.invItem or item.item.texture then
-        local texture = item.item.texture
-        if not texture then
-            texture = item.item.invItem:getTex()
-        end
-        self:drawTextureScaledAspect(texture, 6, y+5, 30, 30, 1, 1, 1, 1)
-    end
+         local texture = item.item.texture
+         if not texture then
+             texture = item.item.invItem:getTex()
+         end
+         self:drawTextureScaledAspect(texture, 6, y+5, 30, 30, 1, 1, 1, 1)
+     end
 
-    self:drawTextureScaledAspect(addBtn.texture, self.parent.addButtonX, y + 10, addBtn.scale, addBtn.scale, 1, 1, 1, 1)
+     if item.item.invItem and item.item.invItem:IsInventoryContainer() then
+         self:drawTextureScaledAspect(browseBtn.texture, self.parent.previewButtonX, y + 10, browseBtn.scale, browseBtn.scale, 1, 1, 1, 1)
+     end
 
-    if item.item.VehicleID then
-        self:drawTextureScaledAspect(previewBtn.texture, self.parent.previewButtonX, y + 10, previewBtn.scale, previewBtn.scale, 1, 1, 1, 1)
-    end
+     self:drawTextureScaledAspect(addBtn.texture, self.parent.addButtonX, y + 10, addBtn.scale, addBtn.scale, 1, 1, 1, 1)
+
+     if item.item.VehicleID then
+         self:drawTextureScaledAspect(previewBtn.texture, self.parent.previewButtonX, y + 10, previewBtn.scale, previewBtn.scale, 1, 1, 1, 1)
+     end
 
     return y + item.height;
 end
 
 function ShopTabUI:onMouseDownShopItem(x, y)
-    ISScrollingListBox.onMouseDown(self,x, y)
-    if PreviewUI.instance then PreviewUI.instance:close() end
-	if self.selectedRow then
-        local selectedRow = self.items[self.selectedRow]
-        if not selectedRow then return end
-        if self.previewBtn then
-            if not selectedRow.item.VehicleID then return end
-            PreviewUI:show(selectedRow.item.name,selectedRow.item.VehicleID)
-            return
-        end
-        if self.favoriteBtn then
-            if not (self.parent.tabType == Tab.Sell) then 
-                self.parent:manageFavorites(self.selectedRow)
-            end
-            return
-        end
-        if self.addBtn then
-		    self.parent:addToCart(self.selectedRow)
+     ISScrollingListBox.onMouseDown(self,x, y)
+     if PreviewUI.instance then PreviewUI.instance:close() end
+     if ContainerViewerUI.instance then ContainerViewerUI.instance:close() end
+ 	if self.selectedRow then
+         local selectedRow = self.items[self.selectedRow]
+         if not selectedRow then return end
+         if self.previewBtn then
+             if selectedRow.item.invItem and selectedRow.item.invItem:IsInventoryContainer() then
+                 ContainerViewerUI:show(selectedRow.item.invItem)
+                 return
+             end
+             if not selectedRow.item.VehicleID then return end
+             PreviewUI:show(selectedRow.item.name,selectedRow.item.VehicleID)
+             return
+         end
+         if self.favoriteBtn then
+             if not (self.parent.tabType == Tab.Sell) then 
+                 self.parent:manageFavorites(self.selectedRow)
+             end
+             return
+         end
+         if self.addBtn then
+ 		    self.parent:addToCart(self.selectedRow)
         end
     end
 end

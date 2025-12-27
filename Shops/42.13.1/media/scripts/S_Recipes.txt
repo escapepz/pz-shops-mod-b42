@@ -1,13 +1,13 @@
-module Shops {
- 	craftRecipe BuildPlayerShop
- 	{
+module Base
+{
+	craftRecipe BuildPlayerShop
+	{
 		timedAction = Making,
 		Time = 150,
 		Tags = AnySurfaceCraft;CanBeDoneFromFloor,
-		Category = Carpentry,
-		needToBeLearn = True,
-		canWalk = false,
- 	
+		category = Carpentry,
+		NeedToBeLearn = False,
+		
 		inputs
 		{
 			item 6 [Base.Plank],
@@ -19,16 +19,15 @@ module Shops {
 		{
 			item 1 Shops.PlayerShop,
 		}
- 	}
+	}
 
- 	craftRecipe BuildPlayerShopFreezer
- 	{
+	craftRecipe BuildPlayerShopFreezer
+	{
 		timedAction = Making,
 		Time = 150,
 		Tags = AnySurfaceCraft;CanBeDoneFromFloor,
-		Category = Carpentry,
-		needToBeLearn = True,
-		canWalk = false,
+		category = Carpentry,
+		NeedToBeLearn = False,
 		
 		inputs
 		{
@@ -46,5 +45,5 @@ module Shops {
 		{
 			item 1 Shops.PlayerShopFreezer,
 		}
- 	}
+	}
 }

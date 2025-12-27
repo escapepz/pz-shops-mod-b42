@@ -291,7 +291,7 @@ function ShopUI:onActivateView()
         for i = 0, inventory:size() - 1 do
             local item = inventory:get(i)
             local itemType = item:getFullType()
-            local itemSell = Shop.Sell[itemType]
+            local itemSell = Shop.PlayerSell[itemType]
             local isBroken = item:isBroken()
             if not (Shop.SellisBlacklist and itemSell) then
                 if not (item:isEquipped() or item:isFavorite() or Currency.Coins[itemType]) then
@@ -316,7 +316,7 @@ function ShopUI:onActivateView()
                             isSpecialCoin = v.specialCoin or false,
                             isBroken = isBroken,
                         }
-                        local dynamicPrice = Shop.CalculateSellPrice(character, item, context)
+                        local dynamicPrice = Shop.resolvePlayerSellPrice(character, item, context)
                         v.price = dynamicPrice or price
                         v.id = item:getID()
                         v.name = Nfunction.trimString(item:getName(), 42)
@@ -357,7 +357,7 @@ function ShopUI:onActivateView()
                     isSpecialCoin = shopItemDef.specialCoin or false,
                     isBroken = false,
                 }
-                local dynamicPrice = Shop.CalculateBuyPrice(character, k, context)
+                local dynamicPrice = Shop.resolvePlayerBuyPrice(character, k, context)
                 v.price = dynamicPrice or shopItemDef.price
             end
             if item then
@@ -409,7 +409,7 @@ function ShopUI:onActivateView()
                     isSpecialCoin = v.specialCoin or false,
                     isBroken = false,
                 }
-                local dynamicPrice = Shop.CalculateBuyPrice(character, k, context)
+                local dynamicPrice = Shop.resolvePlayerBuyPrice(character, k, context)
                 v.price = dynamicPrice or v.price
                 shopItems:addItem(k, v);
             end
@@ -614,7 +614,7 @@ function ShopUI:buildBuyTicket()
 				isSpecialCoin = item.specialCoin or false,
 				isBroken = false,
 			}
-			local dynamicPrice = Shop.CalculateBuyPrice(self.player, item.type, context)
+			local dynamicPrice = Shop.resolvePlayerBuyPrice(self.player, item.type, context)
 			itemPrice = dynamicPrice or item.price
 		end
 
@@ -683,7 +683,7 @@ function ShopUI:buildSellList()
 				isSpecialCoin = item.specialCoin or false,
 				isBroken = item.isBroken or false,
 			}
-			local dynamicPrice = Shop.CalculateSellPrice(self.player, invItem, context)
+			local dynamicPrice = Shop.resolvePlayerSellPrice(self.player, invItem, context)
 			if dynamicPrice then
 				itemPrice = dynamicPrice
 			end

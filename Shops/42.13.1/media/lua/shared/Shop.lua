@@ -1,6 +1,8 @@
 Shop = Shop or {}
 Shop.Items = Shop.Items or {}
 Shop.Tabs = Shop.Tabs or {}
+Shop.PlayerBuy = Shop.PlayerBuy or {}
+Shop.PlayerSell = Shop.PlayerSell or {}
 
 -- Define Tab constants early so ShopItems can reference them
 Tab = Tab or {}

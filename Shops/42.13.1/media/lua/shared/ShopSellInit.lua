@@ -26,7 +26,7 @@ function Shop.FinalizeSellRegistry()
 	-- Phase 3: commit all pending registrations
 	for _, entry in ipairs(Shop._sellPending) do
 		validateSellItem(entry.id, entry.def)
-		Shop.Sell[entry.id] = entry.def
+		Shop.PlayerSell[entry.id] = entry.def
 	end
 
 	Shop._sellPending = nil

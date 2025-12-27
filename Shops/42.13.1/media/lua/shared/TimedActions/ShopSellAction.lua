@@ -81,7 +81,7 @@ function ShopSellAction:complete()
 				isSpecialCoin = entry.specialCoin or false,
 				isBroken = false,
 			}
-			local finalPrice = Shop.CalculateSellPrice(self.character, item, context)
+			local finalPrice = Shop.resolvePlayerSellPrice(self.character, item, context)
 			local itemPrice = finalPrice or entry.price
 			if itemPrice ~= nil then
 				-- Remove item from inventory

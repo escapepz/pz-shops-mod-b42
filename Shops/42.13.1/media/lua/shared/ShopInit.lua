@@ -19,8 +19,30 @@ local function loadDefaultItems()
 	require("ShopItems.Vehicles")
 end
 
+local function migrateLegacyShopTables()
+	local migratedBuy = false
+	local migratedSell = false
+
+	if Shop.Buy and not Shop.PlayerSell then
+		Shop.PlayerSell = Shop.Buy
+		migratedBuy = true
+	end
+
+	if Shop.Sell and not Shop.PlayerBuy then
+		Shop.PlayerBuy = Shop.Sell
+		migratedSell = true
+	end
+
+	if migratedBuy or migratedSell then
+		print("[Shops] Legacy Buy/Sell tables detected. Mapped to PlayerBuy/PlayerSell.")
+	end
+end
+
 function Shop.FinalizeRegistry()
 	if Shop._locked then return end
+
+	-- Phase 0: migrate legacy tables if present
+	migrateLegacyShopTables()
 
 	-- Phase 1: allow mods to register via custom event dispatcher
 	-- Mods call ShopEvents.registerOnShopRegisterItems() during load

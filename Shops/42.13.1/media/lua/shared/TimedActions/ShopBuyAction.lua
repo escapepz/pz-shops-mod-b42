@@ -90,7 +90,7 @@ function ShopBuyAction:complete()
 				isSpecialCoin = Shop.Items[itemType].specialCoin or false,
 				isBroken = false,
 			}
-			local finalPrice = Shop.CalculateBuyPrice(self.character, itemType, context)
+			local finalPrice = Shop.resolvePlayerBuyPrice(self.character, itemType, context)
 			if not finalPrice then finalPrice = Shop.Items[itemType].price end
 			
 			if Shop.Items[itemType].specialCoin then

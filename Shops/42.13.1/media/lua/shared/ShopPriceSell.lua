@@ -1,18 +1,29 @@
 -- ShopPriceSell.lua
--- Sell price calculation pipeline
+-- Player selling to kiosk payout calculation pipeline
 
 local PriceUtils = require("ShopPriceUtils")
 
-function Shop.CalculateSellPrice(player, item, context)
-	local id = item:getFullType()
-	local rule = Shop.Sell[id]
+function Shop.canPlayerSell(fullType)
+	local cfg = Shop.PlayerSell[fullType]
+	return cfg and cfg.enabled and not cfg.blacklisted
+end
 
-	if rule and rule.blacklisted then
+function Shop.getPlayerSellPayout(fullType)
+	local cfg = Shop.PlayerSell[fullType]
+	if not cfg then return nil end
+	return cfg.price, cfg.currency
+end
+
+function Shop.resolvePlayerSellPrice(player, item, context)
+	local id = item:getFullType()
+
+	-- Check if player can sell this item
+	if not Shop.canPlayerSell(id) then
 		return nil
 	end
 
-	local base =
-		rule and rule.price or Shop.defaultPrice
+	local rule = Shop.PlayerSell[id]
+	local base = rule.price
 
 	local modifiers = {}
 

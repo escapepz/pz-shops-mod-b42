@@ -44,10 +44,11 @@ function Utilities.IsServerOrSinglePlayer()
 end
 
 --- [CLIENT]
---- Return true if client is admin or single player + debug mode
+--- Return true if client is admin or single player
 ---@return boolean
 function Utilities.IsClientAdmin()
-    return (isClient() and isAdmin()) or Utilities.IsSinglePlayerDebug();
+    local playerObj = getPlayer();
+    return (instanceof(playerObj, "IsoPlayer") and playerObj:isAccessLevel("Admin")) or Utilities.IsSinglePlayer();
 end
 
 --- [CLIENT]
@@ -55,7 +56,7 @@ end
 ---@return boolean
 function Utilities.IsClientStaff()
     local playerObj = getPlayer();
-    return Utilities.IsClientAdmin() or (instanceof(playerObj, "IsoPlayer") and playerObj:getAccessLevel() == "Moderator");
+    return Utilities.IsClientAdmin() or (instanceof(playerObj, "IsoPlayer") and playerObj:isAccessLevel("Moderator"));
 end
 
 --- [SERVER]
@@ -66,7 +67,7 @@ function Utilities.IsPlayerAdmin(playerObjOrUsername)
     if type(playerObjOrUsername) == "string" then
         playerObjOrUsername = Utilities.GetPlayerFromUsername(playerObjOrUsername);
     end
-    return (instanceof(playerObjOrUsername, "IsoPlayer") and playerObjOrUsername:getAccessLevel() == "Admin") or Utilities.IsSinglePlayerDebug();
+    return (instanceof(playerObjOrUsername, "IsoPlayer") and playerObjOrUsername:isAccessLevel("Admin")) or Utilities.IsSinglePlayerDebug();
 end
 
 --- [SERVER]
@@ -77,7 +78,7 @@ function Utilities.IsPlayerStaff(playerObjOrUsername)
     if type(playerObjOrUsername) == "string" then
         playerObjOrUsername = Utilities.GetPlayerFromUsername(playerObjOrUsername);
     end
-    return (instanceof(playerObjOrUsername, "IsoPlayer") and (playerObjOrUsername:getAccessLevel() == "Admin" or playerObjOrUsername:getAccessLevel() == "Moderator")) or Utilities.IsSinglePlayerDebug();
+    return (instanceof(playerObjOrUsername, "IsoPlayer") and (playerObjOrUsername:isAccessLevel("Admin") or playerObjOrUsername:isAccessLevel("Moderator"))) or Utilities.IsSinglePlayerDebug();
 end
 
 --- [CLIENT]

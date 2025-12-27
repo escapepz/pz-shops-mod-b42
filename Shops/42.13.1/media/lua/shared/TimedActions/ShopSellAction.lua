@@ -75,10 +75,13 @@ function ShopSellAction:complete()
 		local item = inv:getItemById(entry.itemID)
 		if item then
 			-- Recompute sell price authoritatively on server
+			local itemType = item:getFullType()
+			local isSpecialCoin = Shop.PlayerSell[itemType] and Shop.PlayerSell[itemType].specialCoin or false
+			
 			local context = {
 				shopId = self.shop:getName(),
 				quantity = 1,
-				isSpecialCoin = entry.specialCoin or false,
+				isSpecialCoin = isSpecialCoin,
 				isBroken = false,
 			}
 			local finalPrice = Shop.resolvePlayerSellPrice(self.character, item, context)
@@ -89,7 +92,7 @@ function ShopSellAction:complete()
 				sendRemoveItemFromContainer(inv, item)
 
 				-- Accumulate payment with recomputed price
-				if entry.specialCoin then
+				if isSpecialCoin then
 					totalSpecial = totalSpecial + itemPrice
 				else
 					total = total + itemPrice
@@ -102,18 +105,7 @@ function ShopSellAction:complete()
 		end
 	end
 
-	-- Log transaction (client-side only: Nfunction.logShop uses getPlayer())
-	if total > 0 or totalSpecial > 0 then
-		local shopSquare = self.shop:getSquare()
-		local coords = {
-			x = shopSquare:getX(),
-			y = shopSquare:getY(),
-			z = shopSquare:getZ(),
-		}
-		if isClient() then
-			Nfunction.logShop(coords, "Sell")
-		end
-	end
+	-- Note: Server-side logging is handled by buildLogShop() above for each item sold
 
 	-- Deposit virtual balance (no coin items created)
 	if total > 0 or totalSpecial > 0 then

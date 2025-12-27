@@ -23,13 +23,13 @@ local function migrateLegacyShopTables()
 	local migratedBuy = false
 	local migratedSell = false
 
-	if Shop.Buy and not Shop.PlayerSell then
-		Shop.PlayerSell = Shop.Buy
+	if Shop.Buy and not Shop.PlayerBuy then
+		Shop.PlayerBuy = Shop.Buy
 		migratedBuy = true
 	end
 
-	if Shop.Sell and not Shop.PlayerBuy then
-		Shop.PlayerBuy = Shop.Sell
+	if Shop.Sell and not Shop.PlayerSell then
+		Shop.PlayerSell = Shop.Sell
 		migratedSell = true
 	end
 

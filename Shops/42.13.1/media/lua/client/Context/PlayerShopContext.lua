@@ -4,30 +4,34 @@ local shopLockTime = minutes * 60 * 1000
 local isDebug = getCore():getDebug()
 
 local function seekShopTiles(worldobject, spritePrefix)
-     local wo = worldobject
-     local found = false
-     if not wo then
-         if isDebug then writeLog("Shops", "[CLIENT] seekShopTiles: worldobject is nil") end
-         return wo, found
-     end
-     local sprite = wo:getSprite()
-     if not sprite then
-         if isDebug then writeLog("Shops", "[CLIENT] seekShopTiles: sprite is nil") end
-         return wo, found
-     end
-     local spriteName = sprite:getName()
-     if spriteName then
-         if (string.find(spriteName, spritePrefix)) then
-             found = true
-             if isDebug then writeLog("Shops", "[CLIENT] seekShopTiles: Found shop tile - " .. spriteName) end
-         else
-             if isDebug then writeLog("Shops", "[CLIENT] seekShopTiles: sprite '" .. spriteName .. "' does not match prefix '" .. spritePrefix .. "'") end
-         end
-     else
-         if isDebug then writeLog("Shops", "[CLIENT] seekShopTiles: spriteName is nil") end
-     end
-     return wo, found
- end
+    local wo = worldobject
+    local found = false
+    if not wo then
+        if isDebug then writeLog("Shops", "[CLIENT] seekShopTiles: worldobject is nil") end
+        return wo, found
+    end
+    local sprite = wo:getSprite()
+    if not sprite then
+        if isDebug then writeLog("Shops", "[CLIENT] seekShopTiles: sprite is nil") end
+        return wo, found
+    end
+    local spriteName = sprite:getName()
+    if spriteName then
+        if (string.find(spriteName, spritePrefix)) then
+            found = true
+            if isDebug then writeLog("Shops", "[CLIENT] seekShopTiles: Found shop tile - " .. spriteName) end
+        else
+            if isDebug then
+                writeLog("Shops",
+                    "[CLIENT] seekShopTiles: sprite '" ..
+                    spriteName .. "' does not match prefix '" .. spritePrefix .. "'")
+            end
+        end
+    else
+        if isDebug then writeLog("Shops", "[CLIENT] seekShopTiles: spriteName is nil") end
+    end
+    return wo, found
+end
 
 function PlayerShop.playerShopUI(worldobjects, playerNum, clickedSquare, shop)
     local player = getSpecificPlayer(playerNum)
@@ -76,7 +80,7 @@ function PlayerShop.PickupShop(worldobjects, player, shop)
         y = shop:getY(),
         z = shop:getZ()
     }
-    sendClientCommand("PS", "PickupShop", {coords})
+    sendClientCommand("PS", "PickupShop", { coords })
     PlayerShop.toggleBusy(shop, player:getUsername(), false)
 end
 
@@ -118,34 +122,37 @@ end
 
 function PlayerShop.ChangeSprite(worldobjects, playerNum, sprites, shop)
     if not shop or not sprites then return end
-    
+
     local currentSprite = shop:getSprite():getName()
     local coords = { x = shop:getX(), y = shop:getY(), z = shop:getZ() }
     local newSprite = nil
-    
+
     -- Keep the same orientation (odd/even) when changing signs
     -- Check if current sprite ends with odd or even number
     local lastChar = string.sub(currentSprite, -1)
     local spriteNum = lastChar and tonumber(lastChar) or 0
-    
+
     if spriteNum and (spriteNum % 2 == 0) then
         newSprite = sprites[1]
     else
         newSprite = sprites[2]
     end
-    
+
     if newSprite then
-         writeLog("Shops", "[CLIENT] ChangeSprite: Sending command with sprite=" .. newSprite)
-         sendClientCommand("PS", 'ChangeSprite', { newSprite, coords })
-         shop:setSprite(newSprite)
-     end
+        writeLog("Shops", "[CLIENT] ChangeSprite: Sending command with sprite=" .. newSprite)
+        sendClientCommand("PS", 'ChangeSprite', { newSprite, coords })
+        shop:setSprite(newSprite)
+    end
 end
 
 function PlayerShop.PlayerShopContextMenu(playerNum, context, worldobjects)
-     local player = getSpecificPlayer(playerNum)
-     if isDebug then writeLog("Shops", "[CLIENT] PlayerShopContextMenu: worldobjects=" .. (worldobjects and "table" or "nil")) end
-     local wo, found = seekShopTiles(worldobjects[1], PlayerShop.spritePrefix)
-     if isDebug then writeLog("Shops", "[CLIENT] PlayerShopContextMenu: wo found=" .. tostring(found)) end
+    local player = getSpecificPlayer(playerNum)
+    if isDebug then
+        writeLog("Shops",
+            "[CLIENT] PlayerShopContextMenu: worldobjects=" .. (worldobjects and "table" or "nil"))
+    end
+    local wo, found = seekShopTiles(worldobjects[1], PlayerShop.spritePrefix)
+    if isDebug then writeLog("Shops", "[CLIENT] PlayerShopContextMenu: wo found=" .. tostring(found)) end
     local owner = ""
     if found then
         owner = wo:getModData().owner
@@ -200,25 +207,42 @@ function PlayerShop.PlayerShopSetPrice(worldobjects, playerNum, items, container
     SetPriceUI:show(player, items, container)
 end
 
-function PlayerShop.ItemsSellPrice(playerNum, context, items)
-     items = ISInventoryPane.getActualItems(items)
-     if not items then return end
-     if #items < 1 then return end
-     local container = items[1]:getContainer()
-     local player = getPlayer(playerNum)
-     if container and container:isInCharacterInventory(player) then
-         local inv = player:getInventory()
+function PlayerShop.ItemsSellPrice(playerNum, context, items, worldobjects)
+    items = ISInventoryPane.getActualItems(items)
+    if not items then return end
+    if #items < 1 then return end
+    local container = items[1]:getContainer()
+    local player = getSpecificPlayer(playerNum)
+    if container and container:isInCharacterInventory(player) then
+        local inv = player:getInventory()
 
-         -- Check if player has Write tag OR is in debug mode
-         local hasWriteTag = ItemTag.Write ~= nil and inv:containsTag(ItemTag.get(ResourceLocation.of("shops:Write")))
-         local isDebugMode = getCore():getDebug()
-         
-         if hasWriteTag or isDebugMode then
-             context:addOption(UIText.SetPricePlayerShop, worldobjects, PlayerShop.PlayerShopSetPrice, playerNum, items,
-                 container);
-         end
-     end
- end
+        -- Debug: Log all tags in inventory
+        -- writeLog("Shops", "[DEBUG] ItemsSellPrice: Checking inventory tags for player " .. player:getUsername())
+        -- local allItems = inv:getItems()
+        -- if allItems then
+        --     for i = 0, allItems:size() - 1 do
+        --         local item = allItems:get(i)
+        --         local itemTags = item:getTags()
+        --         writeLog("Shops", tostring(ItemTag.Write))
+        --         writeLog("Shops", "[DEBUG] Item: " .. item:getType() .. " Tags: " .. tostring(itemTags))
+        --     end
+        -- end
+
+        -- Check if player has Write tag OR is in debug mode
+        local hasWriteTag = inv:containsTag(ItemTag.get(ResourceLocation.of("base:write")))
+        local isDebugMode = getCore():getDebug()
+        if isDebugMode then
+            writeLog("Shops",
+                "[DEBUG] ItemsSellPrice: hasWriteTag=" ..
+                tostring(hasWriteTag) .. " isDebugMode=" .. tostring(isDebugMode))
+        end
+
+        if hasWriteTag or isDebugMode then
+            context:addOption(UIText.SetPricePlayerShop, worldobjects, PlayerShop.PlayerShopSetPrice, playerNum, items,
+                container);
+        end
+    end
+end
 
 Events.OnFillInventoryObjectContextMenu.Add(PlayerShop.ItemsSellPrice);
 Events.OnPreFillWorldObjectContextMenu.Add(PlayerShop.PlayerShopContextMenu)

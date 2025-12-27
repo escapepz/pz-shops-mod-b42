@@ -24,6 +24,5 @@ end
 -- Core Registry Items
 safeRegister("ItemTag", "shops:PlayerShop")
 safeRegister("ItemTag", "shops:PlayerShopFreezer")
-safeRegister("ItemTag", "shops:Write")
 
 -- Note: Craft Recipes are defined in S_Recipes.txt, not registered here

@@ -2,9 +2,9 @@ Currency = Currency or {}
 
 Currency.Wallets = Currency.Wallets or {}
 Currency.Wallets["Base.Wallet"] = true
-Currency.Wallets["Base.Wallet2"] = true
-Currency.Wallets["Base.Wallet3"] = true
-Currency.Wallets["Base.Wallet4"] = true
+Currency.Wallets["Base.Wallet_Female"] = true
+Currency.Wallets["Base.Wallet_Male"] = true
+Currency.Wallets["Base.Wallet_Hide"] = true
 
 Currency.BaseCoin = "Shops.CopperCoin"
 Currency.SpecialCoin = "Shops.EventCoin"

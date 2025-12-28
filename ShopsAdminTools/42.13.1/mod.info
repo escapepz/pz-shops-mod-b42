@@ -1,0 +1,9 @@
+name=Shops B42 - Admin Tools
+id=nshopsb42_admin_tools
+description=Admin Tools for Shops B42
+version=1.0
+authors=eScape
+modversion=1
+require=\nshopsb42
+
+poster=poster.png

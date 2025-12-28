@@ -12,6 +12,10 @@
     "Shops": {
       "name": "Shopsb42",
       "description": ""
+    },
+    "ShopsHooksExample": {
+      "name": "ShopsHooksExample",
+      "description": ""
     }
   }
 }

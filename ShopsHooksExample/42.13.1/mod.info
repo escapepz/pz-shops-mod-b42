@@ -1,0 +1,9 @@
+name=Shops B42 - Hooks Example
+id=nshopsb42_hooks_example
+description=Demonstrates Shop hook system with custom items, pricing, and mechanics
+version=1.0
+authors=eScape
+modversion=1
+require=\nshopsb42
+
+poster=poster.png

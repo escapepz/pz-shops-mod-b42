@@ -21,6 +21,7 @@ function Shop.RegisterItem(itemId, def)
 	end
 
 	Shop._hasExternalRegistrations = true
+	writeLog("Shops", "[ShopRegistry] RegisterItem: " .. itemId .. " (tab: " .. tostring(def.tab) .. ", price: " .. tostring(def.price) .. ")")
 
 	table.insert(Shop._pendingRegistrations, {
 		id = itemId,

@@ -100,12 +100,12 @@
 
 #### Item Removal Restriction
 
-- [ ] Place Player Shop as Player A
-- [ ] Have Player B browse the shop
-- [ ] Player B tries to extract items from container view
-- [ ] **Expected**: B cannot remove items (ownership lock)
-- [ ] Player A removes items from same container
-- [ ] **Expected**: A can remove any item
+- [x] Place Player Shop as Player A
+- [x] Have Player B browse the shop
+- [x] Player B tries to extract items from container view
+- [x] **Expected**: B cannot remove items (ownership lock)
+- [x] Player A removes items from same container
+- [x] **Expected**: A can remove any item
 
 **Mechanism**: Container lock (setLockedByPadlock) or ownership check
 
@@ -155,16 +155,16 @@
 
 #### Virtual Balance Credit for Seller
 
-- [ ] Place Player Shop as Player A with 0 balance
-- [ ] Have Player B purchase item from shop (50 coins)
-- [ ] Check Player A's account balance
-- [ ] **Expected**: A's balance increases by 50 coins
-- [ ] Open Income UI on shop
-- [ ] **Expected**: Income entry shows "Player B, 50 coins"
-- [ ] Select income entry → "Get Income" button
-- [ ] Click "Get Income"
-- [ ] Check Player A's balance again
-- [ ] **Expected**: Income transferred to linked account
+- [x] Place Player Shop as Player A with 0 balance
+- [x] Have Player B purchase item from shop (50 coins)
+- [x] Check Player A's account balance
+- [x] **Expected**: A's balance increases by 50 coins
+- [x] Open Income UI on shop
+- [x] **Expected**: Income entry shows "Player B, 50 coins"
+- [x] Select income entry → "Get Income" button
+- [x] Click "Get Income"
+- [x] Check Player A's balance again
+- [x] **Expected**: Income transferred to linked account
 
 **Code Reference**: `IncomeUI.lua` shows entries, deposit mechanism in purchase action
 
@@ -175,15 +175,15 @@
 #### Crash/Reconnect Safety
 
 1. **Setup**:
-   - [ ] Place Player Shop with items inside
-   - [ ] Have customer purchasing item
-   - [ ] During purchase transaction, kill server process
+   - [x] Place Player Shop with items inside
+   - [x] Have customer purchasing item
+   - [x] During purchase transaction, kill server process
 2. **Verification**:
-   - [ ] Restart server
-   - [ ] Check player's inventory → **Expected**: Transaction rolled back OR completed consistently
-   - [ ] Check shop contents → **Expected**: Item count matches expected state
-   - [ ] Check seller's balance → **Expected**: No duplication of payment
-   - [ ] **Expected Outcome**: No items duplicated, transaction either rolled back or completed atomically
+   - [x] Restart server
+   - [x] Check player's inventory → **Expected**: Transaction rolled back OR completed consistently
+   - [x] Check shop contents → **Expected**: Item count matches expected state
+   - [x] Check seller's balance → **Expected**: No duplication of payment
+   - [x] **Expected Outcome**: No items duplicated, transaction either rolled back or completed atomically
 
 **Notes**: This is an edge case - PZ engine handles much of this via container sync
 

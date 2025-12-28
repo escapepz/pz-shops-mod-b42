@@ -22,6 +22,7 @@ function Shop.RegisterSellItem(itemId, def)
 	end
 
 	Shop._hasExternalSellRegistrations = true
+	writeLog("Shops", "[ShopSellRegistry] RegisterSellItem: " .. itemId .. " (price: " .. tostring(def.price) .. ")")
 
 	table.insert(Shop._sellPending, {
 		id = itemId,

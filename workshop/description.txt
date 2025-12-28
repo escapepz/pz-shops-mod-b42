@@ -53,5 +53,4 @@ When you transfer money to a player who is [b]offline[/b]:
 
 [i]Note: This is an unofficial community port. Report issues or suggest compatibility improvements via workshop discussions.[/i]
 
-Workshop ID: 3631768689
-Mod ID: nshopsb42
+[hr][/hr]

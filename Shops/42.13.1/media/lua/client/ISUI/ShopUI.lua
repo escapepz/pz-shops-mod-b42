@@ -94,11 +94,36 @@ function ShopUI:doDrawCartItem(y, item, alt)
     end
     self:drawText(item.item.name .. quantity, 40, y + 10, 1, 1, 1, a, UIFont.Small);
     if item.item.price then
+        local basePrice = item.item.basePrice or item.item.price
+        local finalPrice = item.item.price
+        local discount = basePrice - finalPrice
+        
         local coinImg = Currency.CoinsTexture.Coin
         if item.item.specialCoin then coinImg = Currency.CoinsTexture.SpecialCoin end
-        self:drawTextureScaledAspect(coinImg.texture, 300, y + 10, coinImg.scale, coinImg.scale, 1, 1, 1, 1)
-        local priceFormatted = Currency.format(item.item.price)
-        self:drawText("" .. priceFormatted, 320, y + 8, 1, 1, 1, a, UIFont.Small);
+        
+        -- Coin icon at 260
+        self:drawTextureScaledAspect(coinImg.texture, 260, y + 10, coinImg.scale, coinImg.scale, 1, 1, 1, 1)
+        
+        -- Price section starts at 280, constrained to not overlap buttons
+        local priceX = 280
+        
+        if discount > 0 then
+            -- Show base price (gray strikethrough) at X=280
+            local basePriceFormatted = Currency.format(basePrice)
+            self:drawText(basePriceFormatted, priceX, y + 8, 0.5, 0.5, 0.5, a, UIFont.Small)
+            
+            -- Show final price (green) at X=315 (35px spacing)
+            local finalPriceFormatted = Currency.format(finalPrice)
+            self:drawText(finalPriceFormatted, priceX + 35, y + 8, 0.2, 1, 0.2, a, UIFont.Small)
+            
+            -- Show discount percentage at X=345 (65px spacing) - compact format
+            local discountPct = math.floor((discount / basePrice) * 100)
+            self:drawText("-" .. discountPct .. "%", priceX + 65, y + 8, 0.2, 1, 0.2, a, UIFont.Small)
+        else
+            -- No discount: show final price in white at X=280
+            local finalPriceFormatted = Currency.format(finalPrice)
+            self:drawText(finalPriceFormatted, priceX, y + 8, 1, 1, 1, a, UIFont.Small)
+        end
     end
 
     if item.item.invItem or item.item.texture then
@@ -359,6 +384,7 @@ function ShopUI:onActivateView()
                 }
                 local dynamicPrice = Shop.resolvePlayerBuyPrice(character, k, context)
                 v.price = dynamicPrice or shopItemDef.price
+                v.basePrice = shopItemDef.price  -- Store base price for discount display
             end
             if item then
                 local VehicleID = item:getModData().VehicleID
@@ -410,6 +436,7 @@ function ShopUI:onActivateView()
                     isBroken = false,
                 }
                 local dynamicPrice = Shop.resolvePlayerBuyPrice(character, k, context)
+                v.basePrice = v.price  -- Store base price for discount display
                 v.price = dynamicPrice or v.price
                 shopItems:addItem(k, v);
             end

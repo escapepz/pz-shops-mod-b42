@@ -37,89 +37,122 @@ function ShopTabUI:doDrawShopItem(y, item, alt)
     if y + item.height + self:getYScroll() <= 0 then return y + item.height end
 
     local a = 0.9;
-    self:drawRectBorder(0, (y), self:getWidth(), item.height - 1, a, self.borderColor.r, self.borderColor.g, self.borderColor.b);
+    self:drawRectBorder(0, (y), self:getWidth(), item.height - 1, a, self.borderColor.r, self.borderColor.g,
+        self.borderColor.b);
 
     if self.selected == item.index then
         self:drawRect(0, (y), self:getWidth(), item.height - 1, 0.3, 0.7, 0.35, 0.15);
     end
+
+    local favTexture = nil
+    local favAlpha = 0.3
     
-    if not (self.parent.tabType == Tab.Sell) then 
-        local alpha = 0.3
-        local favTexture = nil
+    if not (self.parent.tabType == Tab.Sell) then
         if item.index == self.selectedRow and not self:isMouseOverScrollBar() and self:isMouseOver() then
             local mouseX = self:getMouseX()
             favTexture = self.parent.favNotCheckedTex
-            if mouseX > self.parent.favoriteButtonX and mouseX < (self.parent.favoriteButtonX+20) then
+            if mouseX > self.parent.favoriteButtonX and mouseX < (self.parent.favoriteButtonX + 20) then
                 favTexture = self.parent.favCheckedTex
-                alpha = 1
+                favAlpha = 1
             end
         end
         if item.item.favorite then
             favTexture = self.parent.favoriteStar
-            alpha = 1 
-        end
-        if favTexture then
-            self:drawTexture(favTexture,self.parent.favoriteButtonX,  y + 10,alpha,1,1,1);
+            favAlpha = 1
         end
     end
 
     local quantity = ""
     if item.item.quantity then
-        quantity = " ("..item.item.quantity..")"
+        quantity = " (" .. item.item.quantity .. ")"
     end
-    self:drawText(item.item.name..quantity, 40, y + 10, 1, 1, 1, a, UIFont.Small);
+    self:drawText(item.item.name .. quantity, 40, y + 10, 1, 1, 1, a, UIFont.Small);
+    
+    -- Favorite icon at 240
+    if favTexture then
+        self:drawTexture(favTexture, 240, y + 10, favAlpha, 1, 1, 1);
+    end
+    
     if item.item.price then
+        local basePrice = item.item.basePrice or item.item.price
+        local finalPrice = item.item.price
+        local discount = basePrice - finalPrice
+
         local coinImg = Currency.CoinsTexture.Coin
         if item.item.specialCoin then coinImg = Currency.CoinsTexture.SpecialCoin end
-        self:drawTextureScaledAspect(coinImg.texture, 300, y + 10, coinImg.scale, coinImg.scale, 1, 1, 1, 1)
-        self:drawText(""..item.item.price, 320, y + 8, 1, 1, 1, a, UIFont.Small);
+        
+        -- Coin icon at 260 (after favorite at 240)
+        self:drawTextureScaledAspect(coinImg.texture, 260, y + 10, coinImg.scale, coinImg.scale, 1, 1, 1, 1)
+        
+        -- Price section starts at 280, constrained to not overlap buttons
+        local priceX = 280
+        
+        if discount > 0 then
+            -- Show base price (gray strikethrough) at X=305
+            local basePriceFormatted = Currency.format(basePrice)
+            self:drawText(basePriceFormatted, priceX, y + 8, 0.5, 0.5, 0.5, a, UIFont.Small)
+            
+            -- Show final price (green) at X=340 (35px spacing)
+            local finalPriceFormatted = Currency.format(finalPrice)
+            self:drawText(finalPriceFormatted, priceX + 35, y + 8, 0.2, 1, 0.2, a, UIFont.Small)
+            
+            -- Show discount percentage at X=370 (65px spacing) - compact format
+            local discountPct = math.floor((discount / basePrice) * 100)
+            self:drawText("-" .. discountPct .. "%", priceX + 65, y + 8, 0.2, 1, 0.2, a, UIFont.Small)
+        else
+            -- No discount: show final price in white at X=305
+            local finalPriceFormatted = Currency.format(finalPrice)
+            self:drawText(finalPriceFormatted, priceX, y + 8, 1, 1, 1, a, UIFont.Small)
+        end
     end
 
     if item.item.invItem or item.item.texture then
-         local texture = item.item.texture
-         if not texture then
-             texture = item.item.invItem:getTex()
-         end
-         self:drawTextureScaledAspect(texture, 6, y+5, 30, 30, 1, 1, 1, 1)
-     end
+        local texture = item.item.texture
+        if not texture then
+            texture = item.item.invItem:getTex()
+        end
+        self:drawTextureScaledAspect(texture, 6, y + 5, 30, 30, 1, 1, 1, 1)
+    end
 
-     if item.item.invItem and item.item.invItem:IsInventoryContainer() then
-         self:drawTextureScaledAspect(browseBtn.texture, self.parent.previewButtonX, y + 10, browseBtn.scale, browseBtn.scale, 1, 1, 1, 1)
-     end
+    if item.item.invItem and item.item.invItem:IsInventoryContainer() then
+        self:drawTextureScaledAspect(browseBtn.texture, self.parent.previewButtonX, y + 10, browseBtn.scale,
+            browseBtn.scale, 1, 1, 1, 1)
+    end
 
-     self:drawTextureScaledAspect(addBtn.texture, self.parent.addButtonX, y + 10, addBtn.scale, addBtn.scale, 1, 1, 1, 1)
+    self:drawTextureScaledAspect(addBtn.texture, self.parent.addButtonX, y + 10, addBtn.scale, addBtn.scale, 1, 1, 1, 1)
 
-     if item.item.VehicleID then
-         self:drawTextureScaledAspect(previewBtn.texture, self.parent.previewButtonX, y + 10, previewBtn.scale, previewBtn.scale, 1, 1, 1, 1)
-     end
+    if item.item.VehicleID then
+        self:drawTextureScaledAspect(previewBtn.texture, self.parent.previewButtonX, y + 10, previewBtn.scale,
+            previewBtn.scale, 1, 1, 1, 1)
+    end
 
     return y + item.height;
 end
 
 function ShopTabUI:onMouseDownShopItem(x, y)
-     ISScrollingListBox.onMouseDown(self,x, y)
-     if PreviewUI.instance then PreviewUI.instance:close() end
-     if ContainerViewerUI.instance then ContainerViewerUI.instance:close() end
- 	if self.selectedRow then
-         local selectedRow = self.items[self.selectedRow]
-         if not selectedRow then return end
-         if self.previewBtn then
-             if selectedRow.item.invItem and selectedRow.item.invItem:IsInventoryContainer() then
-                 ContainerViewerUI:show(selectedRow.item.invItem)
-                 return
-             end
-             if not selectedRow.item.VehicleID then return end
-             PreviewUI:show(selectedRow.item.name,selectedRow.item.VehicleID)
-             return
-         end
-         if self.favoriteBtn then
-             if not (self.parent.tabType == Tab.Sell) then 
-                 self.parent:manageFavorites(self.selectedRow)
-             end
-             return
-         end
-         if self.addBtn then
- 		    self.parent:addToCart(self.selectedRow)
+    ISScrollingListBox.onMouseDown(self, x, y)
+    if PreviewUI.instance then PreviewUI.instance:close() end
+    if ContainerViewerUI.instance then ContainerViewerUI.instance:close() end
+    if self.selectedRow then
+        local selectedRow = self.items[self.selectedRow]
+        if not selectedRow then return end
+        if self.previewBtn then
+            if selectedRow.item.invItem and selectedRow.item.invItem:IsInventoryContainer() then
+                ContainerViewerUI:show(selectedRow.item.invItem)
+                return
+            end
+            if not selectedRow.item.VehicleID then return end
+            PreviewUI:show(selectedRow.item.name, selectedRow.item.VehicleID)
+            return
+        end
+        if self.favoriteBtn then
+            if not (self.parent.tabType == Tab.Sell) then
+                self.parent:manageFavorites(self.selectedRow)
+            end
+            return
+        end
+        if self.addBtn then
+            self.parent:addToCart(self.selectedRow)
         end
     end
 end
@@ -153,14 +186,23 @@ function ShopTabUI:onMouseMoveShopItem(dx, dy)
     list.previewBtn = nil
     list.favoriteBtn = nil
     list.addBtn = nil
-	if list:isMouseOverScrollBar() or not list:isMouseOver() then self.parent.ShopUI:toggleTooltip(false) return end
-	local rowIndex = list:rowAt(list:getMouseX(), list:getMouseY())
-    if not rowIndex then self.parent.ShopUI:toggleTooltip(false) return end
+    if list:isMouseOverScrollBar() or not list:isMouseOver() then
+        self.parent.ShopUI:toggleTooltip(false)
+        return
+    end
+    local rowIndex = list:rowAt(list:getMouseX(), list:getMouseY())
+    if not rowIndex then
+        self.parent.ShopUI:toggleTooltip(false)
+        return
+    end
     local selectedRow = list.items[rowIndex]
-    if not selectedRow then self.parent.ShopUI:toggleTooltip(false) return end
+    if not selectedRow then
+        self.parent.ShopUI:toggleTooltip(false)
+        return
+    end
     list.selectedRow = rowIndex
     local mouseX = self:getMouseX()
-    if mouseX > self.parent.favoriteButtonX and mouseX < (self.parent.favoriteButtonX+20) then
+    if mouseX > self.parent.favoriteButtonX and mouseX < (self.parent.favoriteButtonX + 20) then
         list.favoriteBtn = true
     end
     if mouseX > self.parent.addButtonX then
@@ -169,8 +211,11 @@ function ShopTabUI:onMouseMoveShopItem(dx, dy)
     if mouseX > self.parent.previewButtonX then
         list.previewBtn = true
     end
-    if not selectedRow.item then self.parent.ShopUI:toggleTooltip(false) return end
-    self.parent.ShopUI:toggleTooltip(true,selectedRow.item)
+    if not selectedRow.item then
+        self.parent.ShopUI:toggleTooltip(false)
+        return
+    end
+    self.parent.ShopUI:toggleTooltip(true, selectedRow.item)
 end
 
 function ShopTabUI:prerender()
@@ -183,7 +228,7 @@ function ShopTabUI:addToCart(selectedRow)
     local item = self.shopItems.items[selectedRow]
     if self.ShopUI.actionInProgress then return end
     self.ShopUI:toggleTooltip(false)
-    self.ShopUI.cartItems:addItem(item.text,item.item);
+    self.ShopUI.cartItems:addItem(item.text, item.item);
     if self.tabType == Tab.Sell then
         self.shopItems:removeItemByIndex(selectedRow)
     end
@@ -197,14 +242,14 @@ function ShopTabUI:filter()
     filterText = string.lower(filterText)
     local shopItems = self.shopItems.items
     self.shopItems:clear()
-    for k,v in ipairs(shopItems) do
+    for k, v in ipairs(shopItems) do
         if string.contains(string.lower(v.item.name), filterText) then
             if tabType == Tab.Favorite then
                 if v.item.favorite then
-                    self.shopItems:addItem(v.text,v.item);
+                    self.shopItems:addItem(v.text, v.item);
                 end
             else
-                self.shopItems:addItem(v.text,v.item);
+                self.shopItems:addItem(v.text, v.item);
             end
         end
     end
@@ -214,11 +259,12 @@ function ShopTabUI:create()
     local x = 30
     local y = 50
 
-    self.filterLabel = ISLabel:new(x, y-20, 1,UIText.Search,1,1,1,1,UIFont.Small, true);
+    self.filterLabel = ISLabel:new(x, y - 20, 1, UIText.Search, 1, 1, 1, 1, UIFont.Small, true);
     self:addChild(self.filterLabel);
 
-    local width = ((self.width/3) - getTextManager():MeasureStringX(UIFont.Small, UIText.Search)) - 98;
-    self.filterEntry = ISTextEntryBox:new("", getTextManager():MeasureStringX(UIFont.Small,UIText.Search) + 40, y-28, width, 1);
+    local width = ((self.width / 3) - getTextManager():MeasureStringX(UIFont.Small, UIText.Search)) - 98;
+    self.filterEntry = ISTextEntryBox:new("", getTextManager():MeasureStringX(UIFont.Small, UIText.Search) + 40, y - 28,
+        width, 1);
     self.filterEntry:initialise();
     self.filterEntry:instantiate();
     self.filterEntry:setText("");
@@ -227,7 +273,7 @@ function ShopTabUI:create()
     self:addChild(self.filterEntry);
     self.lastText = self.filterEntry:getInternalText();
 
-    self.sortPriceButton = ISButton:new((self.width / 2)-160, y-30, 25,25,"",self, ShopTabUI.sortPriceBtn);
+    self.sortPriceButton = ISButton:new((self.width / 2) - 160, y - 30, 25, 25, "", self, ShopTabUI.sortPriceBtn);
     self.sortPriceButton.borderColor.a = 0.0;
     self.sortPriceButton.backgroundColor.a = 0;
     self.sortPriceButton.backgroundColorMouseOver.a = 0;
@@ -236,7 +282,7 @@ function ShopTabUI:create()
     self.sortPriceButton.enable = true
     self:addChild(self.sortPriceButton);
 
-    self.moveAllButton = ISButton:new((self.width / 2)-50, y-30, 25,25,"",self, ShopTabUI.moveAllBtn);
+    self.moveAllButton = ISButton:new((self.width / 2) - 50, y - 30, 25, 25, "", self, ShopTabUI.moveAllBtn);
     self.moveAllButton.borderColor.a = 0.0;
     self.moveAllButton.backgroundColor.a = 0;
     self.moveAllButton.backgroundColorMouseOver.a = 0;
@@ -245,12 +291,12 @@ function ShopTabUI:create()
     self.moveAllButton.enable = false
     self.moveAllButton:setVisible(false)
     self:addChild(self.moveAllButton);
-    
+
     self.shopItems = ISScrollingListBox:new(x, y, (self.width / 3) + 110, self.height - 100);
     self.shopItems:initialise();
     self.shopItems:instantiate();
     self.shopItems.font = UIFont.NewSmall;
-    self.shopItems.itemheight = 2 + self.MEDIUM_FONT_HGT  + 4;
+    self.shopItems.itemheight = 2 + self.MEDIUM_FONT_HGT + 4;
     self.shopItems.selected = 0;
     self.shopItems.joypadParent = self;
     self.shopItems.drawBorder = false;
@@ -262,20 +308,24 @@ end
 local sortToggle = true
 function ShopTabUI:sortPriceBtn()
     local items = self.shopItems.items
-    table.sort(items, function(v1,v2) if sortToggle then return v1.item.price<v2.item.price end return v1.item.price>v2.item.price end)
+    table.sort(items,
+        function(v1, v2)
+            if sortToggle then return v1.item.price < v2.item.price end
+            return v1.item.price > v2.item.price
+        end)
     self.shopItems.items = items
     sortToggle = not sortToggle
 end
 
 function ShopTabUI:moveAllBtn()
     local items = self.shopItems.items
-    for k,v in pairs(items) do
-        self.ShopUI.cartItems:addItem(v.item.text,v.item);
+    for k, v in pairs(items) do
+        self.ShopUI.cartItems:addItem(v.item.text, v.item);
     end
     self.shopItems:clear()
 end
 
-function ShopTabUI:new (x, y, width, height)
+function ShopTabUI:new(x, y, width, height)
     local o = {};
     o = ISPanelJoypad:new(x, y, width, height);
     setmetatable(o, self);

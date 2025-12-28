@@ -92,9 +92,13 @@ function ExampleShop.registerBuyItems()
 	ExampleShop.log("Registered " .. "25" .. " buy items")
 end
 
--- Register sell items
+-- Register sell items (items players can sell to the shop)
 function ExampleShop.registerSellItems()
 	ExampleShop.log("Registering sell items...")
+
+	-- Enable whitelist mode: ONLY registered items can be sold (all others are blacklisted)
+	Shop.SellisWhitelist = true
+	ExampleShop.log("Whitelist mode enabled - only registered items can be sold")
 
 	-- Food and Supplies (50% of buy price)
 	Shop.RegisterSellItem("Base.Apple", { price = 6 })
@@ -129,39 +133,45 @@ function ExampleShop.registerSellItems()
 	Shop.RegisterSellItem("Base.AssaultRifle", { price = 200 })
 	Shop.RegisterSellItem("Base.HuntingRifle", { price = 150 })
 
-	ExampleShop.log("Registered " .. "25" .. " sell items")
+	-- Blacklist (items that cannot be sold)
+	Shop.RegisterSellItem("Base.KeyRing", { blacklisted = true })
+
+	ExampleShop.log("Registered 25 sell items + 1 blacklisted item")
 end
 
 -- ========== BUY PRICE MODIFICATIONS ==========
 
 -- Apply category-based markup
 function ExampleShop.modifyBuyPriceByCategory(player, itemId, base, context, modifiers)
+	writeLog("ShopsHooksExample", "[Hook] modifyBuyPriceByCategory called: " .. itemId .. " (base: " .. base .. ")")
+	ExampleShop.log("modifyBuyPriceByCategory: " .. itemId .. " (base: " .. base .. ")")
+
 	-- Weapon category: +30% markup
 	if string.find(itemId, "Handgun") or string.find(itemId, "Pistol") or
 		string.find(itemId, "Revolver") or string.find(itemId, "Rifle") then
-		modifiers.weaponMarkup = 1.3
-		ExampleShop.log("Weapon markup applied to " .. itemId)
+		table.insert(modifiers, { multiplier = 1.3, label = "weaponMarkup" })
+		ExampleShop.log("  -> Weapon markup 1.3x applied")
 	end
 
 	-- Ammunition category: +20% markup
 	if string.find(itemId, "Rounds") or string.find(itemId, "Shells") then
-		modifiers.ammoMarkup = 1.2
-		ExampleShop.log("Ammo markup applied to " .. itemId)
+		table.insert(modifiers, { multiplier = 1.2, label = "ammoMarkup" })
+		ExampleShop.log("  -> Ammo markup 1.2x applied")
 	end
 
 	-- Food category: -10% discount
 	if string.find(itemId, "Apple") or string.find(itemId, "Banana") or
 		string.find(itemId, "Orange") or string.find(itemId, "Bread") or
 		string.find(itemId, "Canned") then
-		modifiers.foodDiscount = 0.9
-		ExampleShop.log("Food discount applied to " .. itemId)
+		table.insert(modifiers, { multiplier = 0.9, label = "foodDiscount" })
+		ExampleShop.log("  -> Food discount 0.9x applied")
 	end
 
 	-- First Aid category: +15% markup
 	if string.find(itemId, "Bandage") or string.find(itemId, "Painkiller") or
 		string.find(itemId, "Antibiotic") or string.find(itemId, "Disinfectant") then
-		modifiers.medicalMarkup = 1.15
-		ExampleShop.log("Medical markup applied to " .. itemId)
+		table.insert(modifiers, { multiplier = 1.15, label = "medicalMarkup" })
+		ExampleShop.log("  -> Medical markup 1.15x applied")
 	end
 end
 
@@ -169,23 +179,24 @@ end
 function ExampleShop.modifyBuyPriceByTime(player, itemId, base, context, modifiers)
 	if not ExampleShop.CONFIG.enableTimedSales then return end
 
+	writeLog("ShopsHooksExample", "[Hook] modifyBuyPriceByTime called: " .. itemId)
 	local currentHour = getGameTime():getHour()
 
 	-- Morning discount (6 AM - 10 AM): -5%
 	if currentHour >= 6 and currentHour < 10 then
-		modifiers.morningDiscount = 0.95
+		table.insert(modifiers, { multiplier = 0.95, label = "morningDiscount" })
 		ExampleShop.log("Morning discount applied")
 	end
 
 	-- Evening premium (6 PM - 11 PM): +10%
 	if currentHour >= 18 and currentHour < 23 then
-		modifiers.eveningPremium = 1.1
+		table.insert(modifiers, { multiplier = 1.1, label = "eveningPremium" })
 		ExampleShop.log("Evening premium applied")
 	end
 
 	-- Night premium (11 PM - 6 AM): +15%
 	if currentHour >= 23 or currentHour < 6 then
-		modifiers.nightPremium = 1.15
+		table.insert(modifiers, { multiplier = 1.15, label = "nightPremium" })
 		ExampleShop.log("Night premium applied")
 	end
 end
@@ -198,19 +209,19 @@ function ExampleShop.modifyBuyPriceVIP(player, itemId, base, context, modifiers)
 
 	-- Bronze VIP (100+ reputation): -5%
 	if reputation >= 100 and reputation < 250 then
-		modifiers.vipBronze = 0.95
+		table.insert(modifiers, { multiplier = 0.95, label = "vipBronze" })
 		ExampleShop.log("VIP Bronze discount applied (reputation: " .. reputation .. ")")
 	end
 
 	-- Silver VIP (250+ reputation): -10%
 	if reputation >= 250 and reputation < 500 then
-		modifiers.vipSilver = 0.9
+		table.insert(modifiers, { multiplier = 0.9, label = "vipSilver" })
 		ExampleShop.log("VIP Silver discount applied (reputation: " .. reputation .. ")")
 	end
 
 	-- Gold VIP (500+ reputation): -15%
 	if reputation >= 500 then
-		modifiers.vipGold = 0.85
+		table.insert(modifiers, { multiplier = 0.85, label = "vipGold" })
 		ExampleShop.log("VIP Gold discount applied (reputation: " .. reputation .. ")")
 	end
 end
@@ -221,13 +232,13 @@ function ExampleShop.modifyBuyPriceByBulk(player, itemId, base, context, modifie
 
 	-- Check if player already has this item
 	if player:getInventory() then
-		local count = player:getInventory():getItemCountType(itemId)
+		local count = player:getInventory():getItemCount(itemId)
 
 		if count >= 10 then
-			modifiers.bulkDiscount = 0.85 -- -15%
+			table.insert(modifiers, { multiplier = 0.85, label = "bulkDiscount" })
 			ExampleShop.log("Bulk discount applied (count: " .. count .. ")")
 		elseif count >= 5 then
-			modifiers.bulkDiscount = 0.9 -- -10%
+			table.insert(modifiers, { multiplier = 0.9, label = "bulkDiscount" })
 		end
 	end
 end
@@ -251,10 +262,11 @@ end
 
 -- Admin free items
 function ExampleShop.overrideBuyPriceAdmin(player, itemId, price, context)
-	if player and player:isAdmin() then
-		ExampleShop.log("Admin override: " .. itemId .. " is free")
-		return 0 -- Free for admins
-	end
+	-- Admin check disabled in example - uncomment if you implement proper admin system
+	-- if player and player:isAccessLevel("admin") then
+	-- 	ExampleShop.log("Admin override: " .. itemId .. " is free")
+	-- 	return 0 -- Free for admins
+	-- end
 	return nil
 end
 
@@ -265,19 +277,20 @@ function ExampleShop.modifySellPriceByCondition(player, item, base, context, mod
 	if not item then return end
 
 	local condition = item:getCondition()
+	ExampleShop.log("modifySellPriceByCondition: " .. item:getID() .. " condition=" .. condition .. " base=" .. base)
 
 	if condition < 25 then
-		modifiers.conditionBad = 0.2 -- -80%
-		ExampleShop.log("Poor condition: " .. condition)
+		table.insert(modifiers, { multiplier = 0.2, label = "conditionBad" })
+		ExampleShop.log("  -> Poor condition (0.2x multiplier)")
 	elseif condition < 50 then
-		modifiers.conditionFair = 0.5 -- -50%
-		ExampleShop.log("Fair condition: " .. condition)
+		table.insert(modifiers, { multiplier = 0.5, label = "conditionFair" })
+		ExampleShop.log("  -> Fair condition (0.5x multiplier)")
 	elseif condition < 75 then
-		modifiers.conditionGood = 0.85 -- -15%
-		ExampleShop.log("Good condition: " .. condition)
+		table.insert(modifiers, { multiplier = 0.85, label = "conditionGood" })
+		ExampleShop.log("  -> Good condition (0.85x multiplier)")
 	else
-		modifiers.conditionExcellent = 1.0 -- Full price
-		ExampleShop.log("Excellent condition: " .. condition)
+		table.insert(modifiers, { multiplier = 1.0, label = "conditionExcellent" })
+		ExampleShop.log("  -> Excellent condition (1.0x multiplier)")
 	end
 end
 
@@ -285,13 +298,13 @@ end
 function ExampleShop.modifySellPriceByQuantity(player, item, base, context, modifiers)
 	if not player or not player:getInventory() then return end
 
-	local count = player:getInventory():getItemCountType(item:getID())
+	local count = player:getInventory():getItemCount(item:getID())
 
 	if count > 20 then
-		modifiers.bulkSeller = 1.1 -- +10%
+		table.insert(modifiers, { multiplier = 1.1, label = "bulkSeller" })
 		ExampleShop.log("Bulk seller bonus applied (count: " .. count .. ")")
 	elseif count > 10 then
-		modifiers.bulkSeller = 1.05 -- +5%
+		table.insert(modifiers, { multiplier = 1.05, label = "bulkSeller" })
 	end
 end
 
@@ -302,15 +315,95 @@ function ExampleShop.modifySellPriceByReputation(player, item, base, context, mo
 	local reputation = ExampleShop.getPlayerReputation(player)
 
 	if reputation > 500 then
-		modifiers.loyaltyGold = 1.15 -- +15%
+		table.insert(modifiers, { multiplier = 1.15, label = "loyaltyGold" })
 		ExampleShop.log("Gold loyalty bonus applied")
 	elseif reputation > 250 then
-		modifiers.loyaltysilver = 1.1 -- +10%
+		table.insert(modifiers, { multiplier = 1.1, label = "loyaltysilver" })
 		ExampleShop.log("Silver loyalty bonus applied")
 	elseif reputation > 100 then
-		modifiers.loyaltyBronze = 1.05 -- +5%
+		table.insert(modifiers, { multiplier = 1.05, label = "loyaltyBronze" })
 		ExampleShop.log("Bronze loyalty bonus applied")
 	end
+end
+
+-- ========== SELL ITEM REGISTRATION HOOKS ==========
+
+-- Allow mods to modify what items can be sold
+function ExampleShop.onRegisterSellItems()
+	ExampleShop.log("Hook: onRegisterSellItems called")
+	-- This is called when sell items are being registered
+	-- Can be used to dynamically add/remove sellable items
+end
+
+-- ========== PRICE HOOK VERIFICATION ==========
+
+-- Test function to verify price hooks are working
+function ExampleShop.testPriceHooks()
+	ExampleShop.log("=== Testing Buy Price Hooks ===")
+
+	-- Get a test player
+	local testPlayer = getPlayer()
+	if not testPlayer then
+		ExampleShop.log("WARNING: No player available for testing")
+		return
+	end
+
+	-- Test context
+	local context = {
+		shopId = "ExampleShop",
+		quantity = 1,
+		isSpecialCoin = false,
+		isBroken = false,
+	}
+
+	-- Test items with different categories to verify each hook
+	local testItems = {
+		{
+			id = "Base.Apple",
+			name = "Food (foodDiscount: -10%)",
+		},
+		{
+			id = "Base.Handgun",
+			name = "Weapon (weaponMarkup: +30%)",
+		},
+		{
+			id = "Base.Bandage",
+			name = "Medical (medicalMarkup: +15%)",
+		},
+		{
+			id = "Base.223Rounds",
+			name = "Ammo (ammoMarkup: +20%)",
+		},
+	}
+
+	ExampleShop.log("Registered price hooks: " .. #ShopPriceEvents.OnShopModifyBuyPrice .. " modify + " ..
+		#ShopPriceEvents.OnShopOverrideBuyPrice .. " override")
+	ExampleShop.log("Testing " .. #testItems .. " items:")
+
+	for _, testItem in ipairs(testItems) do
+		local item = Shop.Items[testItem.id]
+		if item then
+			local basePrice = item.price
+			ExampleShop.log("DEBUG: Calling Shop.resolvePlayerBuyPrice for " .. testItem.id)
+			local finalPrice = Shop.resolvePlayerBuyPrice(testPlayer, testItem.id, context)
+			ExampleShop.log("DEBUG: Result = " .. tostring(finalPrice))
+			if not finalPrice then finalPrice = basePrice end
+
+			local priceDiff = finalPrice - basePrice
+			local pct = 0
+			if basePrice > 0 then
+				pct = math.floor((priceDiff / basePrice) * 100)
+			end
+
+			local direction = priceDiff > 0 and "+" or ""
+			ExampleShop.log(string.format("  [%s] %s: %d -> %d (%s%d%%) - %s",
+				item.tab or "?", testItem.id, basePrice, finalPrice, direction, pct, testItem.name))
+		else
+			ExampleShop.log("  [!] " .. testItem.id .. " NOT FOUND")
+		end
+	end
+
+	ExampleShop.log("=== Test Complete ===")
 end
 
 -- ========== SELL PRICE OVERRIDES ==========
@@ -355,11 +448,15 @@ end
 
 function ExampleShop.registerHooks()
 	ExampleShop.log("Registering hooks...")
+	ExampleShop.log("ShopEvents available: " .. tostring(ShopEvents ~= nil))
+	ExampleShop.log("ShopPriceEvents available: " .. tostring(ShopPriceEvents ~= nil))
 
 	-- Register item registration hook
 	if ShopEvents and ShopEvents.registerOnShopRegisterItems then
 		ShopEvents.registerOnShopRegisterItems(ExampleShop.registerBuyItems)
 		ExampleShop.log("Registered OnShopRegisterItems")
+	else
+		ExampleShop.log("WARNING: ShopEvents.registerOnShopRegisterItems not found!")
 	end
 
 	-- Register sell item registration hook
@@ -375,6 +472,9 @@ function ExampleShop.registerHooks()
 		ShopPriceEvents.registerOnShopModifyBuyPrice(ExampleShop.modifyBuyPriceVIP)
 		ShopPriceEvents.registerOnShopModifyBuyPrice(ExampleShop.modifyBuyPriceByBulk)
 		ExampleShop.log("Registered OnShopModifyBuyPrice hooks (4x)")
+		ExampleShop.log("Total buy modify hooks: " .. #ShopPriceEvents.OnShopModifyBuyPrice)
+	else
+		ExampleShop.log("WARNING: ShopPriceEvents.registerOnShopModifyBuyPrice not found!")
 	end
 
 	-- Register buy price override hooks
@@ -382,6 +482,9 @@ function ExampleShop.registerHooks()
 		ShopPriceEvents.registerOnShopOverrideBuyPrice(ExampleShop.overrideBuyPriceSpecialItems)
 		ShopPriceEvents.registerOnShopOverrideBuyPrice(ExampleShop.overrideBuyPriceAdmin)
 		ExampleShop.log("Registered OnShopOverrideBuyPrice hooks (2x)")
+		ExampleShop.log("Total buy override hooks: " .. #ShopPriceEvents.OnShopOverrideBuyPrice)
+	else
+		ExampleShop.log("WARNING: ShopPriceEvents.registerOnShopOverrideBuyPrice not found!")
 	end
 
 	-- Register sell price modification hooks
@@ -390,6 +493,9 @@ function ExampleShop.registerHooks()
 		ShopPriceEvents.registerOnShopModifySellPrice(ExampleShop.modifySellPriceByQuantity)
 		ShopPriceEvents.registerOnShopModifySellPrice(ExampleShop.modifySellPriceByReputation)
 		ExampleShop.log("Registered OnShopModifySellPrice hooks (3x)")
+		ExampleShop.log("Total sell modify hooks: " .. #ShopPriceEvents.OnShopModifySellPrice)
+	else
+		ExampleShop.log("WARNING: ShopPriceEvents.registerOnShopModifySellPrice not found!")
 	end
 
 	-- Register sell price override hooks
@@ -397,6 +503,15 @@ function ExampleShop.registerHooks()
 		ShopPriceEvents.registerOnShopOverrideSellPrice(ExampleShop.overrideSellPriceDamaged)
 		ShopPriceEvents.registerOnShopOverrideSellPrice(ExampleShop.overrideSellPricePremium)
 		ExampleShop.log("Registered OnShopOverrideSellPrice hooks (2x)")
+		ExampleShop.log("Total sell override hooks: " .. #ShopPriceEvents.OnShopOverrideSellPrice)
+	else
+		ExampleShop.log("WARNING: ShopPriceEvents.registerOnShopOverrideSellPrice not found!")
+	end
+
+	-- Register sell item registration hook
+	if ShopSellEvents and ShopSellEvents.registerOnShopRegisterSellItems then
+		ShopSellEvents.registerOnShopRegisterSellItems(ExampleShop.onRegisterSellItems)
+		ExampleShop.log("Registered OnShopRegisterSellItems hook")
 	end
 
 	ExampleShop.log("All hooks registered successfully!")

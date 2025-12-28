@@ -62,9 +62,12 @@ function Shop.FinalizeRegistry()
 
 	-- Phase 3: commit registry
 	writeLog("Shops", "[ShopInit] Phase 3: Committing " .. #Shop._pendingRegistrations .. " items to registry")
+	Shop.PlayerBuy = Shop.PlayerBuy or {}
 	for _, entry in ipairs(Shop._pendingRegistrations) do
 		validateItem(entry.id, entry.def)
 		Shop.Items[entry.id] = entry.def
+		-- Enable item for player buying
+		Shop.PlayerBuy[entry.id] = { enabled = true }
 	end
 
 	local itemCount = 0

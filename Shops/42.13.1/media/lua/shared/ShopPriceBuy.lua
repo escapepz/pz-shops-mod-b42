@@ -20,20 +20,26 @@ function Shop.resolvePlayerBuyPrice(player, itemId, context)
 		error("[ShopBuy] Unknown item: " .. tostring(itemId))
 	end
 
-	-- Check if player can buy this item
+	-- Check if player can buy this item (if not registered, allow with base price)
 	if not Shop.canPlayerBuy(itemId) then
-		return nil
+		writeLog("Shops", "[ShopPriceBuy] Item not in PlayerBuy registry: " .. itemId .. ", using base price")
+		return item.price
 	end
 
 	local base = item.price
 	local modifiers = {}
 
+	writeLog("Shops", "[ShopPriceBuy] resolvePlayerBuyPrice called: " .. itemId .. " base=" .. base)
+	writeLog("Shops", "[ShopPriceBuy] Modifier hooks available: " .. #ShopPriceEvents.OnShopModifyBuyPrice)
+	
 	-- Phase 1: Trigger modify hooks (allow mods to add multipliers/modifiers)
 	ShopPriceEvents.triggerOnShopModifyBuyPrice(
 		player, itemId, base, context, modifiers
 	)
 
+	writeLog("Shops", "[ShopPriceBuy] Modifiers count after trigger: " .. #modifiers)
 	local price = PriceUtils.applyModifiers(base, modifiers)
+	writeLog("Shops", "[ShopPriceBuy] Final price after modifiers: " .. price)
 
 	-- Phase 2: Trigger override hooks (allow mods to replace price entirely)
 	local override =

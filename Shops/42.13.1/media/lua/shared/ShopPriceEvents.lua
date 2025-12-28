@@ -19,6 +19,9 @@ end
 
 -- Execute all buy price modification callbacks
 function ShopPriceEvents.triggerOnShopModifyBuyPrice(player, itemId, base, context, modifiers)
+	if #ShopPriceEvents.OnShopModifyBuyPrice == 0 then
+		writeLog("Shops", "[ShopPriceEvents] WARNING: No OnShopModifyBuyPrice hooks registered!")
+	end
 	for _, callback in ipairs(ShopPriceEvents.OnShopModifyBuyPrice) do
 		callback(player, itemId, base, context, modifiers)
 	end
@@ -38,6 +41,9 @@ end
 -- Execute all buy price override callbacks
 -- Returns the first non-nil override, or nil to use calculated price
 function ShopPriceEvents.triggerOnShopOverrideBuyPrice(player, itemId, price, context)
+	if #ShopPriceEvents.OnShopOverrideBuyPrice == 0 then
+		writeLog("Shops", "[ShopPriceEvents] WARNING: No OnShopOverrideBuyPrice hooks registered!")
+	end
 	for _, callback in ipairs(ShopPriceEvents.OnShopOverrideBuyPrice) do
 		local override = callback(player, itemId, price, context)
 		if override ~= nil then

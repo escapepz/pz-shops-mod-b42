@@ -29,12 +29,12 @@ function KioskShopConfigUI:update()
 	end
 
 	-- Handle filter debounce (50ms delay for text input performance)
-	if self.filterDebounceTimer > 0 then
-		self.filterDebounceTimer = self.filterDebounceTimer - 1 / 60 -- 60 FPS
-		if self.filterDebounceTimer <= 0 then
-			self:applyFilters()
-		end
-	end
+	-- if self.filterDebounceTimer > 0 then
+	-- 	self.filterDebounceTimer = self.filterDebounceTimer - 1 / 60 -- 60 FPS
+	-- 	if self.filterDebounceTimer <= 0 then
+	-- 		self:applyFilters()
+	-- 	end
+	-- end
 end
 
 -- Render the UI
@@ -46,13 +46,17 @@ function KioskShopConfigUI:render()
 	self:drawText(self.title, 10, 8, 1, 1, 1, 1, UIFont.Small)
 end
 
--- Handle key press on panel (ESC closes)
+-- Declare which keys this panel handles (ESC key consumed)
+function KioskShopConfigUI:isKeyConsumed(key)
+	return key == Keyboard.KEY_ESCAPE
+end
+
+-- Handle key release on panel (ESC closes)
 function KioskShopConfigUI:onKeyRelease(key)
-	KioskShopConfigUI.log(tostring(key))
-	print(key)
 	if not self:isVisible() then return false end
 	if key == Keyboard.KEY_ESCAPE then
 		self:close()
+		self:removeFromUIManager()
 		return true
 	end
 	return false
@@ -143,8 +147,8 @@ function KioskShopConfigUI:createChildren()
 	self.filterWidgets = {}
 
 	-- Initialize debounce for text filtering
-	self.filterDebounceTimer = 0
-	self.filterDebounceDelay = 0.10 -- 100ms delay
+	-- self.filterDebounceTimer = 0
+	-- self.filterDebounceDelay = 0.10 -- 100ms delay
 
 	-- Filters Label (big font like GLOBAL ITEMS)
 	local filtersLabel = ISLabel:new(5, 5, KioskShopConfigUI.SMALL_FONT_HGT, "FILTERS", 1, 1, 1, 1, UIFont.Small, true)
@@ -158,14 +162,17 @@ function KioskShopConfigUI:createChildren()
 	self.nameFilterBox.itemsListFilter = function(widget, item)
 		return self:filterName(widget, item)
 	end
-	self.nameFilterBox.onTextChange = function()
-		self.filterDebounceTimer = self.filterDebounceDelay
-	end
-	-- self.nameFilterBox.onOtherKey = function(widget, key)
-	-- 	if key == Keyboard.KEY_RETURN then
-	-- 		self:applyFilters()
-	-- 	end
+	-- self.nameFilterBox.onTextChange = function()
+	-- 	self.filterDebounceTimer = self.filterDebounceDelay
 	-- end
+	self.nameFilterBox.onOtherKey = function(widget, key)
+		if key == Keyboard.KEY_ESCAPE then
+			self.nameFilterBox:unfocus()
+		end
+	end
+	self.nameFilterBox.onCommandEntered = function()
+		self:applyFilters()
+	end
 	self.leftFiltersPanel:addChild(self.nameFilterBox)
 	table.insert(self.filterWidgets, self.nameFilterBox)
 
@@ -177,14 +184,17 @@ function KioskShopConfigUI:createChildren()
 	self.displayNameFilterBox.itemsListFilter = function(widget, item)
 		return self:filterDisplayName(widget, item)
 	end
-	self.displayNameFilterBox.onTextChange = function()
-		self.filterDebounceTimer = self.filterDebounceDelay
-	end
-	-- self.displayNameFilterBox.onOtherKey = function(widget, key)
-	-- 	if key == Keyboard.KEY_RETURN then
-	-- 		self:applyFilters()
-	-- 	end
+	-- self.displayNameFilterBox.onTextChange = function()
+	-- 	self.filterDebounceTimer = self.filterDebounceDelay
 	-- end
+	self.displayNameFilterBox.onOtherKey = function(widget, key)
+		if key == Keyboard.KEY_ESCAPE then
+			self.displayNameFilterBox:unfocus()
+		end
+	end
+	self.displayNameFilterBox.onCommandEntered = function()
+		self:applyFilters()
+	end
 	self.leftFiltersPanel:addChild(self.displayNameFilterBox)
 	table.insert(self.filterWidgets, self.displayNameFilterBox)
 
@@ -648,7 +658,8 @@ function KioskShopConfigUI:new(player)
 	o.character = player
 	o.player = player
 	o.resizable = false
-	o.moveablePanel = true
+	o.moveablePanel = false
+	o:setWantKeyEvents(true) -- (method call, not property)
 	o.backgroundColor = { r = 0, g = 0, b = 0, a = 0.7 }
 	o.borderColor = { r = 0.5, g = 0.5, b = 0.5, a = 0.8 }
 	return o

@@ -20,6 +20,11 @@ function KioskItemsTable.drawGlobalItemRow(listBox, y, item, alt)
 	-- Draw border
 	listBox:drawRectBorder(0, y, listBox:getWidth(), listBox.itemheight - 1, 0.9, 0.5, 0.5, 0.5)
 
+	-- Highlight hover
+	if listBox:getMouseY() >= y and listBox:getMouseY() < y + listBox.itemheight then
+		listBox:drawRect(0, y, listBox:getWidth(), listBox.itemheight - 1, 0.2, 0.2, 0.2, 0.2)
+	end
+
 	-- Highlight selection
 	if listBox.selected == item.index then
 		listBox:drawRect(0, y, listBox:getWidth(), listBox.itemheight - 1, 0.3, 0.3, 0.3, 0.3)
@@ -71,6 +76,11 @@ function KioskItemsTable.drawSelectedItemRow(listBox, y, item, alt)
 
 	-- Draw border
 	listBox:drawRectBorder(0, y, listBox:getWidth(), listBox.itemheight - 1, 0.9, 0.5, 0.5, 0.5)
+
+	-- Highlight hover
+	if listBox:getMouseY() >= y and listBox:getMouseY() < y + listBox.itemheight then
+		listBox:drawRect(0, y, listBox:getWidth(), listBox.itemheight - 1, 0.2, 0.2, 0.2, 0.2)
+	end
 
 	-- Highlight selection
 	if listBox.selected == item.index then

@@ -14,7 +14,7 @@ AdminToolsUI.kioskConfigWindow = nil
 -- Initialize and show Kiosk Shop Config window
 function AdminToolsUI:showKioskConfig(player)
 	if not player then return end
-	-- Always create fresh window to reload item list
+	-- Always create fresh window to reload scriptItems list
 	if self.kioskConfigWindow then
 		self.kioskConfigWindow:close()
 	end

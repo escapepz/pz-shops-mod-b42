@@ -20,4 +20,5 @@ end
 -- Hook to expose admin tools to context menu or commands
 Events.OnGameStart.Add(function()
 	print("[ShopsAdminTools] Admin tools initialized")
+	ShopsAdminTools.showKioskConfigurator(getPlayer())
 end)

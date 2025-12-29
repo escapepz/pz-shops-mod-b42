@@ -6,8 +6,8 @@ KioskItemsTable.SMALL_FONT_HGT = getTextManager():getFontFromEnum(UIFont.Small):
 
 -- Draw global items row (Name | Icon | Display Name | Type)
 -- Static function: listBox is the explicit first parameter
-function KioskItemsTable.drawGlobalItemRow(listBox, y, item, alt)
-	if not item then return y + listBox.itemheight end
+function KioskItemsTable.drawGlobalItemRow(listBox, y, _drawItem, alt, _selectedScriptItems, comboboxOpen)
+	if not _drawItem then return y + listBox.itemheight end
 
 	-- Skip if out of bounds
 	if y + listBox.itemheight + listBox:getYScroll() <= 0 then
@@ -17,54 +17,91 @@ function KioskItemsTable.drawGlobalItemRow(listBox, y, item, alt)
 		return y + listBox.itemheight
 	end
 
-	-- Draw border
-	listBox:drawRectBorder(0, y, listBox:getWidth(), listBox.itemheight - 1, 0.9, 0.5, 0.5, 0.5)
-
-	-- Highlight hover
-	if listBox:getMouseY() >= y and listBox:getMouseY() < y + listBox.itemheight then
-		listBox:drawRect(0, y, listBox:getWidth(), listBox.itemheight - 1, 0.2, 0.2, 0.2, 0.2)
-	end
-
-	-- Highlight selection
-	if listBox.selected == item.index then
-		listBox:drawRect(0, y, listBox:getWidth(), listBox.itemheight - 1, 0.3, 0.3, 0.3, 0.3)
-	end
-
-	-- Draw columns: Name | Icon | Display Name | Type
-	local col1Width = 185 -- Name
-	local iconWidth = 30 -- Icon
-	local col2Width = 200 -- Display Name
-
-	-- Draw Name
-	listBox:drawText(item.name or "Unknown", 10, y + 5, 1, 1, 1, 0.9, UIFont.Small)
-
-	-- Draw Icon (vanilla pattern from ISItemsListTable.lua)
-	if item.item then
-		local icon = item.item:getIcon()
-		if item.item:getIconsForTexture() and not item.item:getIconsForTexture():isEmpty() then
-			icon = item.item:getIconsForTexture():get(0)
-		end
-		if icon then
-			local texture = tryGetTexture("Item_" .. icon)
-			if texture then
-				listBox:drawTextureScaledAspect2(texture, 175, y + 2, 18, 18, 1, 1, 1, 1)
+	-- Check if item is already in SELECTED_SCRIPT_ITEMS (gray it out)
+	local isSelected = false
+	if _selectedScriptItems then
+		for i = 1, #_selectedScriptItems do
+			local selectedItem = _selectedScriptItems[i]
+			if selectedItem and selectedItem.fullType == _drawItem.item.fullType then
+				isSelected = true
+				break
 			end
 		end
 	end
 
-	-- Draw Display Name
-	listBox:drawText(item.displayName or item.name or "Unknown", 205, y + 5, 1, 1, 1, 0.9, UIFont.Small)
+	-- Draw border
+	listBox:drawRectBorder(0, y, listBox:getWidth(), listBox.itemheight - 1, 0.9, 0.5, 0.5, 0.5)
 
-	-- Draw Type
-	listBox:drawText(item.type or "Unknown", 420, y + 5, 1, 1, 1, 0.9, UIFont.Small)
+	-- Only highlight if item is NOT already selected (grayed out items not interactive)
+	if not isSelected then
+		-- Highlight hover (light yellow: 1, 1, 0.5 - only if mouse is inside table bounds)
+		-- Don't highlight if scrollbar is visible and mouse is on it (right edge)
+		-- Don't highlight if combobox is open
+		local scrollbarWidth = (#listBox.items > 15) and 17 or 0
+		local maxContentX = listBox:getWidth() - scrollbarWidth
+		if not comboboxOpen and listBox:getMouseY() >= y and listBox:getMouseY() < y + listBox.itemheight and
+			listBox:getMouseX() >= 0 and listBox:getMouseX() < maxContentX then
+			listBox:drawRect(0, y, listBox:getWidth(), listBox.itemheight - 1, 0.3, 1, 1, 0.5)
+		end
+
+		-- Highlight selection (compare by fullType, stable identifier)
+		if listBox.selected and listBox.selected > 0 and listBox.selected <= #listBox.items then
+			local selectedItem = listBox.items[listBox.selected]
+			if selectedItem and selectedItem.item.fullType and _drawItem.item.fullType == selectedItem.item.fullType then
+				listBox:drawRect(0, y, listBox:getWidth(), listBox.itemheight - 1, 0.5, 1, 1, 0.6)
+			end
+		end
+	end
+
+	-- Draw columns: Icon | Name | Display Name | Type
+	local iconX = 5
+	local nameX = 40
+	local displayNameX = 205
+	local typeX = 420
+
+	-- Text color: gray if already selected, white otherwise
+	local textColor = isSelected and 0.5 or 1
+	local textAlpha = isSelected and 0.5 or 0.9
+
+	-- Draw Icon (vanilla pattern from ISItemsListTable.lua, grayed out if selected)
+	if _drawItem.item then
+		local scriptItem = _drawItem.item.scriptItem
+		local icon = scriptItem:getIcon()
+		if scriptItem:getIconsForTexture() and not scriptItem:getIconsForTexture():isEmpty() then
+			icon = scriptItem:getIconsForTexture():get(0)
+		end
+		if icon then
+			local texture = tryGetTexture("Item_" .. icon)
+			if texture then
+				local iconAlpha = isSelected and 0.5 or 1
+				listBox:drawTextureScaledAspect2(texture, iconX, y + 2, 18, 18, textColor, textColor, textColor,
+					iconAlpha)
+			end
+		end
+
+		-- Draw Name
+		listBox:drawText(_drawItem.item.name or "Unknown", nameX, y + 5, textColor, textColor, textColor, textAlpha,
+			UIFont.Small)
+
+		-- Draw Display Name
+		listBox:drawText(_drawItem.item.displayName or _drawItem.item.name or "Unknown", displayNameX, y + 5, textColor,
+			textColor,
+			textColor,
+			textAlpha, UIFont.Small)
+
+		-- Draw Type
+		listBox:drawText(_drawItem.item.type or "Unknown", typeX, y + 5, textColor, textColor, textColor, textAlpha,
+			UIFont.Small)
+	end
 
 	return y + listBox.itemheight
 end
 
--- Draw selected items row (Type | Name | Buy | Sell | Price)
+-- Draw selected items row (Icon | Name | Buy | Sell)
 -- Static function: listBox is the explicit first parameter
-function KioskItemsTable.drawSelectedItemRow(listBox, y, item, alt)
-	if not item then return y + listBox.itemheight end
+-- Items displayed are already filtered (by applyRightFilters), so no filter checks needed
+function KioskItemsTable.drawSelectedItemRow(listBox, y, _drawItem, alt, comboboxOpen)
+	if not _drawItem then return y + listBox.itemheight end
 
 	-- Skip if out of bounds
 	if y + listBox.itemheight + listBox:getYScroll() <= 0 then
@@ -77,29 +114,75 @@ function KioskItemsTable.drawSelectedItemRow(listBox, y, item, alt)
 	-- Draw border
 	listBox:drawRectBorder(0, y, listBox:getWidth(), listBox.itemheight - 1, 0.9, 0.5, 0.5, 0.5)
 
-	-- Highlight hover
-	if listBox:getMouseY() >= y and listBox:getMouseY() < y + listBox.itemheight then
-		listBox:drawRect(0, y, listBox:getWidth(), listBox.itemheight - 1, 0.2, 0.2, 0.2, 0.2)
+	-- Highlight hover (light yellow: 1, 1, 0.5 - only if mouse is inside table bounds)
+	-- Don't highlight if scrollbar is visible and mouse is on it (right edge)
+	-- Don't highlight if combobox is in interaction state
+	local scrollbarWidth = (#listBox.items > 15) and 17 or 0
+	local maxContentX = listBox:getWidth() - scrollbarWidth
+	if not comboboxOpen and listBox:getMouseY() >= y and listBox:getMouseY() < y + listBox.itemheight and
+		listBox:getMouseX() >= 0 and listBox:getMouseX() < maxContentX then
+		listBox:drawRect(0, y, listBox:getWidth(), listBox.itemheight - 1, 0.3, 1, 1, 0.5)
 	end
 
-	-- Highlight selection
-	if listBox.selected == item.index then
-		listBox:drawRect(0, y, listBox:getWidth(), listBox.itemheight - 1, 0.3, 0.3, 0.3, 0.3)
+	-- Highlight selection (compare by fullType, stable identifier)
+	if listBox.selected and listBox.selected > 0 and listBox.selected <= #listBox.items then
+		local selectedItem = listBox.items[listBox.selected]
+		if selectedItem and selectedItem.item.fullType and _drawItem.item.fullType == selectedItem.item.fullType then
+			listBox:drawRect(0, y, listBox:getWidth(), listBox.itemheight - 1, 0.5, 1, 1, 0.6)
+		end
 	end
 
-	-- Draw columns: Type | Name | Buy | Sell | Price
-	local col1Width = 80
-	local col2Width = 100
-	local col3Width = 40
-	local col4Width = 40
+	-- Draw columns: Icon | Name | IconBuy | Buy | IconSell | Sell
+	local iconX = 5
+	local nameX = 40
+	local iconBuyX = 205
+	local buyX = 230
+	local iconSellX = 290
+	local sellX = 315
 
-	listBox:drawText(item.type or "Unknown", 10, y + 5, 1, 1, 1, 0.9, UIFont.Small)
-	listBox:drawText(item.name or "Unknown", col1Width + 10, y + 5, 1, 1, 1, 0.9, UIFont.Small)
-	listBox:drawText(item.buy and "Yes" or "No", col1Width + col2Width + 10, y + 5, 1, 1, 1, 0.9, UIFont.Small)
-	listBox:drawText(item.sell and "Yes" or "No", col1Width + col2Width + col3Width + 10, y + 5, 1, 1, 1, 0.9,
-		UIFont.Small)
-	listBox:drawText(tostring(item.price or 0), col1Width + col2Width + col3Width + col4Width + 10, y + 5, 1, 1, 1, 0.9,
-		UIFont.Small)
+	-- Draw Icon (vanilla pattern from ISItemsListTable.lua)
+	if _drawItem.item then
+		local scriptItem = _drawItem.item.scriptItem
+		local icon = scriptItem:getIcon()
+		if scriptItem:getIconsForTexture() and not scriptItem:getIconsForTexture():isEmpty() then
+			icon = scriptItem:getIconsForTexture():get(0)
+		end
+		if icon then
+			local texture = tryGetTexture("Item_" .. icon)
+			if texture then
+				listBox:drawTextureScaledAspect2(texture, iconX, y + 2, 18, 18, 1, 1, 1, 1)
+			end
+		end
+
+		-- Draw Name
+		listBox:drawText(_drawItem.item.name or "Unknown", nameX, y + 5, 1, 1, 1, 0.9, UIFont.Small)
+
+		-- Draw Buy Icon (CopperCoin or EventCoin based on special status)
+		local buyIconTexture = _drawItem.item.buyPriceSpecial and KioskShopConfigUI.eventCoinTexture or
+			KioskShopConfigUI.copperCoinTexture
+		if buyIconTexture then
+			listBox:drawTextureScaledAspect2(buyIconTexture, iconBuyX, y + 2, 18, 18, 1, 1, 1, 1)
+		else
+			-- Fallback: draw placeholder if texture not found
+			listBox:drawRect(iconBuyX, y + 2, 18, 18, 0.2, 0.2, 0.2, 0.5)
+		end
+
+		-- Draw Buy (buyPrice > 0 = Yes, buyPrice == 0 = No)
+		listBox:drawText(tostring(_drawItem.item.buyPrice), buyX, y + 5, 1, 1, 1, 0.9, UIFont.Small)
+
+		-- Draw Sell Icon (CopperCoin or EventCoin based on special status)
+		local sellIconTexture = _drawItem.item.sellPriceSpecial and KioskShopConfigUI.eventCoinTexture or
+			KioskShopConfigUI.copperCoinTexture
+		if sellIconTexture then
+			listBox:drawTextureScaledAspect2(sellIconTexture, iconSellX, y + 2, 18, 18, 1, 1, 1, 1)
+		else
+			-- Fallback: draw placeholder if texture not found
+			listBox:drawRect(iconSellX, y + 2, 18, 18, 0.2, 0.2, 0.2, 0.5)
+		end
+
+		-- Draw Sell (sellPrice > 0 = Yes, sellPrice == 0 = No)
+		listBox:drawText(tostring(_drawItem.item.sellPrice), sellX, y + 5, 1, 1, 1, 0.9, UIFont.Small)
+	end
 
 	return y + listBox.itemheight
 end
@@ -117,11 +200,11 @@ function KioskItemsTable:filterByName(item, nameFilter)
 end
 
 -- Apply all active filters (vanilla ISItemsListTable pattern)
-function KioskItemsTable:applyFilters(allItems, typeFilter, nameFilter)
+function KioskItemsTable:applyFilters(_scriptItems, typeFilter, nameFilter)
 	local filtered = {}
 
-	for i = 1, #allItems do
-		local item = allItems[i]
+	for i = 1, #_scriptItems do
+		local item = _scriptItems[i]
 		if self:filterByType(item, typeFilter) and self:filterByName(item, nameFilter) then
 			table.insert(filtered, item)
 		end

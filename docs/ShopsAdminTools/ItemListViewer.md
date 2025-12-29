@@ -25,7 +25,7 @@ graph TB
     end
 
     subgraph "Data Flow"
-        GameItems["getAllItems()"]
+        GameItems["getscriptItems()"]
         Filtering["onFilterChange()"]
         ItemSpawn["addItem()"]
 
@@ -45,7 +45,7 @@ graph TB
 
 1. **Data Loading** (`initList`, lines 41-86 in ISItemsListViewer)
 
-   - Calls `getAllItems()` to fetch all game items
+   - Calls `getscriptItems()` to fetch all game items
    - Groups items by module into tabs
    - Filters out obsolete/hidden items
 

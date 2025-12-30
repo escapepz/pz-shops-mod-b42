@@ -1,9 +1,10 @@
 .serena
+.libraries
+
 Helper/
 tmp/
 mods/
 
-.libraries# Compiled Lua sources
 luac.out
 
 # luarocks build files

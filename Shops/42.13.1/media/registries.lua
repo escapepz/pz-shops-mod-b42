@@ -1,4 +1,8 @@
--- Shops Registry Configuration
+-- Shops Registry Configuration (B42.13 MP)
+-- Single global namespace for Shops mod (best practice)
+-- All other Lua files extend SHOPSB42.* only, no new globals
+
+SHOPSB42 = SHOPSB42 or {}
 
 -- Helper function to safely register items
 local function safeRegister(registryName, itemName)

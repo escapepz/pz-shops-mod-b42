@@ -1,6 +1,22 @@
 {
-    "Lua.completion.requireSeparator": "/",
-    "Lua.workspace.library": [
-        "./.libraries/"
-    ]
+  "Lua.completion.requireSeparator": "/",
+  "Lua.workspace.library": [".libraries"],
+  "Lua.workspace.ignoreDir": [
+    ".git",
+    ".vscode",
+    ".serena",
+    ".libraries",
+    "docs",
+    "build",
+    "ShopsAdminTools",
+    "ShopsHooksExample",
+    "node_modules",
+    "**/temp_dir"
+  ],
+  "Lua.diagnostics.workspaceDelay": -1,
+  "Lua.diagnostics.disable": [
+    "inject-field",
+    "undefined-field",
+    "param-type-mismatch"
+  ]
 }

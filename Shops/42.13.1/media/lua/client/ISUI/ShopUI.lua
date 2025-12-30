@@ -634,18 +634,9 @@ function ShopUI:buildBuyTicket()
 	for _, row in ipairs(self.cartItems.items) do
 		local item = row.item
 
-		-- Recalculate price on client for preview (server will recompute authoritatively)
+		-- Use stored price calculated during item list prep (server will recompute authoritatively)
+		-- DO NOT recalculate on client to avoid price desync
 		local itemPrice = item.price
-		if item.type and Shop.Items[item.type] then
-			local context = {
-				shopId = self.shop and self.shop:getName() or "Unknown",
-				quantity = item.quantity or 1,
-				isSpecialCoin = item.specialCoin or false,
-				isBroken = false,
-			}
-			local dynamicPrice = Shop.resolvePlayerBuyPrice(self.player, item.type, context)
-			itemPrice = dynamicPrice or item.price
-		end
 
 		-- Accumulate price
 		if item.specialCoin then

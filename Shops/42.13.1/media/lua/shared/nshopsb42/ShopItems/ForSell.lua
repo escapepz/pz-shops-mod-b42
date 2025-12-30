@@ -1,6 +1,10 @@
--- ForSell.lua
+-- ForSell.lua (SERVER ONLY)
 -- Default sell items registry - loaded only if no external sell hooks register items
 -- Deferred to avoid errors if Shop.RegisterSellItem not yet defined
+
+if not isServer() then
+	return
+end
 
 local Shop = SHOPSB42.Shop
 if Shop and Shop.RegisterSellItem then

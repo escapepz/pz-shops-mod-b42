@@ -1,7 +1,11 @@
 -- ShopDefaultItems.lua
--- Load default buy and sell items via the hook system
+-- Load default buy and sell items via the hook system (SERVER ONLY)
 -- Extends SHOPSB42 namespace (no new globals)
 -- Items self-register during require() calls
+
+if not isServer() then
+	return
+end
 
 SHOPSB42.ShopDefaultItems = SHOPSB42.ShopDefaultItems or {}
 local ShopDefaultItems = SHOPSB42.ShopDefaultItems

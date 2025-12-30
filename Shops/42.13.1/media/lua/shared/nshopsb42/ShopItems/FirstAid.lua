@@ -1,5 +1,9 @@
--- FirstAid items registration
+-- FirstAid items registration (SERVER ONLY)
 -- Deferred to avoid errors if Shop.RegisterItem not yet defined
+
+if not isServer() then
+	return
+end
 
 local Tab = SHOPSB42.Tab
 local Shop = SHOPSB42.Shop

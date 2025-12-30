@@ -5,6 +5,13 @@ if not isClient() or isServer() then
 	return
 end
 
+-- Load shared core modules first (required for Shop.textures and other shared systems)
+require("nshopsb42/core/Shop")
+require("nshopsb42/core/ShopRegistry")
+require("nshopsb42/sales/ShopSellRegistry")
+require("nshopsb42/events/ShopEvents")
+require("nshopsb42/sales/ShopSellEvents")
+
 -- Module initialization
 local PSClient = require("nshopsb42/PlayerShopClient")
 

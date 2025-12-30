@@ -1,5 +1,5 @@
 -- ShopInit.lua
--- Registry finalization and default item loading
+-- Registry finalization - hooks-based item loading
 
 local function validateItem(id, def)
 	assert(def.tab, "[Shop] Missing tab: " .. id)
@@ -10,13 +10,6 @@ local function validateItem(id, def)
 			assert(e.item, "[Shop] Pack entry missing item: " .. id)
 		end
 	end
-end
-
-local function loadDefaultItems()
-	require("ShopItems.Food")
-	require("ShopItems.Weapons")
-	require("ShopItems.FirstAid")
-	require("ShopItems.Vehicles")
 end
 
 local function migrateLegacyShopTables()
@@ -47,21 +40,14 @@ function Shop.FinalizeRegistry()
 	-- Phase 0: migrate legacy tables if present
 	migrateLegacyShopTables()
 
-	-- Phase 1: allow mods to register via custom event dispatcher
-	-- Mods call ShopEvents.registerOnShopRegisterItems() during load
+	-- Phase 1: Execute ALL registered hooks (external mods + Shops defaults)
+	-- External mods (like ShopsHooksExample) are registered first during load
+	-- Shops defaults are registered last and only execute if not blocked by externals
 	writeLog("Shops", "[ShopInit] Phase 1: Triggering OnShopRegisterItems hooks")
 	ShopEvents.triggerOnShopRegisterItems()
 
-	-- Phase 2: fallback to defaults if no external registrations
-	if not Shop._hasExternalRegistrations then
-		writeLog("Shops", "[ShopInit] Phase 2: No external registrations, loading defaults")
-		loadDefaultItems()
-	else
-		writeLog("Shops", "[ShopInit] Phase 2: External registrations found, skipping defaults")
-	end
-
-	-- Phase 3: commit registry
-	writeLog("Shops", "[ShopInit] Phase 3: Committing " .. #Shop._pendingRegistrations .. " items to registry")
+	-- Phase 2: commit registry
+	writeLog("Shops", "[ShopInit] Phase 2: Committing " .. #Shop._pendingRegistrations .. " items to registry")
 	Shop.PlayerBuy = Shop.PlayerBuy or {}
 	for _, entry in ipairs(Shop._pendingRegistrations) do
 		validateItem(entry.id, entry.def)

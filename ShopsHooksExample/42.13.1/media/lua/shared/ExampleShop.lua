@@ -93,6 +93,8 @@ function ExampleShop.registerBuyItems()
 end
 
 -- Register sell items (items players can sell to the shop)
+-- NOTE: This applies custom sell pricing rules that replace defaults
+-- When ShopsHooksExample is disabled, default sell prices will load instead
 function ExampleShop.registerSellItems()
 	ExampleShop.log("Registering sell items...")
 
@@ -133,10 +135,10 @@ function ExampleShop.registerSellItems()
 	Shop.RegisterSellItem("Base.AssaultRifle", { price = 200 })
 	Shop.RegisterSellItem("Base.HuntingRifle", { price = 150 })
 
-	-- Blacklist (items that cannot be sold)
-	Shop.RegisterSellItem("Base.KeyRing", { blacklisted = true })
+	-- NOTE: In whitelist mode, any item NOT registered is automatically blocked
+	-- So KeyRing and other items are implicitly blacklisted (don't need to register them)
 
-	ExampleShop.log("Registered 25 sell items + 1 blacklisted item")
+	ExampleShop.log("Registered 25 sell items")
 end
 
 -- ========== BUY PRICE MODIFICATIONS ==========
@@ -451,6 +453,10 @@ function ExampleShop.registerHooks()
 	ExampleShop.log("ShopEvents available: " .. tostring(ShopEvents ~= nil))
 	ExampleShop.log("ShopPriceEvents available: " .. tostring(ShopPriceEvents ~= nil))
 
+	-- Suppress default shop items when example shop is enabled
+	Shop._suppressDefaults = true
+	ExampleShop.log("Suppressed default shop items")
+
 	-- Register item registration hook
 	if ShopEvents and ShopEvents.registerOnShopRegisterItems then
 		ShopEvents.registerOnShopRegisterItems(ExampleShop.registerBuyItems)
@@ -460,9 +466,12 @@ function ExampleShop.registerHooks()
 	end
 
 	-- Register sell item registration hook
+	-- NOTE: This must be registered after buy items to apply to both buy and sell lists
 	if ShopSellEvents and ShopSellEvents.registerOnShopRegisterSellItems then
 		ShopSellEvents.registerOnShopRegisterSellItems(ExampleShop.registerSellItems)
 		ExampleShop.log("Registered OnShopRegisterSellItems")
+	else
+		ExampleShop.log("WARNING: ShopSellEvents.registerOnShopRegisterSellItems not found!")
 	end
 
 	-- Register buy price modification hooks

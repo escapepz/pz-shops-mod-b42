@@ -17,10 +17,12 @@ Tab["Event"] = "Event"
 
 require "ShopRegistry"
 require "ShopEvents"
-require "ShopInit"
+require "ShopInit"  -- Define FinalizeRegistry function
 require "ShopSellRegistry"
 require "ShopSellEvents"
-require "ShopSellInit"
+require "ShopSellInit"  -- Define FinalizeSellRegistry function
+require "ShopDefaultItems"  -- Register default items via hooks
+require "ShopFinalizeHandler"  -- Handle finalization for client/server
 require "ShopPriceEvents"
 require "ShopPriceUtils"
 require "ShopPriceBuy"

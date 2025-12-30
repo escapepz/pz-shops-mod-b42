@@ -1,5 +1,5 @@
 -- ShopSellInit.lua
--- Sell finalization logic - triggers hooks, loads defaults conditionally, locks registry
+-- Sell registry finalization - hooks-based item loading
 
 local function validateSellItem(id, def)
     if not def.blacklisted then
@@ -7,30 +7,19 @@ local function validateSellItem(id, def)
     end
 end
 
-local function loadDefaultSellItems()
-    require("ShopItems.ForSell")
-end
-
 function Shop.FinalizeSellRegistry()
 	if Shop._sellLocked then return end
 
 	writeLog("Shops", "[ShopSellInit] FinalizeSellRegistry starting...")
 
-	-- Phase 1: allow external mods to register via custom event dispatcher
-	-- Mods call ShopSellEvents.registerOnShopRegisterSellItems() during load
+	-- Phase 1: Execute ALL registered hooks (external mods + Shops defaults)
+	-- External mods (like ShopsHooksExample) are registered first during load
+	-- Shops defaults are registered last and only execute if not blocked by externals
 	writeLog("Shops", "[ShopSellInit] Phase 1: Triggering OnShopRegisterSellItems hooks")
 	ShopSellEvents.triggerOnShopRegisterSellItems()
 
-	-- Phase 2: fallback to defaults if no external registrations
-	if not Shop._hasExternalSellRegistrations then
-		writeLog("Shops", "[ShopSellInit] Phase 2: No external registrations, loading defaults")
-		loadDefaultSellItems()
-	else
-		writeLog("Shops", "[ShopSellInit] Phase 2: External registrations found, skipping defaults")
-	end
-
-	-- Phase 3: commit all pending registrations
-	writeLog("Shops", "[ShopSellInit] Phase 3: Committing " .. #Shop._sellPending .. " sell items to registry")
+	-- Phase 2: commit all pending registrations
+	writeLog("Shops", "[ShopSellInit] Phase 2: Committing " .. #Shop._sellPending .. " sell items to registry")
 	for _, entry in ipairs(Shop._sellPending) do
 		validateSellItem(entry.id, entry.def)
 		Shop.PlayerSell[entry.id] = entry.def

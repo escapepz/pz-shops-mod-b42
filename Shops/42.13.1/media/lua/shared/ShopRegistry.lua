@@ -5,12 +5,13 @@ Shop = Shop or {}
 Shop.Items = Shop.Items or {}
 
 Shop._pendingRegistrations = {}
-Shop._hasExternalRegistrations = false
 Shop._locked = false
 
 function Shop.RegisterItem(itemId, def)
 	if Shop._locked then
-		error("[Shop] RegisterItem after registry lock: " .. tostring(itemId))
+		-- Item already registered via hooks, skip silently
+		writeLog("Shops", "[ShopRegistry] RegisterItem ignored (registry locked): " .. tostring(itemId))
+		return
 	end
 
 	if type(itemId) ~= "string" then
@@ -20,7 +21,6 @@ function Shop.RegisterItem(itemId, def)
 		error("[Shop] definition must be table")
 	end
 
-	Shop._hasExternalRegistrations = true
 	writeLog("Shops", "[ShopRegistry] RegisterItem: " .. itemId .. " (tab: " .. tostring(def.tab) .. ", price: " .. tostring(def.price) .. ")")
 
 	table.insert(Shop._pendingRegistrations, {

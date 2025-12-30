@@ -12,7 +12,7 @@ Tab["All"] = "All"
 Tab["Food"] = "Food"
 Tab["Weapons"] = "Weapons"
 Tab["Vehicles"] = "Vehicles"
-Tab["FirstAid"]= "FirstAid"
+Tab["FirstAid"] = "FirstAid"
 Tab["Event"] = "Event"
 
 require "ShopRegistry"
@@ -27,8 +27,7 @@ require "ShopPriceBuy"
 require "ShopPriceSell"
 
 Shop.Sell = Shop.Sell or {}
-Shop.SellisBlacklist = false
-Shop.SellisWhitelist = false
+Shop.SellisWhitelist = false -- true = whitelist mode, false = blacklist mode
 Shop.defaultPrice = 1
 Shop.defaultPriceBroken = 1
 
@@ -57,26 +56,26 @@ Shop.textures = {
 		texture = getTexture("media/textures/ShopUI_Add.png"),
 		scale = 20
 	},
-	RemoveButton= {
+	RemoveButton = {
 		texture = getTexture("media/textures/ShopUI_Remove.png"),
 		scale = 20
 	},
-	PreviewButton= {
+	PreviewButton = {
 		texture = getTexture("media/textures/ShopUI_Preview.png"),
 		scale = 20
 	},
-	Browse= {
+	Browse = {
 		texture = getTexture("media/textures/ShopUI_Browse.png"),
 		scale = 20
 	},
-	Cart= {
+	Cart = {
 		texture = getTexture("media/textures/ShopUI_Cart.png"),
 		scale = 30
 	},
-	Sort= {
+	Sort = {
 		texture = getTexture("media/textures/ShopUI_Sort.png"),
 	},
-	MoveAll= {
+	MoveAll = {
 		texture = getTexture("media/textures/ShopUI_MoveAll.png"),
 	},
 }

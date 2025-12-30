@@ -318,43 +318,45 @@ function ShopUI:onActivateView()
             local itemType = item:getFullType()
             local itemSell = Shop.PlayerSell[itemType]
             local isBroken = item:isBroken()
-            if not (Shop.SellisBlacklist and itemSell) then
-                if not (item:isEquipped() or item:isFavorite() or Currency.Coins[itemType]) then
-                    if not (itemSell and itemSell.blacklisted) then
-                        local v = {}
-                        v.type = itemType
-                        local price = Shop.defaultPrice
-                        if isBroken then price = Shop.defaultPriceBroken end
-                        if itemSell then
-                            v.specialCoin = itemSell.specialCoin
-                            if isBroken then
-                                price = itemSell.priceBroken or Shop.defaultPriceBroken
-                            else
-                                price = itemSell.price or Shop.defaultPrice
-                            end
+            if not (item:isEquipped() or item:isFavorite() or Currency.Coins[itemType]) then
+                local canSell = false
+                
+                if Shop.SellisWhitelist then
+                    -- Whitelist mode: only registered items allowed
+                    canSell = itemSell ~= nil
+                else
+                    -- Blacklist mode: all items allowed except those marked blacklisted
+                    canSell = not (itemSell and itemSell.blacklisted)
+                end
+                
+                if canSell then
+                    local v = {}
+                    v.type = itemType
+                    local price = Shop.defaultPrice
+                    if isBroken then price = Shop.defaultPriceBroken end
+                    if itemSell then
+                        v.specialCoin = itemSell.specialCoin
+                        if isBroken then
+                            price = itemSell.priceBroken or Shop.defaultPriceBroken
+                        else
+                            price = itemSell.price or Shop.defaultPrice
                         end
-                        v.priceFull = price
-                        price = Nfunction.drainablePrice(item, price)
-                        local context = {
-                            shopId = self.shop and self.shop:getName() or "Unknown",
-                            quantity = 1,
-                            isSpecialCoin = v.specialCoin or false,
-                            isBroken = isBroken,
-                        }
-                        local dynamicPrice = Shop.resolvePlayerSellPrice(character, item, context)
-                        v.price = dynamicPrice or price
-                        v.id = item:getID()
-                        v.name = Nfunction.trimString(item:getName(), 42)
-                        v.invItem = item
-                        if price > 0 then
-                            if Shop.SellisWhitelist then
-                                if itemSell then
-                                    shopItems:addItem(itemType, v);
-                                end
-                            else
-                                shopItems:addItem(itemType, v);
-                            end
-                        end
+                    end
+                    v.priceFull = price
+                    price = Nfunction.drainablePrice(item, price)
+                    local context = {
+                        shopId = self.shop and self.shop:getName() or "Unknown",
+                        quantity = 1,
+                        isSpecialCoin = v.specialCoin or false,
+                        isBroken = isBroken,
+                    }
+                    local dynamicPrice = Shop.resolvePlayerSellPrice(character, item, context)
+                    v.price = dynamicPrice or price
+                    v.id = item:getID()
+                    v.name = Nfunction.trimString(item:getName(), 42)
+                    v.invItem = item
+                    if price > 0 then
+                        shopItems:addItem(itemType, v);
                     end
                 end
             end

@@ -136,7 +136,7 @@ function IncomeUI:createChildren()
 
 	total = 0
 	totalSpecial = 0
-	local income = IncomeUI.instance.shop:getModData().income
+	local income = IncomeUI.instance.shop:getModData().nshopsb42_income
 	for k, v in pairs(income) do
 		self.tickets:addItem(v.buyer, v)
 		total = total + v.t.tl
@@ -213,7 +213,7 @@ function IncomeUI:getBtn()
 			specialCoin = totalSpecial,
 			source = "ShopIncome",
 		})
-		IncomeUI.instance.shop:getModData().income = {}
+		IncomeUI.instance.shop:getModData().nshopsb42_income = {}
 		IncomeUI.instance.shop:transmitModData()
 		self.character:playSound("CashRegister")
 	else

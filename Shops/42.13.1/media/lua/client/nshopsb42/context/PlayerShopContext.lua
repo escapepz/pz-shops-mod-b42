@@ -105,7 +105,7 @@ function PlayerShop.PickupShop(worldobjects, player, shop)
 		player:setHaloNote(UIText.RemoveItemsPlayerShop, 255, 255, 255, 400)
 		return
 	end
-	local income = shop:getModData().income
+	local income = shop:getModData().nshopsb42_income
 	if #income and #income > 0 then
 		player:setHaloNote(UIText.RemoveIncomePlayerShop, 255, 255, 255, 400)
 		return
@@ -194,7 +194,7 @@ function PlayerShop.PlayerShopContextMenu(playerNum, context, worldobjects)
 	SharedLogger.log("Shops", "PlayerShopContextMenu: wo found=" .. tostring(found))
 	local owner = ""
 	if found then
-		owner = wo:getModData().owner
+		owner = wo:getModData().nshopsb42_owner
 		local optionView = getText("IGUI_ViewPlayerShop", owner)
 		local clickedSquare = wo:getSquare()
 		local viewPS =

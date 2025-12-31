@@ -130,8 +130,8 @@ function ISAddPlayerShopAction:complete()
 	end
 
 	-- Set ownership and initialize income tracking
-	shop:getModData().owner = player:getUsername()
-	shop:getModData().income = {}
+	shop:getModData().nshopsb42_owner = player:getUsername()
+	shop:getModData().nshopsb42_income = {}
 
 	-- Add to world using AddSpecialObject (matches old working pattern)
 	square:AddSpecialObject(shop)

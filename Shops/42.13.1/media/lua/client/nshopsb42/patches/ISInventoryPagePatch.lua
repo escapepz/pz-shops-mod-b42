@@ -8,7 +8,7 @@ function ISInventoryPage:isRemoveButtonVisible()
 	local container = obj:getContainer()
 	if container then
 		local parent = container:getParent()
-		if parent and parent:getModData().owner then
+		if parent and parent:getModData().nshopsb42_owner then
 			return false
 		end
 	end

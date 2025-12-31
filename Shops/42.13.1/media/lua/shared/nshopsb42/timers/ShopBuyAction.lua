@@ -6,6 +6,7 @@ local Nfunction = require("nshopsb42/utils/Nfunction")
 local Shop = SHOPSB42.Shop
 local Balance = SHOPSB42.Balance
 local Utilities = require("nshopsb42/utils/Utilities")
+local SharedLogger = SHOPSB42.SharedLogger
 
 -- Lazy-load server modules to avoid initialization order issues
 local TransactionRegistry
@@ -52,18 +53,16 @@ function ShopBuyAction:getDuration()
 end
 
 function ShopBuyAction:perform()
-	local context = isClient() and "CLIENT" or (isServer() and "SERVER" or "SP")
-	writeLog("Shops", "[ShopBuyAction:perform] [" .. context .. "] time remaining=" .. tostring(self.timer))
+	SharedLogger.logAction("ShopBuyAction", "perform", "time remaining=" .. tostring(self.timer))
 	self.character:playSound("CashRegister")
 	ISBaseTimedAction.perform(self)
 end
 
 function ShopBuyAction:complete()
-	local context = isClient() and "CLIENT" or (isServer() and "SERVER" or "SP")
-	writeLog("Shops", "[ShopBuyAction:complete] [" .. context .. "] ENTRY - txnId=" .. tostring(self.ticket.txnId))
+	SharedLogger.logAction("ShopBuyAction", "complete", "ENTRY - txnId=" .. tostring(self.ticket.txnId))
 	-- Server-only execution
 	if isMultiplayer() and not isServer() then
-		writeLog("Shops", "[ShopBuyAction:complete] [CLIENT] MP - exiting early")
+		SharedLogger.logAction("ShopBuyAction", "complete", "MP - exiting early")
 		return true
 	end
 
@@ -79,9 +78,10 @@ function ShopBuyAction:complete()
 	-- Retrieve shop from world using stored coordinates
 	local shop = Utilities.FindShopAtCoords(self.shopCoords.x, self.shopCoords.y, self.shopCoords.z, Shop.spritePrefix)
 	if not shop then
-		writeLog(
-			"Shops",
-			"[ShopBuyAction:complete] [SERVER] ERROR: Shop not found at "
+		SharedLogger.logAction(
+			"ShopBuyAction",
+			"complete",
+			"ERROR: Shop not found at "
 				.. tostring(self.shopCoords.x)
 				.. ","
 				.. tostring(self.shopCoords.y)
@@ -230,7 +230,7 @@ function ShopBuyAction:complete()
 		items = ticket.items,
 	})
 
-	writeLog("Shops", "[ShopBuyAction:complete] [SERVER] SUCCESS - purchase transaction processed")
+	SharedLogger.logAction("ShopBuyAction", "complete", "SUCCESS - purchase transaction processed")
 	return true
 end
 

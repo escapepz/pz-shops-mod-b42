@@ -6,6 +6,7 @@ local Nfunction = require("nshopsb42/utils/Nfunction")
 local Shop = SHOPSB42.Shop
 local Balance = SHOPSB42.Balance
 local Utilities = require("nshopsb42/utils/Utilities")
+local SharedLogger = SHOPSB42.SharedLogger
 
 -- Lazy-load server modules to avoid initialization order issues
 local TransactionRegistry
@@ -49,8 +50,7 @@ function ShopSellAction:getDuration()
 end
 
 function ShopSellAction:perform()
-	local context = isClient() and "CLIENT" or (isServer() and "SERVER" or "SP")
-	writeLog("Shops", "[ShopSellAction:perform] [" .. context .. "] time remaining=" .. tostring(self.timer))
+	SharedLogger.logAction("ShopSellAction", "perform", "time remaining=" .. tostring(self.timer))
 	if self.total and (self.total > 0 or self.totalSpecial > 0) then
 		self.character:playSound("CashRegister")
 	end
@@ -58,11 +58,10 @@ function ShopSellAction:perform()
 end
 
 function ShopSellAction:complete()
-	local context = isClient() and "CLIENT" or (isServer() and "SERVER" or "SP")
-	writeLog("Shops", "[ShopSellAction:complete] [" .. context .. "] ENTRY - txnId=" .. tostring(self.sellList.txnId))
+	SharedLogger.logAction("ShopSellAction", "complete", "ENTRY - txnId=" .. tostring(self.sellList.txnId))
 	-- Server-only execution
 	if isMultiplayer() and not isServer() then
-		writeLog("Shops", "[ShopSellAction:complete] [CLIENT] MP - exiting early")
+		SharedLogger.logAction("ShopSellAction", "complete", "MP - exiting early")
 		return true
 	end
 
@@ -78,9 +77,10 @@ function ShopSellAction:complete()
 	-- Retrieve shop from world using stored coordinates
 	self.shop = Utilities.FindShopAtCoords(self.shopCoords.x, self.shopCoords.y, self.shopCoords.z, Shop.spritePrefix)
 	if not self.shop then
-		writeLog(
-			"Shops",
-			"[ShopSellAction:complete] [SERVER] ERROR: Shop not found at "
+		SharedLogger.logAction(
+			"ShopSellAction",
+			"complete",
+			"ERROR: Shop not found at "
 				.. tostring(self.shopCoords.x)
 				.. ","
 				.. tostring(self.shopCoords.y)
@@ -105,7 +105,7 @@ function ShopSellAction:complete()
 	local coinBalance = ModData.get("nshopsb42_CoinBalance")
 	local account = coinBalance[username]
 	if not account then
-		writeLog("Shops", "[ShopSellAction:complete] [SERVER] REJECTED - no account found for user: " .. username)
+		SharedLogger.logAction("ShopSellAction", "complete", "REJECTED - no account found for user: " .. username)
 		return false
 	end
 
@@ -200,7 +200,7 @@ function ShopSellAction:complete()
 		items = self.sellList.items,
 	})
 
-	writeLog("Shops", "[ShopSellAction:complete] [SERVER] SUCCESS - sell transaction processed")
+	SharedLogger.logAction("ShopSellAction", "complete", "SUCCESS - sell transaction processed")
 	return true
 end
 

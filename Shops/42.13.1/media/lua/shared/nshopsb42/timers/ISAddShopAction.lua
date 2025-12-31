@@ -37,22 +37,17 @@ function ISAddShopAction:getDuration()
 end
 
 function ISAddShopAction:perform()
-	local context = isClient() and "CLIENT" or (isServer() and "SERVER" or "SP")
-	SharedLogger.log(
-		"Shops",
-		"[ISAddShopAction:perform] [" .. context .. "] Action performing, time remaining=" .. tostring(self.timer)
-	)
+	SharedLogger.logAction("ISAddShopAction", "perform", "Action performing, time remaining=" .. tostring(self.timer))
 	ISBaseTimedAction.perform(self)
 	-- Client-side animation, sounds, progress bar
 end
 
 function ISAddShopAction:complete()
-	local context = isClient() and "CLIENT" or (isServer() and "SERVER" or "SP")
-	SharedLogger.log("Shops", "[ISAddShopAction:complete] [" .. context .. "] ENTRY - sprite=" .. tostring(self.sprite))
+	SharedLogger.logAction("ISAddShopAction", "complete", "ENTRY - sprite=" .. tostring(self.sprite))
 
 	-- Server-only execution
 	if isMultiplayer() and not isServer() then
-		SharedLogger.log("Shops", "[ISAddShopAction:complete] [CLIENT] MP - exiting early, returning true")
+		SharedLogger.logAction("ISAddShopAction", "complete", "MP - exiting early, returning true")
 		return true
 	end
 
@@ -116,7 +111,7 @@ function ISAddShopAction:complete()
 	-- NOTE: No inventory removal for admin shops
 	-- Admin placement does not consume items
 
-	SharedLogger.log("Shops", "[ISAddShopAction:complete] [SERVER] SUCCESS - admin shop placed")
+	SharedLogger.logAction("ISAddShopAction", "complete", "SUCCESS - admin shop placed")
 	return true
 end
 

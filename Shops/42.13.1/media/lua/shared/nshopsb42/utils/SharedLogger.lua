@@ -8,31 +8,74 @@ local SharedLogger = SHOPSB42.SharedLogger
 -- Global debug toggle - set to false to disable all logging
 SharedLogger.DEBUG = true
 
--- Log a message with side identification
--- @param modName: Name of the mod (e.g., "Shops", "ShopsHooksExample")
--- @param message: Message to log
-function SharedLogger.log(modName, message)
-	if not SharedLogger.DEBUG then
-		return
-	end
-
+-- Get the current execution side
+-- @return string: "[SERVER]", "[CLIENT]", or nil
+local function getSide()
 	-- Determine side: In multiplayer, check who's running this code
 	-- isClient() = true on both client (in MP) and in single-player
 	-- isServer() = true on server (in MP) and in single-player
 	-- Therefore: true client-only code = isClient() and not isServer()
-	local side
 	if isClient() and isServer() then
 		-- Single-player mode: both return true, default to SERVER for backward compat
-		side = "[SERVER]"
+		return "[SERVER]"
 	elseif isClient() then
 		-- Multiplayer client-only
-		side = "[CLIENT]"
+		return "[CLIENT]"
 	else
 		-- Multiplayer server-only
-		side = "[SERVER]"
+		return "[SERVER]"
 	end
-	-- local timestamp = os.date("%H:%M:%S")
-	writeLog(modName, string.format("%s %s", side, message))
+end
+
+-- Log a message with side identification
+-- Supports multiple signatures:
+--   log(modName, message)
+--   log(modName, message, context)
+--   log(modName, action, phase, details)
+-- @param modName: Name of the mod (e.g., "Shops", "ShopsHooksExample")
+-- @param message: Message to log (or action name if 4 params)
+-- @param context: Additional context string, or phase name if table follows
+-- @param details: Optional table or string with details (txnId, status, etc.)
+function SharedLogger.log(modName, message, context, details)
+	if not SharedLogger.DEBUG then
+		return
+	end
+
+	local side = getSide()
+	local fullMessage
+
+	-- Handle 4-param signature: action, phase, details
+	if details then
+		local action = message
+		local phase = context
+		fullMessage = string.format("%s [%s:%s] %s", side, action, phase, details)
+	-- Handle 3-param signature: message with context
+	elseif context then
+		if type(context) == "table" then
+			-- Details table provided
+			local parts = {}
+			for k, v in pairs(context) do
+				table.insert(parts, string.format("%s=%s", k, tostring(v)))
+			end
+			fullMessage = string.format("%s %s - %s", side, message, table.concat(parts, ", "))
+		else
+			-- Context is a string
+			fullMessage = string.format("%s %s %s", side, message, context)
+		end
+	-- Handle 2-param signature: simple message
+	else
+		fullMessage = string.format("%s %s", side, message)
+	end
+
+	writeLog(modName, fullMessage)
+end
+
+-- Convenience method for action logging
+-- @param action: Action class name (e.g., "ShopSellAction")
+-- @param phase: Phase name (e.g., "perform", "complete")
+-- @param details: Optional table or string with details
+function SharedLogger.logAction(action, phase, details)
+	SharedLogger.log("Shops", string.format("[%s:%s]", action, phase), details)
 end
 
 return SharedLogger

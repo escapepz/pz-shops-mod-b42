@@ -3,6 +3,7 @@ local Nfunction = require("nshopsb42/utils/Nfunction")
 local Balance = SHOPSB42.Balance
 local Utilities = require("nshopsb42/utils/Utilities")
 local PlayerShop = require("nshopsb42/core/PlayerShop")
+local SharedLogger = SHOPSB42.SharedLogger
 
 SHOPSB42.PlayerShopBuyAction = ISBaseTimedAction:derive("nshopsb42_PlayerShopBuyAction")
 local PlayerShopBuyAction = SHOPSB42.PlayerShopBuyAction
@@ -36,18 +37,16 @@ function PlayerShopBuyAction:getDuration()
 end
 
 function PlayerShopBuyAction:perform()
-	local context = isClient() and "CLIENT" or (isServer() and "SERVER" or "SP")
-	writeLog("Shops", "[PlayerShopBuyAction:perform] [" .. context .. "] time remaining=" .. tostring(self.timer))
+	SharedLogger.logAction("PlayerShopBuyAction", "perform", "time remaining=" .. tostring(self.timer))
 	self.character:playSound("CashRegister")
 	ISBaseTimedAction.perform(self)
 end
 
 function PlayerShopBuyAction:complete()
-	local context = isClient() and "CLIENT" or (isServer() and "SERVER" or "SP")
-	writeLog("Shops", "[PlayerShopBuyAction:complete] [" .. context .. "] ENTRY")
+	SharedLogger.logAction("PlayerShopBuyAction", "complete", "ENTRY")
 	-- Server-only: execute authoritative transaction
 	if isMultiplayer() and not isServer() then
-		writeLog("Shops", "[PlayerShopBuyAction:complete] [CLIENT] MP - exiting early")
+		SharedLogger.logAction("PlayerShopBuyAction", "complete", "MP - exiting early")
 		return true
 	end
 
@@ -55,18 +54,19 @@ function PlayerShopBuyAction:complete()
 	local ticket = self.ticket
 
 	-- Retrieve shop from world using stored coordinates
-	writeLog(
-		"Shops",
-		"[PlayerShopBuyAction:complete] [SERVER] Looking for shop at coords: "
-		.. tostring(self.shopCoords.x)
-		.. ","
-		.. tostring(self.shopCoords.y)
-		.. ","
-		.. tostring(self.shopCoords.z)
+	SharedLogger.logAction(
+		"PlayerShopBuyAction",
+		"complete",
+		"Looking for shop at coords: "
+			.. tostring(self.shopCoords.x)
+			.. ","
+			.. tostring(self.shopCoords.y)
+			.. ","
+			.. tostring(self.shopCoords.z)
 	)
 	local square = getCell():getGridSquare(self.shopCoords.x, self.shopCoords.y, self.shopCoords.z)
 	if not square then
-		writeLog("Shops", "[PlayerShopBuyAction:complete] [SERVER] ERROR: Grid square not found at coordinates")
+		SharedLogger.logAction("PlayerShopBuyAction", "complete", "ERROR: Grid square not found at coordinates")
 		return false
 	end
 
@@ -74,14 +74,15 @@ function PlayerShopBuyAction:complete()
 	local shop =
 		Utilities.FindShopAtCoords(self.shopCoords.x, self.shopCoords.y, self.shopCoords.z, PlayerShop.spritePrefix)
 	if not shop then
-		writeLog(
-			"Shops",
-			"[PlayerShopBuyAction:complete] [SERVER] ERROR: Shop not found at "
-			.. tostring(self.shopCoords.x)
-			.. ","
-			.. tostring(self.shopCoords.y)
-			.. ","
-			.. tostring(self.shopCoords.z)
+		SharedLogger.logAction(
+			"PlayerShopBuyAction",
+			"complete",
+			"ERROR: Shop not found at "
+				.. tostring(self.shopCoords.x)
+				.. ","
+				.. tostring(self.shopCoords.y)
+				.. ","
+				.. tostring(self.shopCoords.z)
 		)
 		return false
 	end
@@ -179,7 +180,7 @@ function PlayerShopBuyAction:complete()
 	-- 	}, "Purchase")
 	-- end
 
-	writeLog("Shops", "[PlayerShopBuyAction:complete] [SERVER] SUCCESS - transaction complete, items transferred")
+	SharedLogger.logAction("PlayerShopBuyAction", "complete", "SUCCESS - transaction complete, items transferred")
 	return true
 end
 

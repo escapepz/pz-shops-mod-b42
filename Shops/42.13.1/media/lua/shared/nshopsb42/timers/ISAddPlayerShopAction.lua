@@ -36,25 +36,21 @@ function ISAddPlayerShopAction:getDuration()
 end
 
 function ISAddPlayerShopAction:perform()
-	local context = isClient() and "CLIENT" or (isServer() and "SERVER" or "SP")
-	SharedLogger.log(
-		"Shops",
-		"[ISAddPlayerShopAction:perform] [" .. context .. "] Action performing, time remaining=" .. tostring(self.timer)
+	SharedLogger.logAction(
+		"ISAddPlayerShopAction",
+		"perform",
+		"Action performing, time remaining=" .. tostring(self.timer)
 	)
 	ISBaseTimedAction.perform(self)
 	-- Client-side animation, sounds, progress bar
 end
 
 function ISAddPlayerShopAction:complete()
-	local context = isClient() and "CLIENT" or (isServer() and "SERVER" or "SP")
-	SharedLogger.log(
-		"Shops",
-		"[ISAddPlayerShopAction:complete] [" .. context .. "] ENTRY - sprite=" .. tostring(self.sprite)
-	)
+	SharedLogger.logAction("ISAddPlayerShopAction", "complete", "ENTRY - sprite=" .. tostring(self.sprite))
 
 	-- Server-only execution
 	if isMultiplayer() and not isServer() then
-		SharedLogger.log("Shops", "[ISAddPlayerShopAction:complete] [CLIENT] MP - exiting early, returning true")
+		SharedLogger.logAction("ISAddPlayerShopAction", "complete", "MP - exiting early, returning true")
 		return true
 	end
 
@@ -165,7 +161,7 @@ function ISAddPlayerShopAction:complete()
 		sendClientCommand(player, "nshopsb42", "ClearShopSpriteDrag", {})
 	end
 
-	SharedLogger.log("Shops", "[ISAddPlayerShopAction:complete] [SERVER] SUCCESS - shop placed, inventory consumed")
+	SharedLogger.logAction("ISAddPlayerShopAction", "complete", "SUCCESS - shop placed, inventory consumed")
 	return true
 end
 

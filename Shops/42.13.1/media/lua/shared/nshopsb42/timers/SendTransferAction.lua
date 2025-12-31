@@ -3,6 +3,7 @@ require("TimedActions/ISBaseTimedAction")
 SHOPSB42.SendTransferAction = ISBaseTimedAction:derive("nshopsb42_SendTransferAction")
 local SendTransferAction = SHOPSB42.SendTransferAction
 local Balance = SHOPSB42.Balance
+local SharedLogger = SHOPSB42.SharedLogger
 
 function SendTransferAction:isValid()
 	local username = self.character:getUsername()
@@ -36,23 +37,18 @@ function SendTransferAction:getDuration()
 end
 
 function SendTransferAction:perform()
-	local context = isClient() and "CLIENT" or (isServer() and "SERVER" or "SP")
-	writeLog("Shops", "[SendTransferAction:perform] [" .. context .. "] time remaining=" .. tostring(self.timer))
+	SharedLogger.logAction("SendTransferAction", "perform", "time remaining=" .. tostring(self.timer))
 	ISBaseTimedAction.perform(self)
 end
 
 function SendTransferAction:complete()
-	local context = isClient() and "CLIENT" or (isServer() and "SERVER" or "SP")
-	writeLog(
-		"Shops",
-		"[SendTransferAction:complete] [" .. context .. "] ENTRY - recipient=" .. tostring(self.recipient)
-	)
+	SharedLogger.logAction("SendTransferAction", "complete", "ENTRY - recipient=" .. tostring(self.recipient))
 	sendClientCommand(self.character, "BS", "Transfer", {
 		coin = self.coin,
 		specialCoin = self.specialCoin,
 		recipient = self.recipient,
 	})
-	writeLog("Shops", "[SendTransferAction:complete] [" .. context .. "] SUCCESS - transfer command sent")
+	SharedLogger.logAction("SendTransferAction", "complete", "SUCCESS - transfer command sent")
 	return true
 end
 

@@ -38,7 +38,9 @@ local posX = 0
 local posY = 0
 
 function PlayerShopUI:show(player, shop)
-	local square = player:getSquare()
+	-- Store SHOP position for distance checking (not player position)
+	-- This allows update() to close UI if player walks >2 tiles away from shop
+	local square = shop:getSquare()
 	posX = square:getX()
 	posY = square:getY()
 	if PlayerShopUI.instance == nil then

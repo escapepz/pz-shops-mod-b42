@@ -49,11 +49,14 @@ local function ensureInitialized()
 	end
 
 	-- B42 COMPLIANCE: tryBuild is client-side only
-	-- It queues a timed action; the server processes it in ISAddPlayerShopAction:complete()
+	-- It queues a timed action; the server processes it in the action's complete()
 	-- DO NOT create world objects here
 	function ShopSpriteCursorUI:tryBuild(x, y, z)
-		if not ISAddPlayerShopAction then
-			SharedLogger.log("Shops", "[ShopSpriteCursorUI:tryBuild] ERROR: ISAddPlayerShopAction not loaded")
+		-- Determine which action class to use (default: ISAddPlayerShopAction)
+		local ActionClass = self.actionClass or ISAddPlayerShopAction
+
+		if not ActionClass then
+			SharedLogger.log("Shops", "[ShopSpriteCursorUI:tryBuild] ERROR: Action class not loaded")
 			return
 		end
 
@@ -69,7 +72,7 @@ local function ensureInitialized()
 		)
 
 		-- Queue the timed action (server will handle the actual placement)
-		ISTimedActionQueue.add(ISAddPlayerShopAction:new(self.character, square, self:getSprite(), self.north))
+		ISTimedActionQueue.add(ActionClass:new(self.character, square, self:getSprite(), self.north))
 	end
 
 	-- Client-side code (render, key events)

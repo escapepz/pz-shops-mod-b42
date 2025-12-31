@@ -11,18 +11,9 @@ local Utilities = require("nshopsb42/utils/Utilities")
 ISAddShopAction = ISBaseTimedAction:derive("nshopsb42_ISAddShopAction")
 SHOPSB42.ISAddShopAction = ISAddShopAction
 
-function ISAddShopAction:start()
-	SharedLogger.log("Shops", "[ISAddShopAction:start] Action started")
-	ISBaseTimedAction.start(self)
-end
-
-function ISAddShopAction:stop()
-	SharedLogger.log("Shops", "[ISAddShopAction:stop] Action stopped")
-	ISBaseTimedAction.stop(self)
-end
-
-function ISAddShopAction:isValid(square)
+function ISAddShopAction:isValid()
 	-- Double-check square is still free (client preview may be stale)
+	local square = self.square
 	if not square then
 		return false
 	end
@@ -49,7 +40,7 @@ end
 
 function ISAddShopAction:getDuration()
 	-- Must return > 0
-	return 120
+	return 1
 end
 
 function ISAddShopAction:perform()
@@ -65,7 +56,6 @@ end
 function ISAddShopAction:complete()
 	local context = isClient() and "CLIENT" or (isServer() and "SERVER" or "SP")
 	SharedLogger.log("Shops", "[ISAddShopAction:complete] [" .. context .. "] ENTRY - sprite=" .. tostring(self.sprite))
-	ISBaseTimedAction.complete(self)
 
 	-- Server-only execution
 	if isMultiplayer() and not isServer() then
@@ -89,13 +79,13 @@ function ISAddShopAction:complete()
 	)
 
 	-- Admin validation (anti-cheat)
-	if not Utilities.IsServerAdmin(player) then
+	if not Utilities.IsClientAdmin(player) then
 		SharedLogger.log("Shops", "[ISAddShopAction:complete] Non-admin attempted shop placement, rejecting")
 		return false
 	end
 
 	-- Re-validate server-side
-	if not self:isValid(square) then
+	if not self:isValid() then
 		SharedLogger.log("Shops", "[ISAddShopAction:complete] Validation failed, rejecting")
 		player:setHaloNote("Cannot place shop here", 255, 0, 0, 400)
 		return false

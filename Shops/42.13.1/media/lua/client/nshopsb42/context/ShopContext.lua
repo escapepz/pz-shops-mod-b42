@@ -2,7 +2,6 @@ local Utilities = require("nshopsb42/utils/Utilities")
 local SharedLogger = require("nshopsb42/utils/SharedLogger")
 local Shop = SHOPSB42.Shop
 local UIText = SHOPSB42.UIText
-local ShopSpriteCursor = SHOPSB42.ShopSpriteCursor
 
 -- Lazy-load ShopUI to avoid initialization order issues
 local function getShopUI()
@@ -28,11 +27,36 @@ end
 
 function Shop.addShop(worldobjects, playerNum, sprites)
 	local player = getSpecificPlayer(playerNum)
-	getCell():setDrag(ShopSpriteCursor:new(player, sprites), playerNum)
+	-- Get the UI class (loaded by Init.lua on OnGameStart, lazy derives on first use)
+	if not SHOPSB42.ShopSpriteCursorUI then
+		SharedLogger.log("Shops", "addShop: ERROR - ShopSpriteCursorUI not available")
+		return
+	end
+	-- Create cursor instance (lazy-loads class if not already derived)
+	-- Set actionClass to ISAddShopAction for admin shops
+	local cursorUI = SHOPSB42.ShopSpriteCursorUI:new(player, sprites)
+	cursorUI.actionClass = SHOPSB42.ISAddShopAction
+	getCell():setDrag(cursorUI, playerNum)
 end
 
-function Shop.removeShop(worldobject)
-	worldobject:getSquare():transmitRemoveItemFromSquare(worldobject)
+--- Client-side: Request shop removal (sends to server for validation)
+function Shop.requestRemoveShop(worldobjects, worldobject)
+	if not worldobject then
+		return
+	end
+
+	SharedLogger.log(
+		"Shops",
+		"requestRemoveShop: Sending removal request to server for " .. worldobject:getObjectIndex()
+	)
+
+	local sq = worldobject:getSquare()
+	sendClientCommand(getPlayer(), "nshopsb42", "RemoveShop", {
+		x = sq:getX(),
+		y = sq:getY(),
+		z = sq:getZ(),
+		index = worldobject:getObjectIndex(),
+	})
 end
 
 function Shop.ShopContextMenu(playerNum, context, worldobjects)
@@ -54,7 +78,7 @@ function Shop.ShopContextMenu(playerNum, context, worldobjects)
 		subShop:addOption(k, worldobjects, Shop.addShop, playerNum, v)
 	end
 	if found then
-		context:addOption(UIText.RemoveShop, wo, Shop.removeShop)
+		context:addOption(UIText.RemoveShop, worldobjects, Shop.requestRemoveShop, wo)
 	end
 end
 

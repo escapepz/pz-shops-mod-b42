@@ -65,6 +65,8 @@ function PlayerShop.addPlayerShop(worldobjects, playerNum, sprites)
 	end
 	-- Create cursor instance (lazy-loads class if not already derived)
 	local cursorUI = SHOPSB42.ShopSpriteCursorUI:new(player, sprites)
+	-- Explicitly set actionClass to ISAddPlayerShopAction (default, but be explicit)
+	cursorUI.actionClass = SHOPSB42.ISAddPlayerShopAction
 	getCell():setDrag(cursorUI, playerNum)
 end
 

@@ -17,17 +17,10 @@ function ISAddShopAction:isValid()
 	if not square then
 		return false
 	end
-	if not square:isFree() then
+	if not square:isFree(false) then
 		SharedLogger.log(
 			"Shops",
 			"[ISAddShopAction:isValid] Square not free at " .. square:getX() .. "," .. square:getY()
-		)
-		return false
-	end
-	if not square:isSolid() then
-		SharedLogger.log(
-			"Shops",
-			"[ISAddShopAction:isValid] Square is not solid at " .. square:getX() .. "," .. square:getY()
 		)
 		return false
 	end
@@ -97,7 +90,8 @@ function ISAddShopAction:complete()
 		"[ISAddShopAction:complete] Creating IsoThumpable with sprite=" .. sprite .. " north=" .. tostring(north)
 	)
 
-	local shop = IsoThumpable.new(square, sprite, north)
+	local cell = getWorld():getCell()
+	local shop = IsoThumpable.new(cell, square, sprite, north, self)
 
 	if not shop then
 		SharedLogger.log("Shops", "[ISAddShopAction:complete] ERROR: IsoThumpable.new returned nil")
@@ -127,6 +121,20 @@ function ISAddShopAction:complete()
 end
 
 function ISAddShopAction:new(character, square, sprite, north)
+	-- Validate inputs
+	if not character then
+		SharedLogger.log("Shops", "[ISAddShopAction:new] ERROR: character is nil")
+		return nil
+	end
+	if not square then
+		SharedLogger.log("Shops", "[ISAddShopAction:new] ERROR: square is nil")
+		return nil
+	end
+	if not sprite then
+		SharedLogger.log("Shops", "[ISAddShopAction:new] ERROR: sprite is nil")
+		return nil
+	end
+
 	-- Create with ISBaseTimedAction base
 	SharedLogger.log(
 		"Shops",

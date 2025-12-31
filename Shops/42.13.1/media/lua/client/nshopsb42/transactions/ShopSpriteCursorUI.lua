@@ -72,7 +72,12 @@ local function ensureInitialized()
 		)
 
 		-- Queue the timed action (server will handle the actual placement)
-		ISTimedActionQueue.add(ActionClass:new(self.character, square, self:getSprite(), self.north))
+		local action = ActionClass:new(self.character, square, self:getSprite(), self.north)
+		if not action then
+			SharedLogger.log("Shops", "[ShopSpriteCursorUI:tryBuild] ERROR: Action creation returned nil")
+			return
+		end
+		ISTimedActionQueue.add(action)
 	end
 
 	-- Client-side code (render, key events)

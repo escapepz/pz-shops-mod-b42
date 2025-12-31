@@ -23,13 +23,6 @@ function ISAddPlayerShopAction:isValid()
 		)
 		return false
 	end
-	if square:isSolid() then
-		SharedLogger.log(
-			"Shops",
-			"[ISAddPlayerShopAction:isValid] Square is solid at " .. square:getX() .. "," .. square:getY()
-		)
-		return false
-	end
 	return true
 end
 
@@ -177,6 +170,20 @@ function ISAddPlayerShopAction:complete()
 end
 
 function ISAddPlayerShopAction:new(character, square, sprite, north)
+	-- Validate inputs
+	if not character then
+		SharedLogger.log("Shops", "[ISAddPlayerShopAction:new] ERROR: character is nil")
+		return nil
+	end
+	if not square then
+		SharedLogger.log("Shops", "[ISAddPlayerShopAction:new] ERROR: square is nil")
+		return nil
+	end
+	if not sprite then
+		SharedLogger.log("Shops", "[ISAddPlayerShopAction:new] ERROR: sprite is nil")
+		return nil
+	end
+
 	-- Create with ISBaseTimedAction base
 	-- Note: only 4 essential parameters for proper serialization
 	SharedLogger.log(

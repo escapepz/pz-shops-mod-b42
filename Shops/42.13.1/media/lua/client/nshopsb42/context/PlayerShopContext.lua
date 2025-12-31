@@ -3,10 +3,20 @@ local shopLockTime = minutes * 60 * 1000
 
 local SharedLogger = require("nshopsb42/utils/SharedLogger")
 local PlayerShop = SHOPSB42.PlayerShop
-local PlayerShopUI = SHOPSB42.PlayerShopUI
-local IncomeUI = SHOPSB42.IncomeUI
-local SetPriceUI = SHOPSB42.SetPriceUI
 local UIText = SHOPSB42.UIText
+
+-- Lazy-load UI components to avoid initialization order issues
+local function getPlayerShopUI()
+	return SHOPSB42.PlayerShopUI
+end
+
+local function getIncomeUI()
+	return SHOPSB42.IncomeUI
+end
+
+local function getSetPriceUI()
+	return SHOPSB42.SetPriceUI
+end
 
 local function seekShopTiles(worldobject, spritePrefix)
 	local wo = worldobject
@@ -43,6 +53,12 @@ function PlayerShop.playerShopUI(worldobjects, playerNum, clickedSquare, shop)
 	local adjacent = AdjacentFreeTileFinder.Find(clickedSquare, player)
 	if adjacent then
 		local action = ISWalkToTimedAction:new(player, adjacent)
+		-- Get PlayerShopUI (lazy-loaded)
+		local PlayerShopUI = getPlayerShopUI()
+		if not PlayerShopUI then
+			SharedLogger.log("Shops", "playerShopUI: ERROR - PlayerShopUI not available")
+			return
+		end
 		if PlayerShopUI.instance then
 			PlayerShopUI.instance:close()
 		end
@@ -75,6 +91,11 @@ function PlayerShop.LockUnlockPlayerShop(worldobjects, shop, lock)
 end
 
 function PlayerShop.ViewIncome(worldobjects, player, shop)
+	local IncomeUI = getIncomeUI()
+	if not IncomeUI then
+		SharedLogger.log("Shops", "ViewIncome: ERROR - IncomeUI not available")
+		return
+	end
 	IncomeUI:show(player, shop)
 end
 
@@ -249,6 +270,11 @@ end
 
 function PlayerShop.PlayerShopSetPrice(worldobjects, playerNum, items, container)
 	local player = getSpecificPlayer(playerNum)
+	local SetPriceUI = getSetPriceUI()
+	if not SetPriceUI then
+		SharedLogger.log("Shops", "PlayerShopSetPrice: ERROR - SetPriceUI not available")
+		return
+	end
 	SetPriceUI:show(player, items)
 end
 

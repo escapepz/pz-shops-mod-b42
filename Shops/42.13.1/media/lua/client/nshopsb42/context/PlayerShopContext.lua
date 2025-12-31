@@ -2,6 +2,7 @@ local minutes = 10
 local shopLockTime = minutes * 60 * 1000
 
 local SharedLogger = require("nshopsb42/utils/SharedLogger")
+local Utilities = require("nshopsb42/utils/Utilities")
 local PlayerShop = SHOPSB42.PlayerShop
 local UIText = SHOPSB42.UIText
 
@@ -106,7 +107,7 @@ function PlayerShop.PickupShop(worldobjects, player, shop)
 		return
 	end
 	local income = shop:getModData().nshopsb42_income
-	if #income and #income > 0 then
+	if income and type(income) == "table" and #income > 0 then
 		player:setHaloNote(UIText.RemoveIncomePlayerShop, 255, 255, 255, 400)
 		return
 	end
@@ -203,7 +204,7 @@ function PlayerShop.PlayerShopContextMenu(playerNum, context, worldobjects)
 		if isBusy then
 			viewPS.notAvailable = isBusy
 		end
-		if player:getUsername() == owner then
+		if player:getUsername() == owner or Utilities.IsClientAdmin() then
 			local shop = context:addOption(UIText.ManagePlayerShop, worldobjects, nil)
 			local subShop = context:getNew(context)
 			context:addSubMenu(shop, subShop)

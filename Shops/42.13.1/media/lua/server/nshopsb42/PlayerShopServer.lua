@@ -1,7 +1,3 @@
-if not isServer() then
-	return
-end
-
 local Nfunction = require("nshopsb42/utils/Nfunction")
 local PlayerShop = require("nshopsb42/core/PlayerShop")
 local PSServer = {}

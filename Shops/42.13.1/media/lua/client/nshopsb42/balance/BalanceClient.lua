@@ -1,7 +1,3 @@
-if not isClient() then
-	return
-end
-
 local BClient = {}
 
 function BClient.OnReceiveGlobalModData(key, modData)

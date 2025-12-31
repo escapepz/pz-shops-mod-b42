@@ -3,6 +3,7 @@ require("TimedActions/ISBaseTimedAction")
 SHOPSB42.ShopSellAction = ISBaseTimedAction:derive("ShopSellAction")
 local ShopSellAction = SHOPSB42.ShopSellAction
 local Nfunction = require("nshopsb42/utils/Nfunction")
+local Shop = SHOPSB42.Shop
 local Balance = SHOPSB42.Balance
 
 -- Lazy-load server modules to avoid initialization order issues
@@ -55,7 +56,7 @@ end
 
 function ShopSellAction:complete()
 	-- Server-only execution
-	if not isServer() then
+	if isMultiplayer() and not isServer() then
 		return true
 	end
 

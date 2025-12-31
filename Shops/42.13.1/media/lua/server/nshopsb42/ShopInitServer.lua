@@ -1,10 +1,6 @@
 -- ShopInitServer.lua
 -- Server-side shop initialization
 
-if not isServer() then
-	return
-end
-
 -- Simple test to verify logging works
 writeLog("Shops", "[ShopInitServer] Starting server shop initialization...")
 

@@ -1,7 +1,3 @@
-if not isServer() then
-	return
-end
-
 local BalanceAudit = {}
 
 -- Maximum number of audit entries before oldest is pruned

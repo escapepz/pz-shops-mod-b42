@@ -1,7 +1,3 @@
-if not isClient() then
-	return
-end
-
 local PlayerShop = SHOPSB42.PlayerShop
 local PSClient = {}
 

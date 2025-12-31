@@ -2,7 +2,7 @@
 -- Default sell items registry - loaded only if no external sell hooks register items
 -- Deferred to avoid errors if Shop.RegisterSellItem not yet defined
 
-if not isServer() then
+if isMultiplayer() and not isServer() then
 	return
 end
 

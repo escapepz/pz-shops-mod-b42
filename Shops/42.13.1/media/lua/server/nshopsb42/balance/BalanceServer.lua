@@ -1,7 +1,3 @@
-if not isServer() then
-	return
-end
-
 local BServer = {}
 local BalanceAudit = require("nshopsb42/balance/BalanceAudit")
 local SharedLogger = require("nshopsb42/utils/SharedLogger")

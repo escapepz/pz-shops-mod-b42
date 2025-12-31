@@ -3,7 +3,7 @@
 -- Extends SHOPSB42 namespace (no new globals)
 -- Items self-register during require() calls
 
-if not isServer() then
+if isMultiplayer() and not isServer() then
 	return
 end
 

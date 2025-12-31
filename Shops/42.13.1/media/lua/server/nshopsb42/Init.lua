@@ -1,10 +1,6 @@
 -- Init.lua (Server)
 -- Server-side module initialization with explicit load order
 
-if not isServer() then
-	return
-end
-
 -- Module initialization
 local ShopInitServer = require("nshopsb42/ShopInitServer")
 local PSServer = require("nshopsb42/PlayerShopServer")

@@ -45,7 +45,7 @@ end
 -- Append a transaction entry to the audit log
 -- Safe to call from server-side TimedAction.complete()
 function ShopAudit.append(entry)
-	if not isServer() then
+	if isMultiplayer() and not isServer() then
 		return
 	end
 
@@ -71,7 +71,7 @@ end
 
 -- Query log entries by transaction ID
 function ShopAudit.queryByTxnId(txnId)
-	if not isServer() then
+	if isMultiplayer() and not isServer() then
 		return nil
 	end
 
@@ -91,7 +91,7 @@ end
 
 -- Query log entries by player username
 function ShopAudit.queryByPlayer(username)
-	if not isServer() then
+	if isMultiplayer() and not isServer() then
 		return {}
 	end
 

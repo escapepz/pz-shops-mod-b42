@@ -3,8 +3,11 @@ local SharedLogger = require("nshopsb42/utils/SharedLogger")
 local Shop = SHOPSB42.Shop
 local UIText = SHOPSB42.UIText
 local ShopSpriteCursor = SHOPSB42.ShopSpriteCursor
-local ShopUI = SHOPSB42.ShopUI
-local isDebug = getCore():getDebug() -- Used for UI visibility control only
+
+-- Lazy-load ShopUI to avoid initialization order issues
+local function getShopUI()
+	return SHOPSB42.ShopUI
+end
 
 local function seekShopTiles(worldobject, spritePrefix)
 	local wo = worldobject
@@ -57,26 +60,27 @@ end
 
 function Shop.shopUI(worldobjects, playerNum, viewMode, clickedSquare)
 	local player = getSpecificPlayer(playerNum)
+	local shop = worldobjects[1]
+	local ShopUI = getShopUI()
+	if not ShopUI then
+		return
+	end
 	if not viewMode then
 		clickedSquare = luautils.getCorrectSquareForWall(player, clickedSquare)
 		local adjacent = AdjacentFreeTileFinder.Find(clickedSquare, player)
 		if adjacent then
 			local action = ISWalkToTimedAction:new(player, adjacent)
-			local shop = worldobjects[1]
 			action:setOnComplete(function()
 				ShopUI:show(player, viewMode, shop)
 			end)
 			ISTimedActionQueue.add(action)
 		end
 	else
-		ShopUI:show(player, viewMode)
+		ShopUI:show(player, viewMode, shop)
 	end
 end
 
 function Shop.ShopUIContextMenu(playerNum, context, worldobjects)
-	if not (isClient() or isServer() or isDebug) then
-		return
-	end
 	local wo, found = seekShopTiles(worldobjects[1], Shop.spritePrefix)
 	if not found then
 		return
@@ -86,9 +90,6 @@ function Shop.ShopUIContextMenu(playerNum, context, worldobjects)
 end
 
 function Shop.ShopViewContextMenu(playerNum, context, worldobjects)
-	if not (isClient() or isServer() or isDebug) then
-		return
-	end
 	local _, found = seekShopTiles(worldobjects[1], Shop.spritePrefix)
 	if found then
 		return

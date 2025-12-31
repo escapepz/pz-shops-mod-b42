@@ -1,7 +1,7 @@
 -- Event items registration (SERVER ONLY)
 -- Deferred to avoid errors if Shop.RegisterItem not yet defined
 
-if not isServer() then
+if isMultiplayer() and not isServer() then
 	return
 end
 

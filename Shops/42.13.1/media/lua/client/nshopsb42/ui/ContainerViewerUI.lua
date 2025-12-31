@@ -1,5 +1,6 @@
 local Nfunction = require("nshopsb42/utils/Nfunction")
 local UIText = SHOPSB42.UIText
+local Shop = SHOPSB42.Shop
 SHOPSB42.ContainerViewerUI = ISCollapsableWindow:derive("ContainerViewerUI")
 local ContainerViewerUI = SHOPSB42.ContainerViewerUI
 ContainerViewerUI.instance = nil

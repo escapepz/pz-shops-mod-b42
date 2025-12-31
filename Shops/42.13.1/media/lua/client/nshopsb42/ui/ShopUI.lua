@@ -2,6 +2,7 @@ local Nfunction = require("nshopsb42/utils/Nfunction")
 local UIText = SHOPSB42.UIText
 local Currency = SHOPSB42.Currency
 local Balance = SHOPSB42.Balance
+local Shop = SHOPSB42.Shop
 local Tab = SHOPSB42.Tab
 local PreviewUI = SHOPSB42.PreviewUI
 local ContainerViewerUI = SHOPSB42.ContainerViewerUI

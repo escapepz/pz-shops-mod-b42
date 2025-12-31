@@ -1,10 +1,6 @@
 -- Server-side Item Transfer Hook for Shop Ownership Validation
 -- Method 2: Override ISTransferAction:transferItem() with shop ownership checks
 
-if isClient() then
-	return
-end
-
 local InventoryTransferValidation = require("nshopsb42/validation/InventoryTransferValidation")
 
 -- Store original function

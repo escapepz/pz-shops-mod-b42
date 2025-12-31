@@ -24,6 +24,9 @@ require("nshopsb42/utils/Nfunction")
 require("nshopsb42/ShopDefaultItems")
 require("nshopsb42/HelperFunction/Utilities")
 
+-- Shop sprite cursor server creation (client-side UI loaded separately)
+require("nshopsb42/transactions/ShopSpriteCursor")
+
 -- Timed actions
 require("nshopsb42/timers/ShopBuyAction")
 require("nshopsb42/timers/ShopSellAction")

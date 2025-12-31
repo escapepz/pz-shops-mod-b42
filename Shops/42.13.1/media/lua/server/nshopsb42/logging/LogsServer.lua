@@ -1,7 +1,3 @@
-if not isServer() then
-	return
-end
-
 local SharedLogger = require("nshopsb42/utils/SharedLogger")
 local LServer = {}
 

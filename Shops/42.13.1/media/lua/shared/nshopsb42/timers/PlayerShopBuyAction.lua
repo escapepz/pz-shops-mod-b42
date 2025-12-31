@@ -40,7 +40,7 @@ end
 
 function PlayerShopBuyAction:complete()
 	-- Server-only: execute authoritative transaction
-	if not isServer() then
+	if isMultiplayer() and not isServer() then
 		return true
 	end
 

@@ -3,10 +3,6 @@
 -- Extends SHOPSB42 namespace (no new globals)
 -- In MP: Only server registers and finalizes; client receives data
 
-if not isServer() then
-	return
-end
-
 local SharedLogger = require("nshopsb42/utils/SharedLogger")
 
 local Shop = SHOPSB42.Shop

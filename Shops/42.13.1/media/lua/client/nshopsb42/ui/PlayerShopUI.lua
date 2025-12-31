@@ -507,7 +507,7 @@ function PlayerShopUI:buyCartBtn()
 		end
 	end
 
-	local action = PlayerShopBuyAction:new(self.player, shop:getName(), ticket)
+	local action = PlayerShopBuyAction:new(self.player, shop, ticket)
 	ISTimedActionQueue.add(action)
 	self.buyCartButton.enable = false
 	self.buyCartButton:setVisible(false)

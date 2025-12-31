@@ -5,6 +5,7 @@ local ShopSellAction = SHOPSB42.ShopSellAction
 local Nfunction = require("nshopsb42/utils/Nfunction")
 local Shop = SHOPSB42.Shop
 local Balance = SHOPSB42.Balance
+local Utilities = require("nshopsb42/utils/Utilities")
 
 -- Lazy-load server modules to avoid initialization order issues
 local TransactionRegistry
@@ -74,10 +75,25 @@ function ShopSellAction:complete()
 		return false
 	end
 
-	-- Retrieve shop from registry using serialized shop name
-	local shop = SHOPSB42.ShopRegistry:getShop(self.shopName)
-	if not shop then
-		writeLog("Shops", "[ShopSellAction:complete] [SERVER] ERROR: Shop not found: " .. tostring(self.shopName))
+	-- Retrieve shop from world using stored coordinates
+	self.shop = Utilities.FindShopAtCoords(self.shopCoords.x, self.shopCoords.y, self.shopCoords.z, Shop.spritePrefix)
+	if not self.shop then
+		writeLog(
+			"Shops",
+			"[ShopSellAction:complete] [SERVER] ERROR: Shop not found at "
+				.. tostring(self.shopCoords.x)
+				.. ","
+				.. tostring(self.shopCoords.y)
+				.. ","
+				.. tostring(self.shopCoords.z)
+		)
+		return false
+	end
+
+	-- Server-side proximity validation (enforce sale-at-kiosk rule)
+	local shopSquare = self.shop:getSquare()
+	local distance = self.character:DistTo(shopSquare:getX(), shopSquare:getY())
+	if distance > 2 then
 		return false
 	end
 
@@ -188,9 +204,11 @@ function ShopSellAction:complete()
 	return true
 end
 
-function ShopSellAction:new(character, shopName, sellList)
+function ShopSellAction:new(character, shop, sellList)
 	local o = ISBaseTimedAction.new(ShopSellAction, character)
-	o.shopName = shopName -- String - serializable
+	-- Store shop coordinates for server-side lookup (avoid storing object references)
+	local square = shop:getSquare()
+	o.shopCoords = { x = square:getX(), y = square:getY(), z = square:getZ() }
 	o.sellList = sellList -- Lua table - serializable
 	o.stopOnWalk = true
 	o.stopOnRun = true

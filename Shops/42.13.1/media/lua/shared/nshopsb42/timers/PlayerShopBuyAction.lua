@@ -1,6 +1,8 @@
 require("TimedActions/ISBaseTimedAction")
 local Nfunction = require("nshopsb42/utils/Nfunction")
 local Balance = SHOPSB42.Balance
+local Utilities = require("nshopsb42/utils/Utilities")
+local PlayerShop = require("nshopsb42/core/PlayerShop")
 
 SHOPSB42.PlayerShopBuyAction = ISBaseTimedAction:derive("nshopsb42_PlayerShopBuyAction")
 local PlayerShopBuyAction = SHOPSB42.PlayerShopBuyAction
@@ -52,10 +54,35 @@ function PlayerShopBuyAction:complete()
 	local username = self.character:getUsername()
 	local ticket = self.ticket
 
-	-- Retrieve shop from registry using serialized shop name
-	local shop = SHOPSB42.ShopRegistry:getShop(self.shopName)
+	-- Retrieve shop from world using stored coordinates
+	writeLog(
+		"Shops",
+		"[PlayerShopBuyAction:complete] [SERVER] Looking for shop at coords: "
+			.. tostring(self.shopCoords.x)
+			.. ","
+			.. tostring(self.shopCoords.y)
+			.. ","
+			.. tostring(self.shopCoords.z)
+	)
+	local square = getCell():getGridSquare(self.shopCoords.x, self.shopCoords.y, self.shopCoords.z)
+	if not square then
+		writeLog("Shops", "[PlayerShopBuyAction:complete] [SERVER] ERROR: Grid square not found at coordinates")
+		return false
+	end
+
+	-- Retrieve player shop from world using stored coordinates
+	local shop =
+		Utilities.FindShopAtCoords(self.shopCoords.x, self.shopCoords.y, self.shopCoords.z, PlayerShop.spritePrefix)
 	if not shop then
-		writeLog("Shops", "[PlayerShopBuyAction:complete] [SERVER] ERROR: Shop not found: " .. tostring(self.shopName))
+		writeLog(
+			"Shops",
+			"[PlayerShopBuyAction:complete] [SERVER] ERROR: Shop not found at "
+				.. tostring(self.shopCoords.x)
+				.. ","
+				.. tostring(self.shopCoords.y)
+				.. ","
+				.. tostring(self.shopCoords.z)
+		)
 		return false
 	end
 
@@ -149,9 +176,11 @@ function PlayerShopBuyAction:complete()
 	return true
 end
 
-function PlayerShopBuyAction:new(character, shopName, ticket)
+function PlayerShopBuyAction:new(character, shop, ticket)
 	local o = ISBaseTimedAction.new(PlayerShopBuyAction, character)
-	o.shopName = shopName -- String - serializable
+	-- Store shop coordinates for server-side lookup (avoid storing object references)
+	local square = shop:getSquare()
+	o.shopCoords = { x = square:getX(), y = square:getY(), z = square:getZ() }
 	o.ticket = ticket -- Lua table - serializable
 	o.stopOnWalk = true
 	o.stopOnRun = true

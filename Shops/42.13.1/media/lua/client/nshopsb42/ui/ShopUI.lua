@@ -49,6 +49,9 @@ function ShopUI:show(player, viewMode, shop)
 		ShopUI.instance.viewMode = viewMode
 		ShopUI.instance:initialise()
 		ShopUI.instance:instantiate()
+		if viewMode then
+			ShopUI.instance:setTitle(UIText.ShopUITitle .. " (View Only)")
+		end
 	end
 	ShopUI.instance.pinButton:setVisible(false)
 	ShopUI.instance.collapseButton:setVisible(false)
@@ -778,7 +781,7 @@ function ShopUI:buyCartBtn()
 	self.actionInProgress = true
 
 	local ticket = self:buildBuyTicket()
-	local action = ShopBuyAction:new(self.player, self.shop:getName(), ticket)
+	local action = ShopBuyAction:new(self.player, self.shop, ticket)
 
 	ISTimedActionQueue.add(action)
 	self.buyCartButton.enable = false
@@ -841,7 +844,7 @@ function ShopUI:sellCartBtn()
 	self.actionInProgress = true
 
 	local sellList = self:buildSellList()
-	local action = ShopSellAction:new(self.player, self.shop:getName(), sellList)
+	local action = ShopSellAction:new(self.player, self.shop, sellList)
 
 	ISTimedActionQueue.add(action)
 	self.sellCartButton.enable = false

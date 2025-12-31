@@ -5,6 +5,7 @@ local ShopBuyAction = SHOPSB42.ShopBuyAction
 local Nfunction = require("nshopsb42/utils/Nfunction")
 local Shop = SHOPSB42.Shop
 local Balance = SHOPSB42.Balance
+local Utilities = require("nshopsb42/utils/Utilities")
 
 -- Lazy-load server modules to avoid initialization order issues
 local TransactionRegistry
@@ -75,10 +76,18 @@ function ShopBuyAction:complete()
 		return false
 	end
 
-	-- Retrieve shop from registry using serialized shop name
-	local shop = SHOPSB42.ShopRegistry:getShop(self.shopName)
+	-- Retrieve shop from world using stored coordinates
+	local shop = Utilities.FindShopAtCoords(self.shopCoords.x, self.shopCoords.y, self.shopCoords.z, Shop.spritePrefix)
 	if not shop then
-		writeLog("Shops", "[ShopBuyAction:complete] [SERVER] ERROR: Shop not found: " .. tostring(self.shopName))
+		writeLog(
+			"Shops",
+			"[ShopBuyAction:complete] [SERVER] ERROR: Shop not found at "
+				.. tostring(self.shopCoords.x)
+				.. ","
+				.. tostring(self.shopCoords.y)
+				.. ","
+				.. tostring(self.shopCoords.z)
+		)
 		return false
 	end
 
@@ -225,9 +234,11 @@ function ShopBuyAction:complete()
 	return true
 end
 
-function ShopBuyAction:new(character, shopName, ticket)
+function ShopBuyAction:new(character, shop, ticket)
 	local o = ISBaseTimedAction.new(ShopBuyAction, character)
-	o.shopName = shopName -- String - serializable
+	-- Store shop coordinates for server-side lookup (avoid storing object references)
+	local square = shop:getSquare()
+	o.shopCoords = { x = square:getX(), y = square:getY(), z = square:getZ() }
 	o.ticket = ticket -- Lua table - serializable
 	o.stopOnWalk = true
 	o.stopOnRun = true

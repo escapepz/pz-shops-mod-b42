@@ -264,4 +264,47 @@ function Utilities.GetMoveableDisplayName(obj)
 	return nil
 end
 
+--- [SHARED] Find a shop object at given coordinates by sprite prefix
+---@param x number
+---@param y number
+---@param z number
+---@param spritePrefix string - e.g. "npcshop_" or "playershop_"
+---@return table|nil - The shop object or nil
+function Utilities.FindShopAtCoords(x, y, z, spritePrefix)
+	local square = getCell():getGridSquare(x, y, z)
+	if not square then
+		return nil
+	end
+
+	-- Check TileObjects first (NPC shops)
+	local objects = square:getObjects()
+	if objects then
+		for i = 0, objects:size() - 1 do
+			local o = objects:get(i)
+			if o and o:getSprite() then
+				local spriteName = o:getSprite():getName()
+				if spriteName and string.find(spriteName, spritePrefix) then
+					return o
+				end
+			end
+		end
+	end
+
+	-- Check SpecialObjects (player shops)
+	local specialObjects = square:getSpecialObjects()
+	if specialObjects then
+		for i = 0, specialObjects:size() - 1 do
+			local o = specialObjects:get(i)
+			if o and o:getSprite() then
+				local spriteName = o:getSprite():getName()
+				if spriteName and string.find(spriteName, spritePrefix) then
+					return o
+				end
+			end
+		end
+	end
+
+	return nil
+end
+
 return Utilities

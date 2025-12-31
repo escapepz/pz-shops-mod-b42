@@ -1,4 +1,4 @@
-SHOPSB42.IncomeUI = ISCollapsableWindow:derive("IncomeUI")
+SHOPSB42.IncomeUI = ISCollapsableWindow:derive("nshopsb42_IncomeUI")
 local IncomeUI = SHOPSB42.IncomeUI
 local UIText = SHOPSB42.UIText
 local Currency = SHOPSB42.Currency

@@ -42,18 +42,29 @@ function Shop.FinalizeRegistry()
 		return
 	end
 
-	SharedLogger.log("Shops", "FinalizeRegistry starting...")
-	SharedLogger.log("Shops", "Hooks registered: " .. #ShopEvents.OnShopRegisterItems)
+	SharedLogger.log("Shops", "[ShopBuyInit] FinalizeRegistry starting...")
+	SharedLogger.log(
+		"Shops",
+		"[ShopBuyInit] Hooks registered for item registration: " .. #ShopEvents.OnShopRegisterItems
+	)
 
 	-- Phase 0: migrate legacy tables if present
 	migrateLegacyShopTables()
 
 	-- Phase 1: Execute ALL registered hooks (external mods + Shops defaults)
-	SharedLogger.log("Shops", "Phase 1: Triggering OnShopRegisterItems hooks")
+	SharedLogger.log(
+		"Shops",
+		"[ShopBuyInit] Phase 1: Executing " .. #ShopEvents.OnShopRegisterItems .. " hook(s) to gather buy items"
+	)
 	ShopEvents.triggerOnShopRegisterItems()
 
 	-- Phase 2: commit registry
-	SharedLogger.log("Shops", "Phase 2: Committing " .. #Shop._pendingRegistrations .. " items to registry")
+	SharedLogger.log(
+		"Shops",
+		"[ShopBuyInit] Phase 2: Registering "
+			.. #Shop._pendingRegistrations
+			.. " items (available for players to buy in NPC shop)"
+	)
 	Shop.PlayerBuy = Shop.PlayerBuy or {}
 	for _, entry in ipairs(Shop._pendingRegistrations) do
 		validateItem(entry.id, entry.def)
@@ -66,7 +77,7 @@ function Shop.FinalizeRegistry()
 	for _ in pairs(Shop.Items) do
 		itemCount = itemCount + 1
 	end
-	SharedLogger.log("Shops", "FinalizeRegistry complete. Total items: " .. itemCount)
+	SharedLogger.log("Shops", "[ShopBuyInit] FinalizeRegistry complete. Total NPC Shop buy items: " .. itemCount)
 
 	Shop._pendingRegistrations = nil
 	Shop._locked = true

@@ -1,4 +1,4 @@
-SHOPSB42.ShopUITooltip = ISPanel:derive("ShopUITooltip")
+SHOPSB42.ShopUITooltip = ISPanel:derive("nshopsb42_ShopUITooltip")
 local ShopUITooltip = SHOPSB42.ShopUITooltip
 local UIText = SHOPSB42.UIText
 

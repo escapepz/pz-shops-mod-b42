@@ -1,4 +1,4 @@
-SHOPSB42.SetPriceUI = ISCollapsableWindow:derive("SetPriceUI")
+SHOPSB42.SetPriceUI = ISCollapsableWindow:derive("nshopsb42_SetPriceUI")
 local SetPriceUI = SHOPSB42.SetPriceUI
 local UIText = SHOPSB42.UIText
 local Currency = SHOPSB42.Currency

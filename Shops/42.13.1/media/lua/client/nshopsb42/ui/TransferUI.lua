@@ -1,6 +1,6 @@
 require("nshopsb42/timers/SendTransferAction")
 
-SHOPSB42.TransferUI = ISCollapsableWindow:derive("TransferUI")
+SHOPSB42.TransferUI = ISCollapsableWindow:derive("nshopsb42_TransferUI")
 local TransferUI = SHOPSB42.TransferUI
 local Currency = SHOPSB42.Currency
 local Balance = SHOPSB42.Balance

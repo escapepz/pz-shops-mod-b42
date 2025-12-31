@@ -1,6 +1,6 @@
 require("TimedActions/ISBaseTimedAction")
 
-SHOPSB42.ShopSellAction = ISBaseTimedAction:derive("ShopSellAction")
+SHOPSB42.ShopSellAction = ISBaseTimedAction:derive("nshopsb42_ShopSellAction")
 local ShopSellAction = SHOPSB42.ShopSellAction
 local Nfunction = require("nshopsb42/utils/Nfunction")
 local Shop = SHOPSB42.Shop
@@ -48,6 +48,8 @@ function ShopSellAction:getDuration()
 end
 
 function ShopSellAction:perform()
+	local context = isClient() and "CLIENT" or (isServer() and "SERVER" or "SP")
+	writeLog("Shops", "[ShopSellAction:perform] [" .. context .. "] time remaining=" .. tostring(self.timer))
 	if self.total and (self.total > 0 or self.totalSpecial > 0) then
 		self.character:playSound("CashRegister")
 	end
@@ -55,8 +57,11 @@ function ShopSellAction:perform()
 end
 
 function ShopSellAction:complete()
+	local context = isClient() and "CLIENT" or (isServer() and "SERVER" or "SP")
+	writeLog("Shops", "[ShopSellAction:complete] [" .. context .. "] ENTRY - txnId=" .. tostring(self.sellList.txnId))
 	-- Server-only execution
 	if isMultiplayer() and not isServer() then
+		writeLog("Shops", "[ShopSellAction:complete] [CLIENT] MP - exiting early")
 		return true
 	end
 
@@ -66,6 +71,13 @@ function ShopSellAction:complete()
 	-- Anti-dupe check: reject if already processed
 	local TxnRegistry = getTransactionRegistry()
 	if TxnRegistry and TxnRegistry.isProcessed(username, txnId) then
+		return false
+	end
+
+	-- Retrieve shop from registry using serialized shop name
+	local shop = SHOPSB42.ShopRegistry:getShop(self.shopName)
+	if not shop then
+		writeLog("Shops", "[ShopSellAction:complete] [SERVER] ERROR: Shop not found: " .. tostring(self.shopName))
 		return false
 	end
 
@@ -82,7 +94,7 @@ function ShopSellAction:complete()
 			local isSpecialCoin = Shop.PlayerSell[itemType] and Shop.PlayerSell[itemType].specialCoin or false
 
 			local context = {
-				shopId = self.shop:getName(),
+				shopId = self.shopName,
 				quantity = 1,
 				isSpecialCoin = isSpecialCoin,
 				isBroken = false,
@@ -168,13 +180,14 @@ function ShopSellAction:complete()
 		items = self.sellList.items,
 	})
 
+	writeLog("Shops", "[ShopSellAction:complete] [SERVER] SUCCESS - sell transaction processed")
 	return true
 end
 
-function ShopSellAction:new(character, shop, sellList)
-	local o = ISBaseTimedAction.new(self, character)
-	o.shop = shop
-	o.sellList = sellList
+function ShopSellAction:new(character, shopName, sellList)
+	local o = ISBaseTimedAction.new(ShopSellAction, character)
+	o.shopName = shopName -- String - serializable
+	o.sellList = sellList -- Lua table - serializable
 	o.stopOnWalk = true
 	o.stopOnRun = true
 	o.maxTime = o:getDuration()

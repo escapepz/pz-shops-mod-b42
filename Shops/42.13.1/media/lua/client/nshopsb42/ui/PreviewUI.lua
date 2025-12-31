@@ -1,12 +1,12 @@
-SHOPSB42.PreviewUI = ISCollapsableWindow:derive("PreviewUI")
+SHOPSB42.PreviewUI = ISCollapsableWindow:derive("nshopsb42_PreviewUI")
 local PreviewUI = SHOPSB42.PreviewUI
 PreviewUI.instance = nil
 
 local width = 400
 local height = 250
 
-SHOPSB42.PreviewScene = ISUI3DScene:derive("PreviewScene")
-SHOPSB42.SwitchScene = ISUI3DScene:derive("SwitchScene")
+SHOPSB42.PreviewScene = ISUI3DScene:derive("nshopsb42_PreviewScene")
+SHOPSB42.SwitchScene = ISUI3DScene:derive("nshopsb42_SwitchScene")
 local PreviewScene = SHOPSB42.PreviewScene
 local SwitchScene = SHOPSB42.SwitchScene
 

@@ -1,4 +1,4 @@
-local Utilities = require("nshopsb42/HelperFunction/Utilities")
+local Utilities = require("nshopsb42/utils/Utilities")
 local SharedLogger = require("nshopsb42/utils/SharedLogger")
 local Shop = SHOPSB42.Shop
 local UIText = SHOPSB42.UIText

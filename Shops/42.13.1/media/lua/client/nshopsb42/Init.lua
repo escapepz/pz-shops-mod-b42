@@ -31,9 +31,6 @@ require("nshopsb42/context/ShopContext")
 require("nshopsb42/context/CurrencyContext")
 require("nshopsb42/context/PlayerShopContext")
 
--- Shop sprite cursor UI (client-side visual placement)
-require("nshopsb42/transactions/ShopSpriteCursorUI")
-
 -- Client-side patches
 require("nshopsb42/patches/ISInventoryPagePatch")
 require("nshopsb42/patches/ISInventoryTransferActionPatch")
@@ -41,3 +38,13 @@ require("nshopsb42/patches/ISToolTipInvPatch")
 
 -- Initialize player shop after all dependencies loaded
 PSClient.Initialize()
+
+-- Load sprite cursor UI on game start (when vanilla ISBuildingObject is available)
+-- Modules use lazy-load pattern: class derivation happens on first call
+local function onGameStart()
+	local ShopSpriteCursorUIModule = require("nshopsb42/transactions/ShopSpriteCursorUI")
+	ShopSpriteCursorUIModule.ensureInitialized()
+	writeLog("Shops", "[Client Init] ShopSpriteCursorUI loaded and initialized")
+end
+
+Events.OnGameStart.Add(onGameStart)

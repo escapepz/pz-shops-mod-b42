@@ -1,6 +1,6 @@
 require("TimedActions/ISBaseTimedAction")
 
-SHOPSB42.ShopBuyAction = ISBaseTimedAction:derive("ShopBuyAction")
+SHOPSB42.ShopBuyAction = ISBaseTimedAction:derive("nshopsb42_ShopBuyAction")
 local ShopBuyAction = SHOPSB42.ShopBuyAction
 local Nfunction = require("nshopsb42/utils/Nfunction")
 local Shop = SHOPSB42.Shop
@@ -51,13 +51,18 @@ function ShopBuyAction:getDuration()
 end
 
 function ShopBuyAction:perform()
+	local context = isClient() and "CLIENT" or (isServer() and "SERVER" or "SP")
+	writeLog("Shops", "[ShopBuyAction:perform] [" .. context .. "] time remaining=" .. tostring(self.timer))
 	self.character:playSound("CashRegister")
 	ISBaseTimedAction.perform(self)
 end
 
 function ShopBuyAction:complete()
+	local context = isClient() and "CLIENT" or (isServer() and "SERVER" or "SP")
+	writeLog("Shops", "[ShopBuyAction:complete] [" .. context .. "] ENTRY - txnId=" .. tostring(self.ticket.txnId))
 	-- Server-only execution
 	if isMultiplayer() and not isServer() then
+		writeLog("Shops", "[ShopBuyAction:complete] [CLIENT] MP - exiting early")
 		return true
 	end
 
@@ -70,8 +75,15 @@ function ShopBuyAction:complete()
 		return false
 	end
 
+	-- Retrieve shop from registry using serialized shop name
+	local shop = SHOPSB42.ShopRegistry:getShop(self.shopName)
+	if not shop then
+		writeLog("Shops", "[ShopBuyAction:complete] [SERVER] ERROR: Shop not found: " .. tostring(self.shopName))
+		return false
+	end
+
 	-- Server-side proximity validation (enforce purchase-at-kiosk rule)
-	local shopSquare = self.shop:getSquare()
+	local shopSquare = shop:getSquare()
 	local distance = self.character:DistTo(shopSquare:getX(), shopSquare:getY())
 	if distance > 2 then
 		return false
@@ -88,7 +100,7 @@ function ShopBuyAction:complete()
 		local quantity = entry.quantity or 1
 		if itemType and Shop.Items[itemType] then
 			local context = {
-				shopId = self.shop:getName(),
+				shopId = self.shopName,
 				quantity = quantity,
 				isSpecialCoin = Shop.Items[itemType].specialCoin or false,
 				isBroken = false,
@@ -209,13 +221,14 @@ function ShopBuyAction:complete()
 		items = ticket.items,
 	})
 
+	writeLog("Shops", "[ShopBuyAction:complete] [SERVER] SUCCESS - purchase transaction processed")
 	return true
 end
 
-function ShopBuyAction:new(character, shop, ticket)
-	local o = ISBaseTimedAction.new(self, character)
-	o.shop = shop
-	o.ticket = ticket
+function ShopBuyAction:new(character, shopName, ticket)
+	local o = ISBaseTimedAction.new(ShopBuyAction, character)
+	o.shopName = shopName -- String - serializable
+	o.ticket = ticket -- Lua table - serializable
 	o.stopOnWalk = true
 	o.stopOnRun = true
 	o.maxTime = o:getDuration()

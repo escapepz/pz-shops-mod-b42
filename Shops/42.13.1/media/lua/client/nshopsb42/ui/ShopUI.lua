@@ -13,7 +13,7 @@ local function generateTxnId()
 	return tostring(getGameTime():getWorldAgeHours()) .. "-" .. tostring(ZombRand(1, 1000000000))
 end
 
-SHOPSB42.ShopUI = ISCollapsableWindow:derive("ShopUI")
+SHOPSB42.ShopUI = ISCollapsableWindow:derive("nshopsb42_ShopUI")
 local ShopUI = SHOPSB42.ShopUI
 ShopUI.instance = nil
 ShopUI.SMALL_FONT_HGT = getTextManager():getFontFromEnum(UIFont.Small):getLineHeight()
@@ -776,7 +776,7 @@ function ShopUI:buyCartBtn()
 	self.actionInProgress = true
 
 	local ticket = self:buildBuyTicket()
-	local action = ShopBuyAction:new(self.player, self.shop, ticket)
+	local action = ShopBuyAction:new(self.player, self.shop:getName(), ticket)
 
 	ISTimedActionQueue.add(action)
 	self.buyCartButton.enable = false
@@ -826,7 +826,7 @@ function ShopUI:sellCartBtn()
 	self.actionInProgress = true
 
 	local sellList = self:buildSellList()
-	local action = ShopSellAction:new(self.player, self.shop, sellList)
+	local action = ShopSellAction:new(self.player, self.shop:getName(), sellList)
 
 	ISTimedActionQueue.add(action)
 	self.sellCartButton.enable = false

@@ -1,6 +1,6 @@
 ---@diagnostic disable: undefined-global
 
-local Utilities = require("nshopsb42/HelperFunction/Utilities")
+local Utilities = require("nshopsb42/utils/Utilities")
 local Currency = SHOPSB42.Currency
 local UIText = SHOPSB42.UIText
 local TransferUI = SHOPSB42.TransferUI

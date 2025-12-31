@@ -6,9 +6,9 @@ require("TimedActions/ISBaseTimedAction")
 
 local Shop = SHOPSB42.Shop
 local SharedLogger = require("nshopsb42/utils/SharedLogger")
-local Utilities = require("nshopsb42/HelperFunction/Utilities")
+local Utilities = require("nshopsb42/utils/Utilities")
 
-ISAddShopAction = ISBaseTimedAction:derive("ISAddShopAction")
+ISAddShopAction = ISBaseTimedAction:derive("nshopsb42_ISAddShopAction")
 SHOPSB42.ISAddShopAction = ISAddShopAction
 
 function ISAddShopAction:start()
@@ -27,11 +27,17 @@ function ISAddShopAction:isValid(square)
 		return false
 	end
 	if not square:isFree() then
-		SharedLogger.log("Shops", "[ISAddShopAction:isValid] Square not free at " .. square:getX() .. "," .. square:getY())
+		SharedLogger.log(
+			"Shops",
+			"[ISAddShopAction:isValid] Square not free at " .. square:getX() .. "," .. square:getY()
+		)
 		return false
 	end
 	if not square:isSolid() then
-		SharedLogger.log("Shops", "[ISAddShopAction:isValid] Square is not solid at " .. square:getX() .. "," .. square:getY())
+		SharedLogger.log(
+			"Shops",
+			"[ISAddShopAction:isValid] Square is not solid at " .. square:getX() .. "," .. square:getY()
+		)
 		return false
 	end
 	return true
@@ -47,92 +53,119 @@ function ISAddShopAction:getDuration()
 end
 
 function ISAddShopAction:perform()
-	SharedLogger.log("Shops", "[ISAddShopAction:perform] Action performing, time remaining=" .. tostring(self.timer))
+	local context = isClient() and "CLIENT" or (isServer() and "SERVER" or "SP")
+	SharedLogger.log(
+		"Shops",
+		"[ISAddShopAction:perform] [" .. context .. "] Action performing, time remaining=" .. tostring(self.timer)
+	)
 	ISBaseTimedAction.perform(self)
 	-- Client-side animation, sounds, progress bar
 end
 
 function ISAddShopAction:complete()
+	local context = isClient() and "CLIENT" or (isServer() and "SERVER" or "SP")
+	SharedLogger.log("Shops", "[ISAddShopAction:complete] [" .. context .. "] ENTRY - sprite=" .. tostring(self.sprite))
 	ISBaseTimedAction.complete(self)
-	
+
 	-- Server-only execution
 	if isMultiplayer() and not isServer() then
+		SharedLogger.log("Shops", "[ISAddShopAction:complete] [CLIENT] MP - exiting early, returning true")
 		return true
 	end
-	
+
 	local square = self.square
 	local sprite = self.sprite
 	local north = self.north or false
 	local player = self.character
-	
-	SharedLogger.log("Shops", "[ISAddShopAction:complete] Placing admin shop at " .. square:getX() .. "," .. square:getY() .. " sprite=" .. sprite)
-	
+
+	SharedLogger.log(
+		"Shops",
+		"[ISAddShopAction:complete] Placing admin shop at "
+			.. square:getX()
+			.. ","
+			.. square:getY()
+			.. " sprite="
+			.. sprite
+	)
+
 	-- Admin validation (anti-cheat)
 	if not Utilities.IsServerAdmin(player) then
 		SharedLogger.log("Shops", "[ISAddShopAction:complete] Non-admin attempted shop placement, rejecting")
 		return false
 	end
-	
+
 	-- Re-validate server-side
 	if not self:isValid(square) then
 		SharedLogger.log("Shops", "[ISAddShopAction:complete] Validation failed, rejecting")
 		player:setHaloNote("Cannot place shop here", 255, 0, 0, 400)
 		return false
 	end
-	
+
 	-- Create object (SERVER AUTHORITY - first and only place this happens)
-	SharedLogger.log("Shops", "[ISAddShopAction:complete] Creating IsoThumpable with sprite=" .. sprite .. " north=" .. tostring(north))
-	
+	SharedLogger.log(
+		"Shops",
+		"[ISAddShopAction:complete] Creating IsoThumpable with sprite=" .. sprite .. " north=" .. tostring(north)
+	)
+
 	local shop = IsoThumpable.new(square, sprite, north)
-	
+
 	if not shop then
 		SharedLogger.log("Shops", "[ISAddShopAction:complete] ERROR: IsoThumpable.new returned nil")
 		return false
 	end
-	
+
 	SharedLogger.log("Shops", "[ISAddShopAction:complete] IsoThumpable created successfully")
-	
+
 	-- Configure as static shop (not a container like player shop)
 	shop:setSprite(sprite)
 	shop:setIsThumpable(false)
 	-- Admin shops are NOT containers - they're world objects only
-	
+
 	-- Add to world using AddTileObject (not AddSpecialObject)
 	square:AddTileObject(shop)
 	SharedLogger.log("Shops", "[ISAddShopAction:complete] Shop added to tile")
-	
+
 	-- CRITICAL: Transmit to all clients (mandatory in B42 MP)
 	shop:transmitCompleteItemToClients()
 	SharedLogger.log("Shops", "[ISAddShopAction:complete] Transmitted to clients")
-	
+
 	-- NOTE: No inventory removal for admin shops
 	-- Admin placement does not consume items
-	
-	SharedLogger.log("Shops", "[ISAddShopAction:complete] Admin shop placement complete")
+
+	SharedLogger.log("Shops", "[ISAddShopAction:complete] [SERVER] SUCCESS - admin shop placed")
 	return true
 end
 
 function ISAddShopAction:new(character, square, sprite, north)
 	-- Create with ISBaseTimedAction base
-	SharedLogger.log("Shops", "[ISAddShopAction:new] Initializing with character=" .. (character and character:getUsername() or "nil") .. " sprite=" .. sprite)
-	
-	local o = ISBaseTimedAction.new(self, character)
-	
+	SharedLogger.log(
+		"Shops",
+		"[ISAddShopAction:new] Initializing with character="
+			.. (character and character:getUsername() or "nil")
+			.. " sprite="
+			.. sprite
+	)
+
+	local o = ISBaseTimedAction.new(ISAddShopAction, character)
+
 	if not o then
 		SharedLogger.log("Shops", "[ISAddShopAction:new] ERROR: ISBaseTimedAction.new returned nil")
 		return nil
 	end
-	
+
 	-- Assign all arguments to fields (required for serialization)
 	o.character = character
 	o.square = square
 	o.sprite = sprite
 	o.north = north or false
-	
+
 	-- Set duration (must be done in constructor for B42 serialization)
 	o.maxTime = o:getDuration()
-	
-	SharedLogger.log("Shops", "[ISAddShopAction:new] Created admin action with sprite=" .. sprite .. " maxTime=" .. tostring(o.maxTime))
-	
+
+	SharedLogger.log(
+		"Shops",
+		"[ISAddShopAction:new] Created admin action with sprite=" .. sprite .. " maxTime=" .. tostring(o.maxTime)
+	)
+
 	return o
 end

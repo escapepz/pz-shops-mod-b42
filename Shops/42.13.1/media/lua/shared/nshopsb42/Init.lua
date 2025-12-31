@@ -22,13 +22,13 @@ require("nshopsb42/core/PlayerShop")
 require("nshopsb42/validation/InventoryTransferValidation")
 require("nshopsb42/utils/Nfunction")
 require("nshopsb42/ShopDefaultItems")
-require("nshopsb42/HelperFunction/Utilities")
-
--- Shop sprite cursor server creation (client-side UI loaded separately)
-require("nshopsb42/transactions/ShopSpriteCursor")
+require("nshopsb42/utils/Utilities")
 
 -- Timed actions
 require("nshopsb42/timers/ShopBuyAction")
 require("nshopsb42/timers/ShopSellAction")
 require("nshopsb42/timers/SendTransferAction")
 require("nshopsb42/timers/PlayerShopBuyAction")
+
+-- Note: ShopSpriteCursorUI is now client-only (moved to client/ directory)
+-- It is loaded by client/nshopsb42/Init.lua

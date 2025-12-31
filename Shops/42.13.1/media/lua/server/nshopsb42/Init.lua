@@ -7,7 +7,6 @@ local PSServer = require("nshopsb42/PlayerShopServer")
 
 require("nshopsb42/balance/BalanceServer")
 require("nshopsb42/logging/LogsServer")
-require("nshopsb42/transactions/ShopSpriteCursor")
 require("nshopsb42/balance/BalanceAudit")
 
 -- Server-side patches

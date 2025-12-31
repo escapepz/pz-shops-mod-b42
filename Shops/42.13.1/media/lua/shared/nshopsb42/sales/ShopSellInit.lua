@@ -19,13 +19,27 @@ function Shop.FinalizeSellRegistry()
 	end
 
 	SharedLogger.log("Shops", "[ShopSellInit] FinalizeSellRegistry starting...")
+	SharedLogger.log(
+		"Shops",
+		"[ShopSellInit] Hooks registered for item registration: " .. #ShopSellEvents.OnShopRegisterSellItems
+	)
 
 	-- Phase 1: Execute ALL registered hooks
-	SharedLogger.log("Shops", "[ShopSellInit] Phase 1: Triggering OnShopRegisterSellItems hooks")
+	SharedLogger.log(
+		"Shops",
+		"[ShopSellInit] Phase 1: Executing "
+			.. #ShopSellEvents.OnShopRegisterSellItems
+			.. " hook(s) to gather sell items"
+	)
 	ShopSellEvents.triggerOnShopRegisterSellItems()
 
 	-- Phase 2: commit all pending registrations
-	SharedLogger.log("Shops", "[ShopSellInit] Phase 2: Committing " .. #Shop._sellPending .. " sell items to registry")
+	SharedLogger.log(
+		"Shops",
+		"[ShopSellInit] Phase 2: Registering "
+			.. #Shop._sellPending
+			.. " items (available for players to sell to NPC shop)"
+	)
 	for _, entry in ipairs(Shop._sellPending) do
 		validateSellItem(entry.id, entry.def)
 		Shop.PlayerSell[entry.id] = entry.def
@@ -35,7 +49,7 @@ function Shop.FinalizeSellRegistry()
 	for _ in pairs(Shop.PlayerSell) do
 		sellCount = sellCount + 1
 	end
-	SharedLogger.log("Shops", "[ShopSellInit] FinalizeSellRegistry complete. Total sell items: " .. sellCount)
+	SharedLogger.log("Shops", "[ShopSellInit] FinalizeSellRegistry complete. Total NPC Shop sell items: " .. sellCount)
 
 	Shop._sellPending = nil
 	Shop._sellLocked = true

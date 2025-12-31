@@ -6,7 +6,6 @@ local PlayerShop = SHOPSB42.PlayerShop
 local PlayerShopUI = SHOPSB42.PlayerShopUI
 local IncomeUI = SHOPSB42.IncomeUI
 local SetPriceUI = SHOPSB42.SetPriceUI
-local ShopSpriteCursor = SHOPSB42.ShopSpriteCursor
 local UIText = SHOPSB42.UIText
 
 local function seekShopTiles(worldobject, spritePrefix)
@@ -59,7 +58,14 @@ end
 
 function PlayerShop.addPlayerShop(worldobjects, playerNum, sprites)
 	local player = getSpecificPlayer(playerNum)
-	getCell():setDrag(ShopSpriteCursor:new(player, sprites), playerNum)
+	-- Get the UI class (loaded by Init.lua on OnGameStart, lazy derives on first use)
+	if not SHOPSB42.ShopSpriteCursorUI then
+		SharedLogger.log("Shops", "addPlayerShop: ERROR - ShopSpriteCursorUI not available")
+		return
+	end
+	-- Create cursor instance (lazy-loads class if not already derived)
+	local cursorUI = SHOPSB42.ShopSpriteCursorUI:new(player, sprites)
+	getCell():setDrag(cursorUI, playerNum)
 end
 
 function PlayerShop.LockUnlockPlayerShop(worldobjects, shop, lock)

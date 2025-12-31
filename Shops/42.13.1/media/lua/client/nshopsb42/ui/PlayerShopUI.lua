@@ -1,6 +1,6 @@
 ---@diagnostic disable: undefined-field
 local Nfunction = require("nshopsb42/utils/Nfunction")
-SHOPSB42.PlayerShopUI = ISCollapsableWindow:derive("PlayerShopUI")
+SHOPSB42.PlayerShopUI = ISCollapsableWindow:derive("nshopsb42_PlayerShopUI")
 
 ---@class ISBaseObject
 local PlayerShopUI = SHOPSB42.PlayerShopUI
@@ -505,7 +505,7 @@ function PlayerShopUI:buyCartBtn()
 		end
 	end
 
-	local action = PlayerShopBuyAction:new(self.player, shop, ticket)
+	local action = PlayerShopBuyAction:new(self.player, shop:getName(), ticket)
 	ISTimedActionQueue.add(action)
 	self.buyCartButton.enable = false
 	self.buyCartButton:setVisible(false)

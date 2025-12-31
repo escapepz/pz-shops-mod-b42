@@ -2,7 +2,7 @@ require("TimedActions/ISBaseTimedAction")
 local Nfunction = require("nshopsb42/utils/Nfunction")
 local Balance = SHOPSB42.Balance
 
-SHOPSB42.PlayerShopBuyAction = ISBaseTimedAction:derive("PlayerShopBuyAction")
+SHOPSB42.PlayerShopBuyAction = ISBaseTimedAction:derive("nshopsb42_PlayerShopBuyAction")
 local PlayerShopBuyAction = SHOPSB42.PlayerShopBuyAction
 
 function PlayerShopBuyAction:isValid()
@@ -34,21 +34,33 @@ function PlayerShopBuyAction:getDuration()
 end
 
 function PlayerShopBuyAction:perform()
+	local context = isClient() and "CLIENT" or (isServer() and "SERVER" or "SP")
+	writeLog("Shops", "[PlayerShopBuyAction:perform] [" .. context .. "] time remaining=" .. tostring(self.timer))
 	self.character:playSound("CashRegister")
 	ISBaseTimedAction.perform(self)
 end
 
 function PlayerShopBuyAction:complete()
+	local context = isClient() and "CLIENT" or (isServer() and "SERVER" or "SP")
+	writeLog("Shops", "[PlayerShopBuyAction:complete] [" .. context .. "] ENTRY")
 	-- Server-only: execute authoritative transaction
 	if isMultiplayer() and not isServer() then
+		writeLog("Shops", "[PlayerShopBuyAction:complete] [CLIENT] MP - exiting early")
 		return true
 	end
 
 	local username = self.character:getUsername()
 	local ticket = self.ticket
 
+	-- Retrieve shop from registry using serialized shop name
+	local shop = SHOPSB42.ShopRegistry:getShop(self.shopName)
+	if not shop then
+		writeLog("Shops", "[PlayerShopBuyAction:complete] [SERVER] ERROR: Shop not found: " .. tostring(self.shopName))
+		return false
+	end
+
 	-- Step 1: Server-side proximity validation (enforce purchase-at-shop rule)
-	local shopSquare = self.shop:getSquare()
+	local shopSquare = shop:getSquare()
 	local distance = self.character:DistTo(shopSquare:getX(), shopSquare:getY())
 	if distance > 2 then
 		return false
@@ -61,14 +73,14 @@ function PlayerShopBuyAction:complete()
 	end
 
 	-- Step 3: Re-locate shop from world (do not trust cached references)
-	local shopContainer = self.shop:getContainer()
+	local shopContainer = shop:getContainer()
 	if not shopContainer then
 		return false
 	end
 
 	-- Step 4: Iterate cart items and transfer
 	local playerInv = self.character:getInventory()
-	local shopModData = self.shop:getModData()
+	local shopModData = shop:getModData()
 	local income = shopModData.income or {}
 	local totalCoin = 0
 	local totalSpecial = 0
@@ -133,13 +145,14 @@ function PlayerShopBuyAction:complete()
 		}, "Purchase")
 	end
 
+	writeLog("Shops", "[PlayerShopBuyAction:complete] [SERVER] SUCCESS - transaction complete, items transferred")
 	return true
 end
 
-function PlayerShopBuyAction:new(character, shop, ticket)
-	local o = ISBaseTimedAction.new(self, character)
-	o.shop = shop
-	o.ticket = ticket
+function PlayerShopBuyAction:new(character, shopName, ticket)
+	local o = ISBaseTimedAction.new(PlayerShopBuyAction, character)
+	o.shopName = shopName -- String - serializable
+	o.ticket = ticket -- Lua table - serializable
 	o.stopOnWalk = true
 	o.stopOnRun = true
 	o.maxTime = o:getDuration()

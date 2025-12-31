@@ -108,6 +108,13 @@ function BServer.VirtualDeposit(player, args)
 
 	local account = ModData.get("CoinBalance")[username]
 	if not account then
+		SharedLogger.log("Shops", "VirtualDeposit REJECTED: no account found for " .. username .. " source=" .. source)
+		return
+	end
+
+	-- Validate wallet is linked (required for all deposits)
+	if not account.linkedTo then
+		SharedLogger.log("Shops", "VirtualDeposit REJECTED: no wallet linked for " .. username .. " source=" .. source)
 		return
 	end
 

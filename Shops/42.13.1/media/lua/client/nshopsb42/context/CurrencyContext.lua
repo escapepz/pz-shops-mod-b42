@@ -138,7 +138,10 @@ function Currency.linkWallet(worldobjects, wallet, player)
 		linkedTo = linkedTo,
 		walletID = wallet:getID(),
 	})
-	ModData.request("CoinBalance")
+	-- Only request ModData in multiplayer - in SP the ModData is already available
+	if isMultiplayer() then
+		ModData.request("CoinBalance")
+	end
 end
 
 function Currency.LinkWalletObjectContextMenu(playerNum, context, items)
@@ -201,7 +204,10 @@ function Currency.unlinkWallet(worldobjects, wallet)
 	sendClientCommand(player, "BS", "UnlinkWallet", {
 		walletID = wallet:getID(),
 	})
-	ModData.request("CoinBalance")
+	-- Only request ModData in multiplayer - in SP the ModData is already available
+	if isMultiplayer() then
+		ModData.request("CoinBalance")
+	end
 end
 
 function Currency.UnlinkWalletObjectContextMenu(playerNum, context, items)
@@ -253,7 +259,10 @@ function Currency.claimOfflineMailbox(worldobjects, wallet, player)
 		walletID = wallet:getID(),
 	})
 	writeLog("Shops", string.format("[CLIENT] Claim Offline Mailbox: Requested for %s", username))
-	ModData.request("CoinBalance")
+	-- Only request ModData in multiplayer - in SP the ModData is already available
+	if isMultiplayer() then
+		ModData.request("CoinBalance")
+	end
 end
 
 Events.OnPreFillInventoryObjectContextMenu.Add(Currency.LootCoinsObjectContextMenu)

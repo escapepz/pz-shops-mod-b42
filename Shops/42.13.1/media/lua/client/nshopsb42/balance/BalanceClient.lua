@@ -11,7 +11,10 @@ end
 Events.OnReceiveGlobalModData.Add(BClient.OnReceiveGlobalModData)
 
 function BClient.OnConnected()
-	ModData.request("CoinBalance")
+	-- Only request ModData in multiplayer - in SP the ModData is already available
+	if isMultiplayer() then
+		ModData.request("CoinBalance")
+	end
 end
 
 function BClient.TransferReceived(noti)

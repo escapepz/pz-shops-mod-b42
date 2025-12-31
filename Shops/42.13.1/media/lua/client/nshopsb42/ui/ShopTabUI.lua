@@ -290,6 +290,7 @@ function ShopTabUI:addToCart(selectedRow)
 		self.shopItems:removeItemByIndex(selectedRow)
 	end
 	self.ShopUI.cartItems:setYScroll(-10000)
+	self.ShopUI:updateTotal()
 end
 
 function ShopTabUI:filter()

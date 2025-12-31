@@ -85,6 +85,14 @@ function ShopSellAction:complete()
 	local total = 0
 	local totalSpecial = 0
 
+	-- Validate account exists before processing items (fail early to prevent item loss)
+	local coinBalance = ModData.get("CoinBalance")
+	local account = coinBalance[username]
+	if not account then
+		writeLog("Shops", "[ShopSellAction:complete] [SERVER] REJECTED - no account found for user: " .. username)
+		return false
+	end
+
 	-- Process each item in the sell list
 	for _, entry in ipairs(self.sellList.items) do
 		local item = inv:getItemById(entry.itemID)
@@ -125,11 +133,7 @@ function ShopSellAction:complete()
 	-- Deposit virtual balance (no coin items created)
 	if total > 0 or totalSpecial > 0 then
 		-- Direct ModData manipulation since we're on server
-		local account = ModData.get("CoinBalance")[username]
-		if not account then
-			return false
-		end
-
+		-- Account existence already validated above, safe to access
 		account.coin = account.coin + total
 		account.specialCoin = account.specialCoin + totalSpecial
 		ModData.transmit("CoinBalance")

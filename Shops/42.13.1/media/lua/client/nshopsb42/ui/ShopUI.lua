@@ -8,6 +8,8 @@ local PreviewUI = SHOPSB42.PreviewUI
 local ContainerViewerUI = SHOPSB42.ContainerViewerUI
 local ShopUITooltip = SHOPSB42.ShopUITooltip
 local ShopTabUI = SHOPSB42.ShopTabUI
+local ShopBuyAction = SHOPSB42.ShopBuyAction
+local ShopSellAction = SHOPSB42.ShopSellAction
 
 local function generateTxnId()
 	return tostring(getGameTime():getWorldAgeHours()) .. "-" .. tostring(ZombRand(1, 1000000000))
@@ -823,6 +825,19 @@ function ShopUI:buildSellList()
 end
 
 function ShopUI:sellCartBtn()
+	-- Validate wallet is linked before starting sell
+	local username = self.player:getUsername()
+	local account = Balance.getUserAccount(username)
+	if not account or not account.linkedTo then
+		getCore():getUI():showConfirmDialog(
+			UIText.SellError or "Error",
+			UIText.WalletNotLinked or "You must create and link a wallet to sell items. Visit the Wallet Station first.",
+			function() end,
+			nil
+		)
+		return
+	end
+
 	self.actionInProgress = true
 
 	local sellList = self:buildSellList()
@@ -906,10 +921,18 @@ function ShopUI:updateTotal()
 	if tabType == Tab.Sell and (total > 0 or totalSpecial > 0) then
 		self.buyCartButton.enable = false
 		self.buyCartButton:setVisible(false)
-		self.sellCartButton.enable = true
-		self.sellCartButton:setVisible(true)
 		self.cancelBuyButton.enable = false
 		self.cancelBuyButton:setVisible(false)
+
+		-- Check if wallet is linked before enabling sell
+		local account = Balance.getUserAccount(username)
+		if account and account.linkedTo then
+			self.sellCartButton.enable = true
+			self.sellCartButton:setVisible(true)
+		else
+			self.sellCartButton.enable = false
+			self.sellCartButton:setVisible(true)
+		end
 		return
 	end
 	if coin >= total and specialCoin >= totalSpecial and not (tabType == Tab.Sell) then

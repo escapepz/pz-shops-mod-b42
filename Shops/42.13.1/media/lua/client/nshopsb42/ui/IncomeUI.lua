@@ -2,6 +2,7 @@ SHOPSB42.IncomeUI = ISCollapsableWindow:derive("nshopsb42_IncomeUI")
 local IncomeUI = SHOPSB42.IncomeUI
 local UIText = SHOPSB42.UIText
 local Currency = SHOPSB42.Currency
+local Balance = SHOPSB42.Balance
 IncomeUI.instance = nil
 IncomeUI.SMALL_FONT_HGT = getTextManager():getFontFromEnum(UIFont.Small):getLineHeight()
 IncomeUI.MEDIUM_FONT_HGT = getTextManager():getFontFromEnum(UIFont.Medium):getLineHeight()
@@ -148,8 +149,14 @@ function IncomeUI:createChildren()
 	self.getButton.enable = false
 	self:addChild(self.getButton)
 
+	-- Check wallet is linked before enabling income collection
 	if total > 0 or totalSpecial > 0 then
-		self.getButton.enable = true
+		local account = Balance.getUserAccount(player:getUsername())
+		if account and account.linkedTo then
+			self.getButton.enable = true
+		else
+			self.getButton.enable = false
+		end
 	end
 
 	self.totalLabel = ISLabel:new(x, 280, IncomeUI.SMALL_FONT_HGT, UIText.Total, 1, 1, 1, 1, UIFont.Medium, true)
@@ -185,7 +192,20 @@ function IncomeUI:createChildren()
 end
 
 function IncomeUI:getBtn()
-	local account = SHOPSB42.Balance.getUserAccount(self.character:getUsername())
+	-- Validate wallet is linked before collecting income
+	local account = Balance.getUserAccount(self.character:getUsername())
+	if not account or not account.linkedTo then
+		getCore():getUI():showConfirmDialog(
+			UIText.IncomeError or "Error",
+			UIText.WalletNotLinked
+				or "You must create and link a wallet to collect income. Visit the Wallet Station first.",
+			function() end,
+			nil
+		)
+		return
+	end
+
+	account = Balance.getUserAccount(self.character:getUsername())
 	if account then
 		sendClientCommand(self.character, "BS", "VirtualDeposit", {
 			username = self.character:getUsername(),

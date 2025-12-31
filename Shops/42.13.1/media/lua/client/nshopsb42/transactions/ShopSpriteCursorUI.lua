@@ -83,9 +83,6 @@ local function ensureInitialized()
 	-- Client-side code (render, key events)
 	-- Toggle between shop types
 	function ShopSpriteCursorUI.toggleSprites(key)
-		if not isClient() and isMultiplayer() then
-			return
-		end
 		if not ShopSpriteCursorUI.instance then
 			return
 		end
@@ -104,10 +101,8 @@ local function ensureInitialized()
 		ShopSpriteCursorUI.instance:setNorthSprite(nextSprite)
 	end
 
-	-- Register key listener only on client
-	if isClient() or not isMultiplayer() then
-		Events.OnKeyPressed.Add(ShopSpriteCursorUI.toggleSprites)
-	end
+	-- Register key listener (always safe in client/ context)
+	Events.OnKeyPressed.Add(ShopSpriteCursorUI.toggleSprites)
 
 	-- Store in global namespace so other modules can access it
 	SHOPSB42.ShopSpriteCursorUI = ShopSpriteCursorUI

@@ -44,7 +44,7 @@ end
 -- Virtual balance deposit (no physical coin items required)
 -- Used for player shop income, quest rewards, and other sources of virtual currency
 function Balance.deposit(username, coin, specialCoin)
-	if not isClient() then
+	if isMultiplayer() and not isServer() then
 		return
 	end
 

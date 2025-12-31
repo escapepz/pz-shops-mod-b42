@@ -58,11 +58,11 @@ function PlayerShopBuyAction:complete()
 	writeLog(
 		"Shops",
 		"[PlayerShopBuyAction:complete] [SERVER] Looking for shop at coords: "
-			.. tostring(self.shopCoords.x)
-			.. ","
-			.. tostring(self.shopCoords.y)
-			.. ","
-			.. tostring(self.shopCoords.z)
+		.. tostring(self.shopCoords.x)
+		.. ","
+		.. tostring(self.shopCoords.y)
+		.. ","
+		.. tostring(self.shopCoords.z)
 	)
 	local square = getCell():getGridSquare(self.shopCoords.x, self.shopCoords.y, self.shopCoords.z)
 	if not square then
@@ -77,11 +77,11 @@ function PlayerShopBuyAction:complete()
 		writeLog(
 			"Shops",
 			"[PlayerShopBuyAction:complete] [SERVER] ERROR: Shop not found at "
-				.. tostring(self.shopCoords.x)
-				.. ","
-				.. tostring(self.shopCoords.y)
-				.. ","
-				.. tostring(self.shopCoords.z)
+			.. tostring(self.shopCoords.x)
+			.. ","
+			.. tostring(self.shopCoords.y)
+			.. ","
+			.. tostring(self.shopCoords.z)
 		)
 		return false
 	end
@@ -170,13 +170,14 @@ function PlayerShopBuyAction:complete()
 	self.shop:transmitModData()
 
 	-- Step 7: Log transaction (client-side only: Nfunction.logShop uses getPlayer())
-	if isClient() then
-		Nfunction.logShop({
-			x = shopSquare:getX(),
-			y = shopSquare:getY(),
-			z = shopSquare:getZ(),
-		}, "Purchase")
-	end
+	-- dead code
+	-- if isClient() then
+	-- 	Nfunction.logShop({
+	-- 		x = shopSquare:getX(),
+	-- 		y = shopSquare:getY(),
+	-- 		z = shopSquare:getZ(),
+	-- 	}, "Purchase")
+	-- end
 
 	writeLog("Shops", "[PlayerShopBuyAction:complete] [SERVER] SUCCESS - transaction complete, items transferred")
 	return true

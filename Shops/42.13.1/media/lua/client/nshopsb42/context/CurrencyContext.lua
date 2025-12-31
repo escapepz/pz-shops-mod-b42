@@ -81,9 +81,9 @@ function Currency.CoinsToAccountObjectContextMenu(playerNum, context, items)
 		local walletItems = playerInv:getItemsFromFullType(k)
 		for i = 0, walletItems:size() - 1 do
 			local w = walletItems:get(i)
-			if w:getModData().belongsTo == username and w:getModData().linkedTo then
+			if w:getModData().nshopsb42_belongsTo == username and w:getModData().nshopsb42_linkedTo then
 				-- Check if wallet is valid (not stale)
-				if account and account.linkedTo == w:getModData().linkedTo then
+				if account and account.linkedTo == w:getModData().nshopsb42_linkedTo then
 					wallet = w
 					break
 				end
@@ -125,14 +125,14 @@ end
 function Currency.linkWallet(worldobjects, wallet, player)
 	local username = player:getUsername()
 	local linkedTo = username .. getTimestampMs()
-	wallet:getModData().belongsTo = username
-	wallet:getModData().linkedTo = linkedTo
+	wallet:getModData().nshopsb42_belongsTo = username
+	wallet:getModData().nshopsb42_linkedTo = linkedTo
 	writeLog(
 		"Shops",
 		"[CLIENT] Link: Set wallet modData - belongsTo="
-			.. tostring(wallet:getModData().belongsTo)
+			.. tostring(wallet:getModData().nshopsb42_belongsTo)
 			.. ", linkedTo="
-			.. tostring(wallet:getModData().linkedTo)
+			.. tostring(wallet:getModData().nshopsb42_linkedTo)
 	)
 	sendClientCommand(player, "BS", "CreateAccount", {
 		linkedTo = linkedTo,
@@ -166,8 +166,8 @@ function Currency.LinkWalletObjectContextMenu(playerNum, context, items)
 
 	-- Allow linking unlinked wallets or stale wallets (where linkedTo doesn't match server)
 	local account = Balance.getUserAccount(username)
-	local isStaleWallet = modData.linkedTo and (not account or account.linkedTo ~= modData.linkedTo)
-	if modData.linkedTo and not isStaleWallet then
+	local isStaleWallet = modData.nshopsb42_linkedTo and (not account or account.linkedTo ~= modData.nshopsb42_linkedTo)
+	if modData.nshopsb42_linkedTo and not isStaleWallet then
 		return -- Wallet is already linked and not stale
 	end
 
@@ -177,10 +177,10 @@ function Currency.LinkWalletObjectContextMenu(playerNum, context, items)
 		local walletItems = playerInv:getItemsFromFullType(k)
 		for i = 0, walletItems:size() - 1 do
 			local w = walletItems:get(i)
-			if w:getModData().belongsTo == username and w:getModData().linkedTo then
+			if w:getModData().nshopsb42_belongsTo == username and w:getModData().nshopsb42_linkedTo then
 				-- Check if this wallet is valid (not stale)
 				local wAccount = Balance.getUserAccount(username)
-				if wAccount and wAccount.linkedTo == w:getModData().linkedTo then
+				if wAccount and wAccount.linkedTo == w:getModData().nshopsb42_linkedTo then
 					return -- Player has a valid linked wallet, don't show Link option
 				end
 			end
@@ -192,14 +192,14 @@ end
 
 function Currency.unlinkWallet(worldobjects, wallet)
 	local player = getPlayer()
-	wallet:getModData().belongsTo = nil
-	wallet:getModData().linkedTo = nil
+	wallet:getModData().nshopsb42_belongsTo = nil
+	wallet:getModData().nshopsb42_linkedTo = nil
 	writeLog(
 		"Shops",
 		"[CLIENT] Unlink: Cleared wallet modData - belongsTo="
-			.. tostring(wallet:getModData().belongsTo)
+			.. tostring(wallet:getModData().nshopsb42_belongsTo)
 			.. ", linkedTo="
-			.. tostring(wallet:getModData().linkedTo)
+			.. tostring(wallet:getModData().nshopsb42_linkedTo)
 	)
 	sendClientCommand(player, "BS", "UnlinkWallet", {
 		walletID = wallet:getID(),
@@ -229,13 +229,13 @@ function Currency.UnlinkWalletObjectContextMenu(playerNum, context, items)
 	local player = getSpecificPlayer(playerNum)
 	local username = player:getUsername()
 	local modData = item:getModData()
-	if not (modData.belongsTo == username and modData.linkedTo) then
+	if not (modData.nshopsb42_belongsTo == username and modData.nshopsb42_linkedTo) then
 		return
 	end
 
 	-- Validate wallet modData matches server account to prevent stale wallet operations
 	local account = Balance.getUserAccount(username)
-	if not account or account.linkedTo ~= modData.linkedTo then
+	if not account or account.linkedTo ~= modData.nshopsb42_linkedTo then
 		return
 	end
 

@@ -13,7 +13,7 @@ local MAX_AGE_SECONDS = 7 * 24 * 60 * 60
 
 -- Retrieve or create the audit log ModData
 function ShopAudit.getLog()
-	return ModData.getOrCreate("ShopAuditLog")
+	return ModData.getOrCreate("nshopsb42_ShopAuditLog")
 end
 
 -- Prune old entries and enforce max count
@@ -61,7 +61,7 @@ function ShopAudit.append(entry)
 		ShopAudit.prune()
 
 		-- Sync to all clients
-		ModData.transmit("ShopAuditLog")
+		ModData.transmit("nshopsb42_ShopAuditLog")
 	end)
 
 	if not success then

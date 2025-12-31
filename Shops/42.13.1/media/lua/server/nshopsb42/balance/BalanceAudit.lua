@@ -24,7 +24,7 @@ end
 
 -- Prune old entries and enforce max count
 function BalanceAudit.prune()
-	local data = ModData.get("BalanceAudit")
+	local data = ModData.get("nshopsb42_BalanceAudit")
 	if not data then
 		return
 	end
@@ -54,7 +54,7 @@ function BalanceAudit.append(entry)
 		return
 	end
 
-	local data = ModData.getOrCreate("BalanceAudit")
+	local data = ModData.getOrCreate("nshopsb42_BalanceAudit")
 	if not data then
 		return
 	end
@@ -76,7 +76,7 @@ function BalanceAudit.append(entry)
 	BalanceAudit.prune()
 
 	-- Transmit to all clients (read-only for admins)
-	ModData.transmit("BalanceAudit")
+	ModData.transmit("nshopsb42_BalanceAudit")
 end
 
 -- Create and log a transfer entry
@@ -97,7 +97,7 @@ end
 
 -- Find audit entry by actionId
 function BalanceAudit.findEntry(actionId)
-	local data = ModData.get("BalanceAudit")
+	local data = ModData.get("nshopsb42_BalanceAudit")
 	if not data then
 		return nil
 	end
@@ -113,7 +113,7 @@ end
 
 -- Get audit entries for a specific account
 function BalanceAudit.getAccountHistory(username)
-	local data = ModData.get("BalanceAudit")
+	local data = ModData.get("nshopsb42_BalanceAudit")
 	if not data then
 		return {}
 	end

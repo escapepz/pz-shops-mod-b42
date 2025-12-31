@@ -19,8 +19,8 @@ BServer.rate = BServer.rate or {}
 BServer.recipientRate = BServer.recipientRate or {}
 
 function BServer.OnInitGlobalModData()
-	ModData.getOrCreate("CoinBalance")
-	ModData.getOrCreate("BalanceMailbox")
+	ModData.getOrCreate("nshopsb42_CoinBalance")
+	ModData.getOrCreate("nshopsb42_BalanceMailbox")
 end
 
 Events.OnInitGlobalModData.Add(BServer.OnInitGlobalModData)
@@ -42,7 +42,7 @@ function BServer.CreateAccount(player, args)
 	local username = player:getUsername()
 	local linkedTo = args.linkedTo
 	local walletID = args.walletID
-	local account = ModData.get("CoinBalance")[username]
+	local account = ModData.get("nshopsb42_CoinBalance")[username]
 
 	if account then
 		account.linkedTo = linkedTo
@@ -51,7 +51,7 @@ function BServer.CreateAccount(player, args)
 		msg = string.format(msg, username, linkedTo)
 		BServer.writeLog(msg)
 	else
-		ModData.get("CoinBalance")[username] = { coin = 0, specialCoin = 0, linkedTo = linkedTo }
+		ModData.get("nshopsb42_CoinBalance")[username] = { coin = 0, specialCoin = 0, linkedTo = linkedTo }
 
 		msg = "NewAccount: %s, Coin: 0 SpecialCoin: 0"
 		msg = string.format(msg, username, linkedTo)
@@ -73,16 +73,16 @@ function BServer.CreateAccount(player, args)
 
 			-- Set wallet modData on server to match client state
 			local walletModData = wallet:getModData()
-			walletModData.belongsTo = username
-			walletModData.linkedTo = linkedTo
+			walletModData.nshopsb42_belongsTo = username
+			walletModData.nshopsb42_linkedTo = linkedTo
 			SharedLogger.log(
 				"Shops",
 				"CreateAccount: Syncing wallet modData - walletID="
 					.. tostring(walletID)
 					.. ", belongsTo="
-					.. tostring(walletModData.belongsTo)
+					.. tostring(walletModData.nshopsb42_belongsTo)
 					.. ", linkedTo="
-					.. tostring(walletModData.linkedTo)
+					.. tostring(walletModData.nshopsb42_linkedTo)
 			)
 			syncItemModData(player, wallet)
 		else
@@ -90,7 +90,7 @@ function BServer.CreateAccount(player, args)
 		end
 	end
 
-	ModData.transmit("CoinBalance")
+	ModData.transmit("nshopsb42_CoinBalance")
 end
 
 function BServer.VirtualDeposit(player, args)
@@ -106,7 +106,7 @@ function BServer.VirtualDeposit(player, args)
 	local specialCoin = tonumber(args.specialCoin) or 0
 	local source = args.source or "Unknown"
 
-	local account = ModData.get("CoinBalance")[username]
+	local account = ModData.get("nshopsb42_CoinBalance")[username]
 	if not account then
 		SharedLogger.log("Shops", "VirtualDeposit REJECTED: no account found for " .. username .. " source=" .. source)
 		return
@@ -140,7 +140,7 @@ function BServer.VirtualDeposit(player, args)
 	msg = string.format(msg, username, source, oldCoin, oldSpecialCoin, account.coin, account.specialCoin)
 	BServer.writeLog(msg)
 
-	ModData.transmit("CoinBalance")
+	ModData.transmit("nshopsb42_CoinBalance")
 end
 
 function BServer.Deposit(player, args)
@@ -153,7 +153,7 @@ function BServer.Deposit(player, args)
 	local specialCoin = tonumber(args.specialCoin) or 0
 	local itemIDs = args.itemIDs
 
-	local account = ModData.get("CoinBalance")[username]
+	local account = ModData.get("nshopsb42_CoinBalance")[username]
 	if not account then
 		return
 	end
@@ -202,7 +202,7 @@ function BServer.Deposit(player, args)
 		sendRemoveItemFromContainer(container, item)
 	end
 
-	ModData.transmit("CoinBalance")
+	ModData.transmit("nshopsb42_CoinBalance")
 end
 
 function BServer.Transfer(player, args)
@@ -431,7 +431,7 @@ function BServer.Transfer(player, args)
 		sendServerCommand(recipientPlayer, "BS", "TransferReceived", noti)
 	else
 		-- Offline path: enqueue mailbox entry
-		local mailbox = ModData.getOrCreate("BalanceMailbox")
+		local mailbox = ModData.getOrCreate("nshopsb42_BalanceMailbox")
 
 		mailbox[recipient] = mailbox[recipient] or {}
 		table.insert(mailbox[recipient], {
@@ -469,11 +469,11 @@ function BServer.Transfer(player, args)
 			)
 		)
 
-		ModData.transmit("BalanceMailbox")
+		ModData.transmit("nshopsb42_BalanceMailbox")
 	end
 
 	-- Persist and sync
-	ModData.transmit("CoinBalance")
+	ModData.transmit("nshopsb42_CoinBalance")
 end
 
 function BServer.Withdraw(player, args)
@@ -485,7 +485,7 @@ function BServer.Withdraw(player, args)
 	local coin = tonumber(args.coin) or 0
 	local specialCoin = tonumber(args.specialCoin) or 0
 
-	local account = ModData.get("CoinBalance")[username]
+	local account = ModData.get("nshopsb42_CoinBalance")[username]
 	if not account then
 		return
 	end
@@ -515,7 +515,7 @@ function BServer.Withdraw(player, args)
 	msg = string.format(msg, username, oldCoin, oldSpecialCoin, account.coin, account.specialCoin)
 	BServer.writeLog(msg)
 
-	ModData.transmit("CoinBalance")
+	ModData.transmit("nshopsb42_CoinBalance")
 end
 
 function BServer.UnlinkWallet(player, args)
@@ -525,7 +525,7 @@ function BServer.UnlinkWallet(player, args)
 
 	local username = player:getUsername()
 	local walletID = args.walletID
-	local account = ModData.get("CoinBalance")[username]
+	local account = ModData.get("nshopsb42_CoinBalance")[username]
 	if not account then
 		return
 	end
@@ -541,16 +541,16 @@ function BServer.UnlinkWallet(player, args)
 		if wallet then
 			-- Clear wallet modData on server to match client state
 			local walletModData = wallet:getModData()
-			walletModData.belongsTo = nil
-			walletModData.linkedTo = nil
+			walletModData.nshopsb42_belongsTo = nil
+			walletModData.nshopsb42_linkedTo = nil
 			SharedLogger.log(
 				"Shops",
 				"UnlinkWallet: Syncing wallet modData - walletID="
 					.. tostring(walletID)
 					.. ", belongsTo="
-					.. tostring(walletModData.belongsTo)
+					.. tostring(walletModData.nshopsb42_belongsTo)
 					.. ", linkedTo="
-					.. tostring(walletModData.linkedTo)
+					.. tostring(walletModData.nshopsb42_linkedTo)
 			)
 			syncItemModData(player, wallet)
 		else
@@ -558,18 +558,18 @@ function BServer.UnlinkWallet(player, args)
 		end
 	end
 
-	ModData.transmit("CoinBalance")
+	ModData.transmit("nshopsb42_CoinBalance")
 end
 
 -- Deliver queued mailbox entries on player login
 function BServer.deliverMailbox(player)
 	local username = player:getUsername()
-	local mailbox = ModData.get("BalanceMailbox")
+	local mailbox = ModData.get("nshopsb42_BalanceMailbox")
 	if not mailbox or not mailbox[username] then
 		return
 	end
 
-	local account = ModData.get("CoinBalance")[username]
+	local account = ModData.get("nshopsb42_CoinBalance")[username]
 	if not account then
 		return
 	end
@@ -586,8 +586,8 @@ function BServer.deliverMailbox(player)
 
 	mailbox[username] = nil -- clear mailbox
 	account.hasMailbox = nil -- clear mailbox flag
-	ModData.transmit("BalanceMailbox")
-	ModData.transmit("CoinBalance")
+	ModData.transmit("nshopsb42_BalanceMailbox")
+	ModData.transmit("nshopsb42_CoinBalance")
 
 	msg = string.format(
 		"MailboxClaimed: %s received coin=%d specialCoin=%d from %d entries",
@@ -619,7 +619,7 @@ function BServer.ClaimMailbox(player, args)
 	SharedLogger.log("Shops", string.format("ClaimMailbox Requested by %s", username))
 
 	-- Get mailbox entries before delivery
-	local mailbox = ModData.get("BalanceMailbox")
+	local mailbox = ModData.get("nshopsb42_BalanceMailbox")
 	local totalCoin = 0
 	local totalSpecialCoin = 0
 	local entryCount = 0
@@ -686,7 +686,7 @@ function BServer.Rollback(player, args)
 	end
 
 	-- Check if this transfer was delivered online or is in mailbox (offline)
-	local mailbox = ModData.getOrCreate("BalanceMailbox")
+	local mailbox = ModData.getOrCreate("nshopsb42_BalanceMailbox")
 	local isInMailbox = false
 	if mailbox[entry.recipient] then
 		for i, mentry in ipairs(mailbox[entry.recipient]) do
@@ -736,9 +736,9 @@ function BServer.Rollback(player, args)
 	SharedLogger.log("Shops", msg)
 
 	-- Sync updated balances
-	ModData.transmit("CoinBalance")
+	ModData.transmit("nshopsb42_CoinBalance")
 	if isInMailbox then
-		ModData.transmit("BalanceMailbox")
+		ModData.transmit("nshopsb42_BalanceMailbox")
 	end
 end
 

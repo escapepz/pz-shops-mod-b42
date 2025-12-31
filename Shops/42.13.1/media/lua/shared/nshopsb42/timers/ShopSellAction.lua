@@ -102,7 +102,7 @@ function ShopSellAction:complete()
 	local totalSpecial = 0
 
 	-- Validate account exists before processing items (fail early to prevent item loss)
-	local coinBalance = ModData.get("CoinBalance")
+	local coinBalance = ModData.get("nshopsb42_CoinBalance")
 	local account = coinBalance[username]
 	if not account then
 		writeLog("Shops", "[ShopSellAction:complete] [SERVER] REJECTED - no account found for user: " .. username)
@@ -152,7 +152,7 @@ function ShopSellAction:complete()
 		-- Account existence already validated above, safe to access
 		account.coin = account.coin + total
 		account.specialCoin = account.specialCoin + totalSpecial
-		ModData.transmit("CoinBalance")
+		ModData.transmit("nshopsb42_CoinBalance")
 	end
 
 	-- Mark transaction as processed

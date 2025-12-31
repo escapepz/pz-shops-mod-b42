@@ -50,18 +50,18 @@ function InventoryTransferValidation.validateShopOwnership(character, srcContain
 			"[InventoryTransferValidation] " .. containerName .. " parentModData={" .. modDataStr .. "}"
 		)
 
-		if parentModData and parentModData.owner then
+		if parentModData and parentModData.nshopsb42_owner then
 			SharedLogger.log(
 				"Shops",
 				"[InventoryTransferValidation] "
 					.. containerName
 					.. " found owner - owner="
-					.. parentModData.owner
+					.. parentModData.nshopsb42_owner
 					.. ", username="
 					.. username
 			)
 
-			local isOwner = (username == parentModData.owner)
+			local isOwner = (username == parentModData.nshopsb42_owner)
 			SharedLogger.log(
 				"Shops",
 				"[InventoryTransferValidation] " .. containerName .. " ownership check - isOwner=" .. tostring(isOwner)

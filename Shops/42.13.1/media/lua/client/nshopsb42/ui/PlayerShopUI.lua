@@ -44,7 +44,7 @@ function PlayerShopUI:show(player, shop)
 	posX = square:getX()
 	posY = square:getY()
 	if PlayerShopUI.instance == nil then
-		local shopOwner = shop:getModData().owner
+		local shopOwner = shop:getModData().nshopsb42_owner
 		PlayerShopUI.instance = PlayerShopUI:new(0, 0, width, height, player, shopOwner)
 		PlayerShopUI.instance.shop = shop
 		PlayerShopUI.instance.shopOwner = shopOwner
@@ -304,13 +304,13 @@ function PlayerShopUI:onActivateView()
 		local v = {}
 		local modData = item:getModData()
 		local VehicleID = modData.VehicleID
-		if modData.price then
+		if modData.nshopsb42_price then
 			if VehicleID then
 				v.VehicleID = VehicleID
 			end
 			v.type = item:getFullType()
-			v.price = modData.price
-			v.specialCoin = modData.specialCoin
+			v.price = modData.nshopsb42_price
+			v.specialCoin = modData.nshopsb42_specialCoin
 			v.name = Nfunction.trimString(item:getName(), 42)
 			v.invItem = item
 			shopItems:addItem(v.type, v)

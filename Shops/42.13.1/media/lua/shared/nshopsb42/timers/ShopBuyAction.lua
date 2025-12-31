@@ -135,7 +135,7 @@ function ShopBuyAction:complete()
 
 	-- Withdraw balance from virtual wallet
 	-- Direct ModData manipulation since we're on server
-	local account = ModData.get("CoinBalance")[username]
+	local account = ModData.get("nshopsb42_CoinBalance")[username]
 	if not account then
 		return false
 	end
@@ -145,7 +145,7 @@ function ShopBuyAction:complete()
 
 	account.coin = account.coin - totalCoin
 	account.specialCoin = account.specialCoin - totalSpecialCoin
-	ModData.transmit("CoinBalance")
+	ModData.transmit("nshopsb42_CoinBalance")
 
 	-- Spawn purchased items
 	local playerInv = self.character:getInventory()

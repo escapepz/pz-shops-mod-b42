@@ -55,11 +55,11 @@ function PSServer.SetItemPrice(player, args)
 	-- Store price on the item itself (persists with item when moved)
 	local modData = item:getModData()
 	if price == nil then
-		modData.price = nil
-		modData.specialCoin = nil
+		modData.nshopsb42_price = nil
+		modData.nshopsb42_specialCoin = nil
 	else
-		modData.price = price
-		modData.specialCoin = specialCoin
+		modData.nshopsb42_price = price
+		modData.nshopsb42_specialCoin = specialCoin
 	end
 
 	-- Sync item ModData to all clients
@@ -95,7 +95,7 @@ function PSServer.PickupShop(player, args)
 		return
 	end
 
-	local income = shop:getModData().income
+	local income = shop:getModData().nshopsb42_income
 	if income and #income > 0 then
 		return
 	end

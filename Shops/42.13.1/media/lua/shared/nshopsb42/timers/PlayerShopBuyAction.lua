@@ -93,6 +93,12 @@ function PlayerShopBuyAction:complete()
 		return false
 	end
 
+	-- Retrieve shop modData
+	local shopModData = shop:getModData()
+	if not shopModData then
+		return false
+	end
+
 	-- Step 2: Re-validate balance (defensive check)
 	local coin, specialCoin = Balance.getUserBalance(username)
 	if coin < ticket.coin or specialCoin < ticket.specialCoin then
@@ -108,7 +114,7 @@ function PlayerShopBuyAction:complete()
 	-- Step 4: Iterate cart items and transfer
 	local playerInv = self.character:getInventory()
 	local shopModData = shop:getModData()
-	local income = shopModData.income or {}
+	local income = shopModData.nshopsb42_income or {}
 	local totalCoin = 0
 	local totalSpecial = 0
 
@@ -128,8 +134,8 @@ function PlayerShopBuyAction:complete()
 
 			-- Clear shop-specific ModData
 			local modData = invItem:getModData()
-			modData.price = nil
-			modData.specialCoin = nil
+			modData.nshopsb42_price = nil
+			modData.nshopsb42_specialCoin = nil
 			syncItemModData(self.character, invItem)
 
 			-- Track totals
@@ -157,7 +163,7 @@ function PlayerShopBuyAction:complete()
 			t = { tl = totalCoin, tls = totalSpecial },
 		}
 		table.insert(income, data)
-		shopModData.income = income
+		shopModData.nshopsb42_income = income
 	end
 
 	-- Step 6: Sync shop state

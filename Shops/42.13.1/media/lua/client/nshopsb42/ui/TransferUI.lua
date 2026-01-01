@@ -1,11 +1,11 @@
-require("nshopsb42/timers/SendTransferAction")
+-- SendTransferAction is already loaded by shared/nshopsb42/Init.lua, no need to require again
 
 SHOPSB42.TransferUI = ISCollapsableWindow:derive("nshopsb42_TransferUI")
 local TransferUI = SHOPSB42.TransferUI
 local Currency = SHOPSB42.Currency
 local Balance = SHOPSB42.Balance
 local UIText = SHOPSB42.UIText
-local ShopUI = SHOPSB42.ShopUI
+local SendTransferAction = SHOPSB42.SendTransferAction
 TransferUI.instance = nil
 TransferUI.SMALL_FONT_HGT = getTextManager():getFontFromEnum(UIFont.Small):getLineHeight()
 TransferUI.MEDIUM_FONT_HGT = getTextManager():getFontFromEnum(UIFont.Medium):getLineHeight()
@@ -147,7 +147,7 @@ function TransferUI:createChildren()
 	local x = 40
 	local y = 85
 
-	self.balanceLabel = ISLabel:new(x, 20, ShopUI.SMALL_FONT_HGT, UIText.Balance, 1, 1, 1, 1, UIFont.Medium, true)
+	self.balanceLabel = ISLabel:new(x, 20, self.SMALL_FONT_HGT, UIText.Balance, 1, 1, 1, 1, UIFont.Medium, true)
 	self:addChild(self.balanceLabel)
 
 	local coinImg = Currency.CoinsTexture.Coin
@@ -156,7 +156,7 @@ function TransferUI:createChildren()
 	self.balanceCoinTex.scaledHeight = coinImg.scale + 5
 	self:addChild(self.balanceCoinTex)
 
-	self.balanceCoinLabel = ISLabel:new(x + 85, 20, ShopUI.SMALL_FONT_HGT, "0", 1, 1, 1, 1, UIFont.Medium, true)
+	self.balanceCoinLabel = ISLabel:new(x + 85, 20, self.SMALL_FONT_HGT, "0", 1, 1, 1, 1, UIFont.Medium, true)
 	self:addChild(self.balanceCoinLabel)
 
 	self.transferCoinTex = ISImage:new(x, 240, 0, 0, coinImg.texture)
@@ -178,7 +178,7 @@ function TransferUI:createChildren()
 	self.balanceSpecialCoinTex.scaledHeight = coinImg.scale + 5
 	self:addChild(self.balanceSpecialCoinTex)
 
-	self.balanceSpecialCoinLabel = ISLabel:new(x + 85, 45, ShopUI.SMALL_FONT_HGT, "0", 1, 1, 1, 1, UIFont.Medium, true)
+	self.balanceSpecialCoinLabel = ISLabel:new(x + 85, 45, self.SMALL_FONT_HGT, "0", 1, 1, 1, 1, UIFont.Medium, true)
 	self:addChild(self.balanceSpecialCoinLabel)
 
 	self.transferSpecialCoinTex = ISImage:new(x, 270, 0, 0, coinImg.texture)
@@ -231,7 +231,7 @@ function TransferUI:createChildren()
 	end
 	self.accountsCache = self.accountItems.items
 
-	self.toLabel = ISLabel:new(x, 215, ShopUI.SMALL_FONT_HGT, UIText.TransferTo, 1, 1, 1, 1, UIFont.Medium, true)
+	self.toLabel = ISLabel:new(x, 215, self.SMALL_FONT_HGT, UIText.TransferTo, 1, 1, 1, 1, UIFont.Medium, true)
 	self:addChild(self.toLabel)
 
 	self.sendButton = ISButton:new(x + 150, 253, 60, 25, UIText.Send, self, TransferUI.sendBtn)

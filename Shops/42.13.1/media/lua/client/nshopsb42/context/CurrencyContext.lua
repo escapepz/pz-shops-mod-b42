@@ -3,8 +3,12 @@
 local Utilities = require("nshopsb42/utils/Utilities")
 local Currency = SHOPSB42.Currency
 local UIText = SHOPSB42.UIText
-local TransferUI = SHOPSB42.TransferUI
 local Balance = SHOPSB42.Balance
+
+-- Lazy reference to TransferUI to avoid module-load-time dependency
+local function getTransferUI()
+	return SHOPSB42.TransferUI
+end
 
 function Currency.lootCoins(worldobjects, playerNum, player)
 	local containers = getPlayerLoot(playerNum).inventoryPane.inventoryPage.backpacks
@@ -250,7 +254,7 @@ function Currency.UnlinkWalletObjectContextMenu(playerNum, context, items)
 end
 
 function Currency.transfer(worldobjects, wallet, player)
-	TransferUI:show(player)
+	getTransferUI():show(player)
 end
 
 function Currency.claimOfflineMailbox(worldobjects, wallet, player)

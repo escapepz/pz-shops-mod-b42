@@ -351,7 +351,7 @@ function TransferUI:render()
 	-- Check if this is a transfer action (using marker field, not class identity)
 	local isTransferAction = currentAction and currentAction._shopActionType == "transfer"
 
-	if isTransferAction then
+	if isTransferAction and currentAction then
 		-- Action is running: draw progress
 		self._wasTransferActionRunning = true
 		self:drawProgressBar(185, 240, 70, 10, currentAction:getJobDelta(), self.fgBar)

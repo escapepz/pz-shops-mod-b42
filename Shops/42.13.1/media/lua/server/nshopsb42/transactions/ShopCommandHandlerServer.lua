@@ -14,15 +14,8 @@ function Commands.ClearShopSpriteDrag(player, args)
 		"[ShopCommandHandlerServer:ClearShopSpriteDrag] Sending server command to client for " .. player:getUsername()
 	)
 
-	-- SP lock
-	if not isMultiplayer() then
-		local cell = getWorld() and getWorld():getCell()
-		if cell then
-			cell:setDrag(nil, 0)
-		end
-	else
-		sendServerCommand(player, "nshopsb42", "ClearShopSpriteDrag", {})
-	end
+	-- Use Utilities wrapper for SP/MP compatibility
+	Utilities.SendServerCommandTo(player, "nshopsb42", "ClearShopSpriteDrag", {})
 end
 
 --- Remove shop (admin-only, server authority)

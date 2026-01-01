@@ -23,37 +23,37 @@ function BundleViewerUI:show(bundleItem)
 	if BundleViewerUI.instance then
 		BundleViewerUI.instance:close()
 	end
-	
+
 	-- Create new instance
 	local x = (getCore():getScreenWidth() / 2) - (width / 2)
 	local y = (getCore():getScreenHeight() / 2) - (height / 2)
-	
+
 	local o = BundleViewerUI:new(x, y, width, height, bundleItem)
 	o:initialise()
 	o:instantiate()
 	o:addToUIManager()
 	o:setVisible(true)
 	o:bringToTop()
-	
+
 	BundleViewerUI.instance = o
 end
 
 function BundleViewerUI:createChildren()
 	ISCollapsableWindow.createChildren(self)
-	
+
 	local y = 30
 	local x = 20
-	
+
 	if self.bundleItem and self.bundleItem.items then
 		for _, itemEntry in ipairs(self.bundleItem.items) do
 			local itemName = getItemNameFromFullType(itemEntry.item)
 			local quantity = itemEntry.quantity or 1
-			
+
 			local quantityStr = ""
 			if quantity > 1 then
 				quantityStr = " (" .. quantity .. ")"
 			end
-			
+
 			self:drawText(itemName .. quantityStr, x, y, 1, 1, 1, 1, UIFont.Small)
 			y = y + 25
 		end
@@ -62,20 +62,20 @@ end
 
 function BundleViewerUI:render()
 	ISCollapsableWindow.render(self)
-	
+
 	local y = 30
 	local x = 20
-	
+
 	if self.bundleItem and self.bundleItem.items then
 		for _, itemEntry in ipairs(self.bundleItem.items) do
 			local itemName = getItemNameFromFullType(itemEntry.item)
 			local quantity = itemEntry.quantity or 1
-			
+
 			local quantityStr = ""
 			if quantity > 1 then
 				quantityStr = " (" .. quantity .. ")"
 			end
-			
+
 			self:drawText(itemName .. quantityStr, x, y, 1, 1, 1, 1, UIFont.Small)
 			y = y + 25
 		end

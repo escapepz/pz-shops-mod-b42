@@ -32,20 +32,20 @@ function PreviewUI:show(name, vehicleId)
 	if not vehicleId then
 		return nil
 	end
-	
+
 	if PreviewUI.instance == nil then
 		PreviewUI.instance = PreviewUI:new(0, 0, width, height, name, vehicleId)
 		PreviewUI.instance:initialise()
 		PreviewUI.instance:instantiate()
 	end
-	
+
 	if PreviewUI.instance.pinButton then
 		PreviewUI.instance.pinButton:setVisible(false)
 	end
 	if PreviewUI.instance.collapseButton then
 		PreviewUI.instance.collapseButton:setVisible(false)
 	end
-	
+
 	PreviewUI.instance:addToUIManager()
 	PreviewUI.instance:setVisible(true)
 	PreviewUI.instance:bringToTop()

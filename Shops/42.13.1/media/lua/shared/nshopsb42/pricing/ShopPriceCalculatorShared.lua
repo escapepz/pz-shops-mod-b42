@@ -21,7 +21,7 @@ local function evaluateCondition(condition, player, item, context)
 		return true
 	elseif kind == "difficulty_ge" then
 		local level = condition.params and condition.params.level or 1
-		return getGameDifficulty() >= level
+		return getCore():getDifficulty() >= level
 	elseif kind == "item_condition_ge" then
 		if not item then
 			return true

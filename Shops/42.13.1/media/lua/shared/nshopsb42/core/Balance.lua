@@ -2,6 +2,8 @@
 -- Virtual currency balance management
 -- Extends SHOPSB42 namespace (no new globals)
 
+local Utilities = require("nshopsb42/utils/Utilities")
+
 SHOPSB42.Balance = SHOPSB42.Balance or {}
 local Balance = SHOPSB42.Balance
 
@@ -44,7 +46,7 @@ end
 -- Virtual balance deposit (no physical coin items required)
 -- Used for player shop income, quest rewards, and other sources of virtual currency
 function Balance.deposit(username, coin, specialCoin)
-	if isMultiplayer() and not isServer() then
+	if not Utilities.IsServerOrSinglePlayer() then
 		return
 	end
 

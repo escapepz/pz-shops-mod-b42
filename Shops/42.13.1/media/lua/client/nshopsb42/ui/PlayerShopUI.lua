@@ -523,7 +523,7 @@ function PlayerShopUI:render()
 	-- Check if this is a player shop action (using marker field, not class identity)
 	local isPlayerShopAction = currentAction and currentAction._shopActionType == "playerBuy"
 
-	if isPlayerShopAction then
+	if isPlayerShopAction and currentAction then
 		-- Action is running: draw progress
 		self._wasPlayerShopActionRunning = true
 		self:drawProgressBar((self.width / 2) + 180, 420, 120, 10, currentAction:getJobDelta(), self.fgBar)

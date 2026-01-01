@@ -3,9 +3,7 @@
 -- Extends SHOPSB42 namespace (no new globals)
 -- Items self-register during require() calls
 
-if isMultiplayer() and not isServer() then
-	return
-end
+local Utilities = require("nshopsb42/utils/Utilities")
 
 SHOPSB42.ShopDefaultItems = SHOPSB42.ShopDefaultItems or {}
 local ShopDefaultItems = SHOPSB42.ShopDefaultItems
@@ -16,6 +14,10 @@ local ShopSellEvents = SHOPSB42.ShopSellEvents
 
 -- Hook callback: Load default buy items
 function ShopDefaultItems.loadDefaultBuyItems()
+	if not Utilities.IsServerOrSinglePlayer() then
+		return
+	end
+
 	-- Allow external mods to suppress defaults by setting Shop._suppressDefaults = true
 	if Shop._suppressDefaults then
 		return
@@ -30,6 +32,10 @@ end
 
 -- Hook callback: Load default sell items
 function ShopDefaultItems.loadDefaultSellItems()
+	if not Utilities.IsServerOrSinglePlayer() then
+		return
+	end
+
 	-- Allow external mods to suppress defaults by setting Shop._suppressDefaults = true
 	if Shop._suppressDefaults then
 		return
@@ -40,6 +46,10 @@ end
 
 -- Register hooks
 function ShopDefaultItems.registerHooks()
+	if not Utilities.IsServerOrSinglePlayer() then
+		return
+	end
+
 	if ShopEvents and ShopEvents.registerOnShopRegisterItems then
 		ShopEvents.registerOnShopRegisterItems(ShopDefaultItems.loadDefaultBuyItems)
 	end

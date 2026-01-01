@@ -4,6 +4,7 @@
 
 require("TimedActions/ISBaseTimedAction")
 
+local Utilities = require("nshopsb42/utils/Utilities")
 local PlayerShop = SHOPSB42.PlayerShop
 local SharedLogger = require("nshopsb42/utils/SharedLogger")
 
@@ -49,7 +50,7 @@ function ISAddPlayerShopAction:complete()
 	SharedLogger.logAction("ISAddPlayerShopAction", "complete", "ENTRY - sprite=" .. tostring(self.sprite))
 
 	-- Server-only execution
-	if isMultiplayer() and not isServer() then
+	if not Utilities.IsServerOrSinglePlayer() then
 		SharedLogger.logAction("ISAddPlayerShopAction", "complete", "MP - exiting early, returning true")
 		return true
 	end

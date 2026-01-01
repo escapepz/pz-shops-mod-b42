@@ -1,15 +1,18 @@
 local Nfunction = require("nshopsb42/utils/Nfunction")
 local PlayerShop = require("nshopsb42/core/PlayerShop")
+local Utilities = require("nshopsb42/utils/Utilities")
 local PSServer = {}
 local PlayerShopStatus = {}
 
 function PSServer.ToggleBusy(player, args)
 	PlayerShopStatus[args[1]] = args[2]
-	sendServerCommand("PS", "ToggleBusy", args)
+	-- Broadcast to all players
+	Utilities.SendServerCommandToAll("PS", "ToggleBusy", args)
 end
 
 function PSServer.SyncStatusData(player, args)
-	sendServerCommand(player, "PS", "SyncStatusData", { PlayerShopStatus })
+	-- Send to specific player
+	Utilities.SendServerCommandTo(player, "PS", "SyncStatusData", { PlayerShopStatus })
 end
 
 local function getShopObject(coords)

@@ -118,10 +118,16 @@ local module = {}
 setmetatable(module, {
 	__index = function(self, key)
 		ensureInitialized()
+		if not ShopSpriteCursorUI then
+			error("[ShopSpriteCursorUI] Initialization failed - ShopSpriteCursorUI is nil")
+		end
 		return ShopSpriteCursorUI[key]
 	end,
 	__call = function(self, ...)
 		ensureInitialized()
+		if not ShopSpriteCursorUI then
+			error("[ShopSpriteCursorUI] Initialization failed - ShopSpriteCursorUI is nil")
+		end
 		return ShopSpriteCursorUI(...)
 	end,
 })

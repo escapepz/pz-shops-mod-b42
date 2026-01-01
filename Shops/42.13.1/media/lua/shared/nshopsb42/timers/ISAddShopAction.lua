@@ -46,7 +46,7 @@ function ISAddShopAction:complete()
 	SharedLogger.logAction("ISAddShopAction", "complete", "ENTRY - sprite=" .. tostring(self.sprite))
 
 	-- Server-only execution
-	if isMultiplayer() and not isServer() then
+	if not Utilities.IsServerOrSinglePlayer() then
 		SharedLogger.logAction("ISAddShopAction", "complete", "MP - exiting early, returning true")
 		return true
 	end
@@ -67,7 +67,7 @@ function ISAddShopAction:complete()
 	)
 
 	-- Admin validation (anti-cheat)
-	if not Utilities.IsClientAdmin(player) then
+	if not Utilities.IsPlayerAdmin(player) then
 		SharedLogger.log("Shops", "[ISAddShopAction:complete] Non-admin attempted shop placement, rejecting")
 		return false
 	end

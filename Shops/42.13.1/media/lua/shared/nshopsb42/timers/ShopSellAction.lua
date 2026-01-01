@@ -60,7 +60,7 @@ end
 function ShopSellAction:complete()
 	SharedLogger.logAction("ShopSellAction", "complete", "ENTRY - txnId=" .. tostring(self.sellList.txnId))
 	-- Server-only execution
-	if isMultiplayer() and not isServer() then
+	if not Utilities.IsServerOrSinglePlayer() then
 		SharedLogger.logAction("ShopSellAction", "complete", "MP - exiting early")
 		return true
 	end

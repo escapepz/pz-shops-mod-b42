@@ -16,10 +16,30 @@ local function generateTxnId()
 	return tostring(getGameTime():getWorldAgeHours()) .. "-" .. tostring(ZombRand(1, 1000000000))
 end
 
--- Calculate buy price using shared calculator with fallback
+-- Calculate buy price using shared calculator or calculated prices
 local function calcBuyPrice(itemId, player, basePrice)
 	if not basePrice then
 		return nil
+	end
+
+	-- Check if server calculated this price (server-only hooks)
+	local calculatedPrices = Shop.CalculatedPrices or {}
+	if calculatedPrices.buyPrices and calculatedPrices.buyPrices[itemId] then
+		local price = calculatedPrices.buyPrices[itemId]
+
+		-- DEBUG: Log price calculations for Base.Apple
+		if itemId == "Base.Apple" then
+			writeLog(
+				"Shops",
+				"[ShopUI:calcBuyPrice] Base.Apple: basePrice="
+					.. basePrice
+					.. ", calculated="
+					.. price
+					.. " (from server)"
+			)
+		end
+
+		return price
 	end
 
 	-- Try using shared calculator for preview
@@ -31,13 +51,48 @@ local function calcBuyPrice(itemId, player, basePrice)
 		price = basePrice
 	end
 
+	-- DEBUG: Log price calculations for Base.Apple
+	if itemId == "Base.Apple" then
+		writeLog(
+			"Shops",
+			"[ShopUI:calcBuyPrice] Base.Apple: basePrice="
+				.. basePrice
+				.. ", calculated="
+				.. price
+				.. ", modifiers count="
+				.. #modifiers
+		)
+	end
+
 	return price
 end
 
--- Calculate sell price using shared calculator with fallback
+-- Calculate sell price using shared calculator or calculated prices
 local function calcSellPrice(item, player, basePrice)
 	if not basePrice or not item then
 		return nil
+	end
+
+	local itemId = item:getFullType()
+
+	-- Check if server calculated this price (server-only hooks)
+	local calculatedPrices = Shop.CalculatedPrices or {}
+	if calculatedPrices.sellPrices and calculatedPrices.sellPrices[itemId] then
+		local price = calculatedPrices.sellPrices[itemId]
+
+		-- DEBUG: Log price calculations for Base.Apple
+		if itemId == "Base.Apple" then
+			writeLog(
+				"Shops",
+				"[ShopUI:calcSellPrice] Base.Apple: basePrice="
+					.. basePrice
+					.. ", calculated="
+					.. price
+					.. " (from server)"
+			)
+		end
+
+		return price
 	end
 
 	-- Try using shared calculator for preview
@@ -47,6 +102,19 @@ local function calcSellPrice(item, player, basePrice)
 	-- Fallback to base price if calculator returns nil (server-only)
 	if not price then
 		price = basePrice
+	end
+
+	-- DEBUG: Log price calculations for Base.Apple
+	if itemId == "Base.Apple" then
+		writeLog(
+			"Shops",
+			"[ShopUI:calcSellPrice] Base.Apple: basePrice="
+				.. basePrice
+				.. ", calculated="
+				.. price
+				.. ", modifiers count="
+				.. #modifiers
+		)
 	end
 
 	return price
@@ -95,6 +163,13 @@ function ShopUI:show(player, viewMode, shop)
 	ShopUI.instance.collapseButton:setVisible(false)
 	ShopUI.instance:addToUIManager()
 	ShopUI.instance:setVisible(true)
+
+	-- Check if prices changed while UI was closed
+	local ShopSyncClient = SHOPSB42.ShopSyncClient
+	if ShopSyncClient and ShopSyncClient.checkAndHandlePriceChanges then
+		ShopSyncClient.checkAndHandlePriceChanges()
+	end
+
 	return ShopUI.instance
 end
 
@@ -188,8 +263,10 @@ function ShopUI:doDrawCartItem(y, item, alt)
 			self:drawText("-" .. discountPct .. "%", priceX + 65, y + 8, 0.2, 1, 0.2, a, UIFont.Small)
 		else
 			-- No discount: show final price in white at X=280
+			-- If price is approximate, dim it (0.7, 0.7, 0.7 instead of 1, 1, 1)
 			local finalPriceFormatted = Currency.format(finalPrice)
-			self:drawText(finalPriceFormatted, priceX, y + 8, 1, 1, 1, a, UIFont.Small)
+			local priceColor = item.priceIsApproximate and 0.7 or 1
+			self:drawText(finalPriceFormatted, priceX, y + 8, priceColor, priceColor, priceColor, a, UIFont.Small)
 		end
 	end
 
@@ -922,7 +999,7 @@ function ShopUI:render()
 	local isShopAction = currentAction
 		and (currentAction._shopActionType == "buy" or currentAction._shopActionType == "sell")
 
-	if isShopAction then
+	if isShopAction and currentAction then
 		-- Action is running: draw progress
 		self._wasShopActionRunning = true
 		self:drawProgressBar((self.width / 2) + 180, 420, 120, 10, currentAction:getJobDelta(), self.fgBar)
@@ -1046,8 +1123,7 @@ end
 
 -- Phase 3.3: Debounce check before transaction dispatch
 function ShopUI:canDispatchAction()
-	if self._priceUpdateCooldown
-		and getTimestampMs() - self._priceUpdateCooldown < 300 then
+	if self._priceUpdateCooldown and getTimestampMs() - self._priceUpdateCooldown < 300 then
 		return false
 	end
 	return true
@@ -1068,7 +1144,9 @@ end
 
 -- Phase 3.5: Recalculate single row price lazily
 function ShopUI:recalculateRowPrice(row)
-	if not row then return end
+	if not row then
+		return
+	end
 
 	local player = self.player
 	local mods = Shop.PriceModifiers or {}
@@ -1084,23 +1162,31 @@ function ShopUI:recalculateRowPrice(row)
 
 	if not price then
 		price = row.basePrice or row.price
-		row:setPriceApproximate(true)
+		row.priceIsApproximate = true
 	else
-		row:setPriceApproximate(false)
+		row.priceIsApproximate = false
 	end
 
 	row.price = price
 	row.priceRevision = Shop.PriceHookRevision
-	row:updatePrice(price)
 end
 
 -- Phase 3.6: Row activation handler (called when row becomes visible)
 function ShopUI:onRowBecameVisible(row)
-	if not row then return end
+	if not row then
+		return
+	end
 
 	-- If row's price revision is stale, recalculate
 	if row.priceRevision ~= Shop.PriceHookRevision then
 		self:recalculateRowPrice(row)
+	end
+end
+
+-- Phase 3.7: Set whether price is approximate (estimated vs calculated)
+function ShopUI:setPriceApproximate(row, isApproximate)
+	if row then
+		row.priceIsApproximate = isApproximate
 	end
 end
 

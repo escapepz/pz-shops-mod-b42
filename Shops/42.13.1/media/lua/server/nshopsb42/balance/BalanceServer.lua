@@ -1,6 +1,7 @@
 local BServer = {}
 local BalanceAudit = require("nshopsb42/balance/BalanceAudit")
 local SharedLogger = require("nshopsb42/utils/SharedLogger")
+local Utilities = require("nshopsb42/utils/Utilities")
 
 local logfile = "timestamp_economy.log"
 local msg = ""
@@ -428,7 +429,7 @@ function BServer.Transfer(player, args)
 			coin = coin,
 			specialCoin = specialCoin,
 		}
-		sendServerCommand(recipientPlayer, "BS", "TransferReceived", noti)
+		Utilities.SendServerCommandTo(recipientPlayer, "BS", "TransferReceived", noti)
 	else
 		-- Offline path: enqueue mailbox entry
 		local mailbox = ModData.getOrCreate("nshopsb42_BalanceMailbox")
@@ -643,7 +644,7 @@ function BServer.ClaimMailbox(player, args)
 			fromMailbox = true,
 			entryCount = entryCount,
 		}
-		sendServerCommand(player, "BS", "MailboxReceived", noti)
+		Utilities.SendServerCommandTo(player, "BS", "MailboxReceived", noti)
 	end
 end
 

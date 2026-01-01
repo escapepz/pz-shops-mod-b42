@@ -151,7 +151,7 @@ function IncomeUI:createChildren()
 
 	-- Check wallet is linked before enabling income collection
 	if total > 0 or totalSpecial > 0 then
-		local account = Balance.getUserAccount(player:getUsername())
+		local account = Balance.getUserAccount(self.character:getUsername())
 		if account and account.linkedTo then
 			self.getButton.enable = true
 		else

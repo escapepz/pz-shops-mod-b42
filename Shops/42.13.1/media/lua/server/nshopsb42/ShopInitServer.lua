@@ -7,6 +7,7 @@ writeLog("Shops", "[ShopInitServer] Starting server shop initialization...")
 -- Load in explicit order to ensure dependencies are met
 -- First: Core constants and logger
 local SharedLogger = require("nshopsb42/utils/SharedLogger")
+local Utilities = require("nshopsb42/utils/Utilities")
 require("nshopsb42/core/Shop") -- Must be first to define Tab constants and Shop global
 
 -- Second: Registry implementation
@@ -44,25 +45,41 @@ function ShopInitServerModule.Initialize()
 	-- Trigger finalization (server-only)
 	SharedLogger.log("Shops", "[ShopInitServer] Calling ShopFinalizeHandler.finalizeNow()")
 	ShopFinalizeHandler.finalizeNow()
+
+	local TestPriceHooks = require("nshopsb42/TestPriceHooks")
+	TestPriceHooks.initialize()
+
+	local TestPriceHooksCommand = require("nshopsb42/TestPriceHooksCommand")
+	TestPriceHooksCommand.register()
 end
 
 -- NEW: Handle client requests for shop data (MP and SP)
 local function onClientCommand(module, command, player, data)
-	if module ~= "Shops" or command ~= "RequestShopData" then
+	if module ~= "Shops" then
+		return
+	end
+
+	if command ~= "RequestShopData" then
+		SharedLogger.log("Shops", "[ShopInitServer] Received non-RequestShopData command: " .. command)
 		return
 	end
 
 	SharedLogger.log("Shops", "[ShopInitServer] Received RequestShopData from " .. player:getUsername())
+	local shop = SHOPSB42.Shop
+	SharedLogger.log("Shops", "[ShopInitServer] Shop._finalized: " .. tostring(shop._finalized))
+	SharedLogger.log("Shops", "[ShopInitServer] Shop.PriceHookRevision: " .. tostring(shop.PriceHookRevision))
 
 	-- Use cached modifiers from finalization phase
+	SharedLogger.log("Shops", "[ShopInitServer] Calling sendShopDataToPlayer...")
 	ShopFinalizeHandler.sendShopDataToPlayer(player)
+	SharedLogger.log("Shops", "[ShopInitServer] sendShopDataToPlayer completed")
 end
 
 Events.OnClientCommand.Add(onClientCommand)
 
 -- NEW: Trigger finalization and build modifiers on game start (server context)
 local function onGameStartServer()
-	if isServer() then
+	if Utilities.IsServerOrSinglePlayer() then
 		SharedLogger.log("Shops", "[ShopInitServer] OnGameStart triggered on server")
 
 		-- Finalization already called in Initialize() via ShopDefaultItems.registerHooks()

@@ -61,7 +61,7 @@ end
 function ShopBuyAction:complete()
 	SharedLogger.logAction("ShopBuyAction", "complete", "ENTRY - txnId=" .. tostring(self.ticket.txnId))
 	-- Server-only execution
-	if isMultiplayer() and not isServer() then
+	if not Utilities.IsServerOrSinglePlayer() then
 		SharedLogger.logAction("ShopBuyAction", "complete", "MP - exiting early")
 		return true
 	end
@@ -164,7 +164,11 @@ function ShopBuyAction:complete()
 							sendAddItemToContainer(playerInv, newItem)
 							Nfunction.buildLogShop(packEntry.item)
 						else
-							SharedLogger.logAction("ShopBuyAction", "complete", "ERROR: Failed to instantiate item " .. tostring(packEntry.item))
+							SharedLogger.logAction(
+								"ShopBuyAction",
+								"complete",
+								"ERROR: Failed to instantiate item " .. tostring(packEntry.item)
+							)
 						end
 					end
 				end
@@ -178,15 +182,23 @@ function ShopBuyAction:complete()
 					-- Create the container item
 					local containerItem = instanceItem(entry.type)
 					if not containerItem then
-						SharedLogger.logAction("ShopBuyAction", "complete", 
-							"ERROR: Failed to instantiate container item " .. tostring(entry.type))
+						SharedLogger.logAction(
+							"ShopBuyAction",
+							"complete",
+							"ERROR: Failed to instantiate container item " .. tostring(entry.type)
+						)
 						return false
 					end
-					
+
 					local containerInv = containerItem:getInventory()
 					if not containerInv then
-						SharedLogger.logAction("ShopBuyAction", "complete", 
-							"ERROR: Container item " .. tostring(entry.type) .. " has no inventory (InventorySlots not defined?)")
+						SharedLogger.logAction(
+							"ShopBuyAction",
+							"complete",
+							"ERROR: Container item "
+								.. tostring(entry.type)
+								.. " has no inventory (InventorySlots not defined?)"
+						)
 						return false
 					end
 

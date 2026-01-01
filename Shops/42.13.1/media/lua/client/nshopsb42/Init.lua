@@ -57,8 +57,11 @@ local function onGameStart()
 
 	-- Request shop data from server (MP) or trigger sync (SP)
 	if Utilities.IsClientOrSinglePlayer() then
+		writeLog("Shops", "[Client Init] OnGameStart event triggered")
+		local isMP = isMultiplayer()
+		writeLog("Shops", "[Client Init] IsMultiplayer: " .. tostring(isMP))
 		sendClientCommand("Shops", "RequestShopData", {})
-		writeLog("Shops", "[Client Init] Requested shop data from server")
+		writeLog("Shops", "[Client Init] Sent RequestShopData command to server")
 	end
 end
 

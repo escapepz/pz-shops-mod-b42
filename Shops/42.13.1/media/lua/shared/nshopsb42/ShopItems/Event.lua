@@ -1,22 +1,22 @@
 -- Event items registration (SERVER ONLY)
 -- Deferred to avoid errors if Shop.RegisterItem not yet defined
 
-if isMultiplayer() and not isServer() then
-	return
-end
+local Utilities = require("nshopsb42/utils/Utilities")
 
-local Tab = SHOPSB42.Tab
-local Shop = SHOPSB42.Shop
-if Shop and Shop.RegisterItem then
-	Shop.RegisterItem("Base.HairDyeBlonde", {
-		tab = Tab.Event,
-		price = 5,
-		specialCoin = true,
-	})
+if Utilities.IsServerOrSinglePlayer() then
+	local Tab = SHOPSB42.Tab
+	local Shop = SHOPSB42.Shop
+	if Shop and Shop.RegisterItem then
+		Shop.RegisterItem("Base.HairDyeBlonde", {
+			tab = Tab.Event,
+			price = 5,
+			specialCoin = true,
+		})
 
-	Shop.RegisterItem("Base.Bag_BigHikingBag", {
-		tab = Tab.Event,
-		price = 5,
-		specialCoin = true,
-	})
+		Shop.RegisterItem("Base.Bag_BigHikingBag", {
+			tab = Tab.Event,
+			price = 5,
+			specialCoin = true,
+		})
+	end
 end

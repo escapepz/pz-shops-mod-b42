@@ -2,6 +2,8 @@
 -- Transaction audit logging system
 -- Extends SHOPSB42 namespace (no new globals)
 
+local Utilities = require("nshopsb42/utils/Utilities")
+
 SHOPSB42.ShopAudit = SHOPSB42.ShopAudit or {}
 local ShopAudit = SHOPSB42.ShopAudit
 
@@ -45,7 +47,7 @@ end
 -- Append a transaction entry to the audit log
 -- Safe to call from server-side TimedAction.complete()
 function ShopAudit.append(entry)
-	if isMultiplayer() and not isServer() then
+	if not Utilities.IsServerOrSinglePlayer() then
 		return
 	end
 
@@ -71,7 +73,7 @@ end
 
 -- Query log entries by transaction ID
 function ShopAudit.queryByTxnId(txnId)
-	if isMultiplayer() and not isServer() then
+	if not Utilities.IsServerOrSinglePlayer() then
 		return nil
 	end
 
@@ -91,7 +93,7 @@ end
 
 -- Query log entries by player username
 function ShopAudit.queryByPlayer(username)
-	if isMultiplayer() and not isServer() then
+	if not Utilities.IsServerOrSinglePlayer() then
 		return {}
 	end
 

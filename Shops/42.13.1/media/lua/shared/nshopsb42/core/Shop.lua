@@ -14,8 +14,9 @@ Shop.Tabs = Shop.Tabs or {}
 Shop.PlayerBuy = Shop.PlayerBuy or {}
 Shop.PlayerSell = Shop.PlayerSell or {}
 
--- Price hook revision counter (tracks mutations post-finalization)
-Shop.PriceHookRevision = 0
+-- Finalization and price hook state
+Shop._finalized = false -- Set to true when initialization complete; enables live price broadcasting
+Shop.PriceHookRevision = 0 -- Tracks mutations post-finalization
 
 -- Define Tab constants needed by all code
 Tab.Favorite = "Favorite"

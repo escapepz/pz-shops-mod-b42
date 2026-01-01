@@ -45,7 +45,7 @@ end
 function PlayerShopBuyAction:complete()
 	SharedLogger.logAction("PlayerShopBuyAction", "complete", "ENTRY")
 	-- Server-only: execute authoritative transaction
-	if isMultiplayer() and not isServer() then
+	if not Utilities.IsServerOrSinglePlayer() then
 		SharedLogger.logAction("PlayerShopBuyAction", "complete", "MP - exiting early")
 		return true
 	end

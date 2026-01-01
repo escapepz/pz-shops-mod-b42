@@ -178,6 +178,11 @@ function ISToolTipInv:render()
 		return
 	end
 
+	-- Skip rendering if no character is available (avoid null reference in Food.DoTooltip)
+	if not self.character then
+		return
+	end
+
 	injectTooltip(self)
 
 	local item = self.item

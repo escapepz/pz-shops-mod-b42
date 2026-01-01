@@ -71,7 +71,7 @@ function ShopTabUI:doDrawShopItem(y, item, alt)
 		if item.index == self.selectedRow and not self:isMouseOverScrollBar() and self:isMouseOver() then
 			local mouseX = self:getMouseX()
 			favTexture = self.parent.favNotCheckedTex
-			if mouseX > self.parent.favoriteButtonX and mouseX < (self.parent.favoriteButtonX + 20) then
+			if mouseX > 240 and mouseX < 260 then
 				favTexture = self.parent.favCheckedTex
 				favAlpha = 1
 			end
@@ -283,7 +283,7 @@ function ShopTabUI:onMouseMoveShopItem(dx, dy)
 	end
 	list.selectedRow = rowIndex
 	local mouseX = self:getMouseX()
-	if mouseX > self.parent.favoriteButtonX and mouseX < (self.parent.favoriteButtonX + 20) then
+	if mouseX > 240 and mouseX < 260 then
 		list.favoriteBtn = true
 	end
 	if mouseX > self.parent.addButtonX then

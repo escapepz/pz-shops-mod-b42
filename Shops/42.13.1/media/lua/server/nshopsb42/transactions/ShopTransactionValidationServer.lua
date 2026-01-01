@@ -27,7 +27,8 @@ function Validator.validateBuyPrice(player, itemId, clientPrice)
 	-- If server-only calculation, serverPrice will be nil
 	-- In that case, fall back to base price (server is authority)
 	if not serverPrice then
-		serverPrice = (Shop.Items[itemId] and Shop.Items[itemId].price) or 0
+		local itemData = Shop.Items[itemId]
+		serverPrice = (itemData and (itemData.basePrice or itemData.price)) or 0
 	end
 
 	-- Validate: allow small tolerance for rounding
@@ -70,7 +71,8 @@ function Validator.validateSellPrice(player, item, clientPrice)
 	-- In that case, fall back to base price (server is authority)
 	if not serverPrice then
 		local itemId = item:getFullType()
-		serverPrice = (Shop.PlayerSell[itemId] and Shop.PlayerSell[itemId].price) or 0
+		local sellData = Shop.PlayerSell[itemId]
+		serverPrice = (sellData and (sellData.basePrice or sellData.price)) or 0
 	end
 
 	-- Validate: allow small tolerance for rounding

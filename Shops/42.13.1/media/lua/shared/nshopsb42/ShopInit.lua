@@ -68,6 +68,10 @@ function Shop.FinalizeRegistry()
 	Shop.PlayerBuy = Shop.PlayerBuy or {}
 	for _, entry in ipairs(Shop._pendingRegistrations) do
 		validateItem(entry.id, entry.def)
+		-- Store base price separately so price can change without affecting base
+		if not entry.def.basePrice then
+			entry.def.basePrice = entry.def.price
+		end
 		Shop.Items[entry.id] = entry.def
 		-- Enable item for player buying
 		Shop.PlayerBuy[entry.id] = { enabled = true }

@@ -30,10 +30,10 @@ function Shop.resolvePlayerBuyPrice(player, itemId, context)
 	-- Check if player can buy this item (if not registered, allow with base price)
 	if not Shop.canPlayerBuy(itemId) then
 		SharedLogger.log("Shops", "[ShopPriceBuy] Item not in PlayerBuy registry: " .. itemId .. ", using base price")
-		return item.price
+		return item.basePrice or item.price
 	end
 
-	local base = item.price
+	local base = item.basePrice or item.price
 	local modifiers = {}
 
 	SharedLogger.log("Shops", "[ShopPriceBuy] resolvePlayerBuyPrice called: " .. itemId .. " base=" .. base)

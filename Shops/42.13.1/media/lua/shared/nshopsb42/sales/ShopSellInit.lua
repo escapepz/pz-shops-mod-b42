@@ -42,6 +42,10 @@ function Shop.FinalizeSellRegistry()
 	)
 	for _, entry in ipairs(Shop._sellPending) do
 		validateSellItem(entry.id, entry.def)
+		-- Store base price separately so price can change without affecting base
+		if entry.def.price and not entry.def.basePrice then
+			entry.def.basePrice = entry.def.price
+		end
 		Shop.PlayerSell[entry.id] = entry.def
 	end
 

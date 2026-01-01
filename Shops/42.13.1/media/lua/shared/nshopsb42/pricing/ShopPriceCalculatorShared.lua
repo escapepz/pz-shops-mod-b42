@@ -82,7 +82,8 @@ function Calculator.calcBuyPrice(itemId, player, modifiers)
 		return nil
 	end
 
-	local base = SHOPSB42.Shop.Items[itemId].price
+	local itemData = SHOPSB42.Shop.Items[itemId]
+	local base = itemData.basePrice or itemData.price
 
 	-- Check overrides first
 	if modifiers.buyOverrides and modifiers.buyOverrides[itemId] then
@@ -136,7 +137,8 @@ function Calculator.calcSellPrice(item, player, modifiers)
 		return nil
 	end
 
-	local base = SHOPSB42.Shop.PlayerSell[itemId].price
+	local sellData = SHOPSB42.Shop.PlayerSell[itemId]
+	local base = sellData.basePrice or sellData.price
 
 	-- Check overrides first
 	if modifiers.sellOverrides and modifiers.sellOverrides[itemId] then

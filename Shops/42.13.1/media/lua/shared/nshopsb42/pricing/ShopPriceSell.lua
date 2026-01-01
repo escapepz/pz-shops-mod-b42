@@ -17,7 +17,7 @@ function Shop.getPlayerSellPayout(fullType)
 	if not cfg then
 		return nil
 	end
-	return cfg.price, cfg.currency
+	return cfg.price or cfg.basePrice, cfg.currency
 end
 
 function Shop.resolvePlayerSellPrice(player, item, context)
@@ -29,7 +29,7 @@ function Shop.resolvePlayerSellPrice(player, item, context)
 	end
 
 	local rule = Shop.PlayerSell[id]
-	local base = rule.price
+	local base = rule.basePrice or rule.price
 
 	local modifiers = {}
 

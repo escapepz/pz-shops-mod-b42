@@ -36,8 +36,16 @@ function Validator.validateBuyPrice(player, itemId, clientPrice)
 		-- Price mismatch - reject transaction
 		SharedLogger.log(
 			"Shops",
-			"[SECURITY] Buy price mismatch for " .. player:getUsername()
-			.. ": itemId=" .. itemId .. " client=" .. clientPrice .. " server=" .. serverPrice .. " diff=" .. diff
+			"[SECURITY] Buy price mismatch for "
+				.. player:getUsername()
+				.. ": itemId="
+				.. itemId
+				.. " client="
+				.. clientPrice
+				.. " server="
+				.. serverPrice
+				.. " diff="
+				.. diff
 		)
 		return false, serverPrice, diff
 	end
@@ -71,8 +79,16 @@ function Validator.validateSellPrice(player, item, clientPrice)
 		-- Price mismatch - reject transaction
 		SharedLogger.log(
 			"Shops",
-			"[SECURITY] Sell price mismatch for " .. player:getUsername()
-			.. ": item=" .. item:getFullType() .. " client=" .. clientPrice .. " server=" .. serverPrice .. " diff=" .. diff
+			"[SECURITY] Sell price mismatch for "
+				.. player:getUsername()
+				.. ": item="
+				.. item:getFullType()
+				.. " client="
+				.. clientPrice
+				.. " server="
+				.. serverPrice
+				.. " diff="
+				.. diff
 		)
 		return false, serverPrice, diff
 	end

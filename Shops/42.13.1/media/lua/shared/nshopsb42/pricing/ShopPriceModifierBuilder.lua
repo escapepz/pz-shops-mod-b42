@@ -19,7 +19,7 @@ function Builder.buildPriceModifiers()
 		sellModifiers = {},
 		buyOverrides = {},
 		sellOverrides = {},
-		requiresServer = false  -- Flag: if true, client should not use cached prices
+		requiresServer = false, -- Flag: if true, client should not use cached prices
 	}
 
 	local buyHookCount = (ShopPriceEvents.OnShopModifyBuyPrice and #ShopPriceEvents.OnShopModifyBuyPrice or 0)

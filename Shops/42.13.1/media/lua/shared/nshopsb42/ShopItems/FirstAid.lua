@@ -8,9 +8,10 @@ end
 local Tab = SHOPSB42.Tab
 local Shop = SHOPSB42.Shop
 if Shop and Shop.RegisterItem then
-	Shop.RegisterItem("Base.SurvivalPack", {
+	Shop.RegisterItem("Shops.SurvivalPack", {
 		tab = Tab.FirstAid,
 		price = 100,
+		isVirtualBundle = true,
 		items = {
 			{ item = "Base.Antibiotics" },
 			{ item = "Base.PillsBeta" },

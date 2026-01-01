@@ -153,24 +153,65 @@ function ShopBuyAction:complete()
 	for _, entry in ipairs(ticket.items) do
 		local packItems = entry.items
 		if packItems then
-			-- Handle compound items (packs)
-			local drop = entry.drop
-			local square = drop and shopSquare or nil
-			local container = drop and nil or playerInv
-
-			for _, packEntry in ipairs(packItems) do
-				local quantity = packEntry.quantity or 1
-				for i = 1, quantity do
-					local newItem = instanceItem(packEntry.item)
-					if drop and square then
-						square:AddTileObject(newItem)
-						newItem:transmitCompleteItemToClients()
-					elseif container then
-						container:AddItem(newItem)
-						sendAddItemToContainer(container, newItem)
+			if entry.isVirtualBundle then
+				-- Handle virtual bundles - add items directly to inventory without container
+				for _, packEntry in ipairs(packItems) do
+					local packQuantity = packEntry.quantity or 1
+					for i = 1, packQuantity do
+						local newItem = instanceItem(packEntry.item)
+						if newItem then
+							playerInv:AddItem(newItem)
+							sendAddItemToContainer(playerInv, newItem)
+							Nfunction.buildLogShop(packEntry.item)
+						else
+							SharedLogger.logAction("ShopBuyAction", "complete", "ERROR: Failed to instantiate item " .. tostring(packEntry.item))
+						end
 					end
-					Nfunction.buildLogShop(packEntry.item)
 				end
+				-- Log bundle purchase
+				Nfunction.buildLogShop(entry.type, 1)
+			else
+				-- Handle compound items (packs) - create container with items inside
+				-- Only for items with actual InventorySlots defined
+				local quantity = entry.quantity or 1
+				for q = 1, quantity do
+					-- Create the container item
+					local containerItem = instanceItem(entry.type)
+					if not containerItem then
+						SharedLogger.logAction("ShopBuyAction", "complete", 
+							"ERROR: Failed to instantiate container item " .. tostring(entry.type))
+						return false
+					end
+					
+					local containerInv = containerItem:getInventory()
+					if not containerInv then
+						SharedLogger.logAction("ShopBuyAction", "complete", 
+							"ERROR: Container item " .. tostring(entry.type) .. " has no inventory (InventorySlots not defined?)")
+						return false
+					end
+
+					-- Add all pack items into the container
+					for _, packEntry in ipairs(packItems) do
+						local packQuantity = packEntry.quantity or 1
+						for i = 1, packQuantity do
+							local newItem = instanceItem(packEntry.item)
+							if newItem then
+								containerInv:AddItem(newItem)
+								Nfunction.buildLogShop(packEntry.item)
+							end
+						end
+					end
+
+					-- Add the populated container to player inventory or drop on ground
+					if entry.drop and shopSquare then
+						shopSquare:AddTileObject(containerItem)
+						containerItem:transmitCompleteItemToClients()
+					else
+						playerInv:AddItem(containerItem)
+						sendAddItemToContainer(playerInv, containerItem)
+					end
+				end
+				Nfunction.buildLogShop(entry.type, quantity)
 			end
 		else
 			-- Handle simple items

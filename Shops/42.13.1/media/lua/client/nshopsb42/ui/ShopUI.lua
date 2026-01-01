@@ -753,7 +753,7 @@ end
 function ShopUI:cancelBuyBtn()
 	-- ✓ SAFE: Use ISTimedActionQueue.clear() - the only correct way to cancel from UI
 	ISTimedActionQueue.clear(self.player)
-	
+
 	-- Reset action in progress flag and UI state
 	self.actionInProgress = false
 	self._wasShopActionRunning = false
@@ -797,8 +797,10 @@ function ShopUI:buildBuyTicket()
 			if item.items then
 				-- This is a pack item, store with items array
 				local packEntry = {
+					type = item.type,
 					items = {},
 					drop = item.drop,
+					isVirtualBundle = item.isVirtualBundle or false,
 				}
 				for _, packItem in ipairs(item.items) do
 					table.insert(packEntry.items, {
@@ -900,10 +902,11 @@ function ShopUI:render()
 	ISCollapsableWindow.render(self)
 	local actionQueue = ISTimedActionQueue.getTimedActionQueue(self.player)
 	local currentAction = actionQueue.current -- ✓ CRITICAL: Use queue.current, not queue[1]
-	
+
 	-- Check if this is a shop action (using marker field, not class identity)
-	local isShopAction = currentAction and (currentAction._shopActionType == "buy" or currentAction._shopActionType == "sell")
-	
+	local isShopAction = currentAction
+		and (currentAction._shopActionType == "buy" or currentAction._shopActionType == "sell")
+
 	if isShopAction then
 		-- Action is running: draw progress
 		self._wasShopActionRunning = true

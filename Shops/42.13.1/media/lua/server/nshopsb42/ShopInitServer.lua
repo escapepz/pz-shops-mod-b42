@@ -48,7 +48,9 @@ end
 
 -- NEW: Handle client requests for shop data (MP and SP)
 local function onClientCommand(module, command, player, data)
-	if module ~= "Shops" or command ~= "RequestShopData" then return end
+	if module ~= "Shops" or command ~= "RequestShopData" then
+		return
+	end
 
 	SharedLogger.log("Shops", "[ShopInitServer] Received RequestShopData from " .. player:getUsername())
 
@@ -62,7 +64,7 @@ Events.OnClientCommand.Add(onClientCommand)
 local function onGameStartServer()
 	if isServer() then
 		SharedLogger.log("Shops", "[ShopInitServer] OnGameStart triggered on server")
-		
+
 		-- Finalization already called in Initialize() via ShopDefaultItems.registerHooks()
 		-- But ensure it's finalized
 		ShopFinalizeHandler.finalizeNow()

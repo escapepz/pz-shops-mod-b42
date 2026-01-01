@@ -11,31 +11,35 @@ local Calculator = SHOPSB42.ShopPriceCalculatorShared
 -- Evaluate a condition descriptor
 -- Returns: boolean (whether condition is met)
 local function evaluateCondition(condition, player, item, context)
-	if not condition then return true end
+	if not condition then
+		return true
+	end
 
 	local kind = condition.kind
 
 	if kind == "always" then
 		return true
-
 	elseif kind == "difficulty_ge" then
 		local level = condition.params and condition.params.level or 1
 		return getGameDifficulty() >= level
-
 	elseif kind == "item_condition_ge" then
-		if not item then return true end
+		if not item then
+			return true
+		end
 		local percent = condition.params and condition.params.percent or 0
 		local ratio = item:getCondition() / item:getMaxCondition()
 		return (ratio * 100) >= percent
-
 	elseif kind == "player_trait" then
-		if not player then return false end
+		if not player then
+			return false
+		end
 		local traitName = condition.params and condition.params.traitName
-		if not traitName then return false end
+		if not traitName then
+			return false
+		end
 		return player:HasTrait(traitName)
-
 	elseif kind == "server_only" then
-		return false  -- Client cannot evaluate; should not reach here
+		return false -- Client cannot evaluate; should not reach here
 	end
 
 	return true
@@ -44,18 +48,18 @@ end
 -- Evaluate an effect descriptor and return resulting price
 -- Returns: number (the modified price)
 local function applyEffect(price, effect, item)
-	if not effect then return price end
+	if not effect then
+		return price
+	end
 
 	local kind = effect.kind
 
 	if kind == "multiply" then
 		local value = effect.value or 1
 		return price * value
-
 	elseif kind == "add" then
 		local value = effect.value or 0
 		return price + value
-
 	elseif kind == "set" then
 		local value = effect.value or price
 		return value
@@ -117,7 +121,9 @@ end
 function Calculator.calcSellPrice(item, player, modifiers)
 	modifiers = modifiers or {}
 
-	if not item then return nil end
+	if not item then
+		return nil
+	end
 
 	local itemId = item:getFullType()
 

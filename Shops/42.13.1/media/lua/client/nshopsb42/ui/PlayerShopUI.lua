@@ -467,11 +467,11 @@ end
 function PlayerShopUI:cancelBuyBtn()
 	-- ✓ SAFE: Use ISTimedActionQueue.clear() - the only correct way to cancel from UI
 	ISTimedActionQueue.clear(self.player)
-	
+
 	-- Reset action in progress flag and UI state
 	self.actionInProgress = false
 	self._wasPlayerShopActionRunning = false
-	
+
 	-- Restore buttons
 	self.buyCartButton.enable = true
 	self.buyCartButton:setVisible(true)
@@ -519,10 +519,10 @@ function PlayerShopUI:render()
 	ISCollapsableWindow.render(self)
 	local actionQueue = ISTimedActionQueue.getTimedActionQueue(self.player)
 	local currentAction = actionQueue.current -- ✓ CRITICAL: Use queue.current, not queue[1]
-	
+
 	-- Check if this is a player shop action (using marker field, not class identity)
 	local isPlayerShopAction = currentAction and currentAction._shopActionType == "playerBuy"
-	
+
 	if isPlayerShopAction then
 		-- Action is running: draw progress
 		self._wasPlayerShopActionRunning = true

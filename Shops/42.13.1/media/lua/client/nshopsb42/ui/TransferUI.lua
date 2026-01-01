@@ -347,10 +347,10 @@ function TransferUI:render()
 	ISCollapsableWindow.render(self)
 	local actionQueue = ISTimedActionQueue.getTimedActionQueue(self.player)
 	local currentAction = actionQueue.current -- ✓ CRITICAL: Use queue.current, not queue[1]
-	
+
 	-- Check if this is a transfer action (using marker field, not class identity)
 	local isTransferAction = currentAction and currentAction._shopActionType == "transfer"
-	
+
 	if isTransferAction then
 		-- Action is running: draw progress
 		self._wasTransferActionRunning = true

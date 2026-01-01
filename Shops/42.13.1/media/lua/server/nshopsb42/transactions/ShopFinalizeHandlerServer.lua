@@ -49,7 +49,9 @@ end
 
 -- NEW: Send data to a specific player (called when they connect)
 function ShopFinalizeHandler.sendShopDataToPlayer(player)
-	if not isServer() then return end
+	if not isServer() then
+		return
+	end
 
 	local Shop = SHOPSB42.Shop
 

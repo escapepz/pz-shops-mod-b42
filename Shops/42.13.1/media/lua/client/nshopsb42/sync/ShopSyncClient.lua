@@ -14,7 +14,9 @@ function ShopSyncClient.Initialize()
 end
 
 function ShopSyncClient.handleServerCommand(module, command, data)
-	if module ~= "Shops" then return end
+	if module ~= "Shops" then
+		return
+	end
 
 	local Shop = SHOPSB42.Shop
 
@@ -27,9 +29,10 @@ function ShopSyncClient.handleServerCommand(module, command, data)
 		Shop.SellIsWhitelist = data.SellIsWhitelist or false
 
 		local itemCount = 0
-		for _ in pairs(Shop.Items) do itemCount = itemCount + 1 end
+		for _ in pairs(Shop.Items) do
+			itemCount = itemCount + 1
+		end
 		SharedLogger.log("Shops", "[ShopSyncClient] Stored " .. itemCount .. " items")
-
 	elseif command == "SyncPriceModifiers" then
 		SharedLogger.log("Shops", "[ShopSyncClient] Received SyncPriceModifiers")
 		Shop.PriceModifiers = data or {}

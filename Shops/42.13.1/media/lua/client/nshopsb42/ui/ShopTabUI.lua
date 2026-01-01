@@ -4,6 +4,7 @@ local Shop = SHOPSB42.Shop
 local UIText = SHOPSB42.UIText
 local PreviewUI = SHOPSB42.PreviewUI
 local ContainerViewerUI = SHOPSB42.ContainerViewerUI
+local BundleViewerUI = SHOPSB42.BundleViewerUI
 local Tab = SHOPSB42.Tab
 local Currency = SHOPSB42.Currency
 ShopTabUI.SMALL_FONT_HGT = getTextManager():getFontFromEnum(UIFont.Small):getLineHeight()
@@ -149,6 +150,21 @@ function ShopTabUI:doDrawShopItem(y, item, alt)
 		)
 	end
 
+	-- Show browse button for virtual bundles
+	if item.item.isVirtualBundle and item.item.items then
+		self:drawTextureScaledAspect(
+			browseBtn.texture,
+			self.parent.previewButtonX,
+			y + 10,
+			browseBtn.scale,
+			browseBtn.scale,
+			1,
+			1,
+			1,
+			1
+		)
+	end
+
 	self:drawTextureScaledAspect(addBtn.texture, self.parent.addButtonX, y + 10, addBtn.scale, addBtn.scale, 1, 1, 1, 1)
 
 	if item.item.VehicleID then
@@ -176,16 +192,26 @@ function ShopTabUI:onMouseDownShopItem(x, y)
 	if ContainerViewerUI.instance then
 		ContainerViewerUI.instance:close()
 	end
+	if BundleViewerUI.instance then
+		BundleViewerUI.instance:close()
+	end
 	if self.selectedRow then
 		local selectedRow = self.items[self.selectedRow]
 		if not selectedRow then
 			return
 		end
 		if self.previewBtn then
+			-- Handle virtual bundle browse
+			if selectedRow.item.isVirtualBundle and selectedRow.item.items then
+				BundleViewerUI:show(selectedRow.item)
+				return
+			end
+			-- Handle container browse
 			if selectedRow.item.invItem and selectedRow.item.invItem:IsInventoryContainer() then
 				ContainerViewerUI:show(selectedRow.item.invItem)
 				return
 			end
+			-- Handle vehicle preview
 			if not selectedRow.item.VehicleID then
 				return
 			end

@@ -16,6 +16,7 @@ require("nshopsb42/balance/BalanceClient")
 
 -- UI components (load dependencies first, before components that depend on them)
 require("nshopsb42/ui/ContainerViewerUI")
+require("nshopsb42/ui/BundleViewerUI")
 require("nshopsb42/ui/PreviewUI")
 require("nshopsb42/ui/ShopUITooltip")
 require("nshopsb42/ui/SetPriceUI")

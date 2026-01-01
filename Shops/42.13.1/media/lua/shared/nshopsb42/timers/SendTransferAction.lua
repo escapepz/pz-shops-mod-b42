@@ -58,6 +58,7 @@ function SendTransferAction:new(character, coin, specialCoin, recipient)
 	o.coin = coin or 0
 	o.specialCoin = specialCoin or 0
 	o.recipient = recipient
+	o._shopActionType = "transfer" -- Marker field for UI type checking (avoids class identity issues)
 
 	o.stopOnWalk = false
 	o.stopOnRun = true

@@ -240,6 +240,7 @@ function ShopBuyAction:new(character, shop, ticket)
 	local square = shop:getSquare()
 	o.shopCoords = { x = square:getX(), y = square:getY(), z = square:getZ() }
 	o.ticket = ticket -- Lua table - serializable
+	o._shopActionType = "buy" -- Marker field for UI type checking (avoids class identity issues)
 	o.stopOnWalk = true
 	o.stopOnRun = true
 	o.maxTime = o:getDuration()

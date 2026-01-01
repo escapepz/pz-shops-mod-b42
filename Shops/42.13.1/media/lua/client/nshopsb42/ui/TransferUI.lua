@@ -19,6 +19,7 @@ TransferUI.TRANSFER_STATE_REJECTED = "rejected"
 TransferUI.TRANSFER_STATE_CANCELLED = "cancelled"
 TransferUI.rejectionTimeout = 5000 -- milliseconds
 TransferUI.COOLDOWN_MS = 1500 -- client-side UI cooldown (mirrors server minIntervalMs)
+TransferUI._wasTransferActionRunning = false -- State latch for race condition prevention
 
 local width = 280
 local height = 300
@@ -303,23 +304,16 @@ function TransferUI:cancelBtn()
 		return
 	end
 
+	-- ✓ SAFE: Use ISTimedActionQueue.clear() - the only correct way to cancel from UI
+	ISTimedActionQueue.clear(self.player)
+
 	self.state = self.TRANSFER_STATE_CANCELLED
 	self.transferInProgress = false
+	self._wasTransferActionRunning = false
 	self.sendButton.enable = true
 	self.sendButton:setVisible(true)
 	self.cancelButton.enable = false
 	self.cancelButton:setVisible(false)
-
-	-- Cancel only the timed action animation, not server mutation
-	local actionQueue = ISTimedActionQueue.getTimedActionQueue(self.player)
-	local currentAction = actionQueue.queue[1]
-	if not currentAction then
-		return
-	end
-	if not (currentAction.Type == "SendTransferAction") then
-		return
-	end
-	currentAction.action:forceStop()
 end
 
 function TransferUI:sendBtn()
@@ -352,16 +346,22 @@ end
 function TransferUI:render()
 	ISCollapsableWindow.render(self)
 	local actionQueue = ISTimedActionQueue.getTimedActionQueue(self.player)
-	local currentAction = actionQueue.queue[1]
-	if not currentAction then
-		self.transferInProgress = false
-		return
+	local currentAction = actionQueue.current -- ✓ CRITICAL: Use queue.current, not queue[1]
+	
+	-- Check if this is a transfer action (using marker field, not class identity)
+	local isTransferAction = currentAction and currentAction._shopActionType == "transfer"
+	
+	if isTransferAction then
+		-- Action is running: draw progress
+		self._wasTransferActionRunning = true
+		self:drawProgressBar(185, 240, 70, 10, currentAction:getJobDelta(), self.fgBar)
+	else
+		-- Action is not running: finalize UI state once (state latch prevents flickering)
+		if self._wasTransferActionRunning then
+			self._wasTransferActionRunning = false
+			self.transferInProgress = false
+		end
 	end
-	if not (currentAction.Type == "SendTransferAction") then
-		self.transferInProgress = false
-		return
-	end
-	self:drawProgressBar(185, 240, 70, 10, currentAction.action:getJobDelta(), self.fgBar)
 end
 
 function TransferUI:close()

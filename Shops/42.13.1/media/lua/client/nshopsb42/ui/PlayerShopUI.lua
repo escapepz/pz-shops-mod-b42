@@ -27,6 +27,7 @@ PlayerShopUI.total = 0
 PlayerShopUI.totalSpecial = 0
 PlayerShopUI.actionInProgress = false
 PlayerShopUI.cvUis = {}
+PlayerShopUI._wasPlayerShopActionRunning = false -- State latch for race condition prevention
 
 local removeBtn = Shop.textures.RemoveButton
 local previewBtn = Shop.textures.PreviewButton
@@ -464,19 +465,18 @@ function PlayerShopUI:clearCartBtn()
 end
 
 function PlayerShopUI:cancelBuyBtn()
+	-- ✓ SAFE: Use ISTimedActionQueue.clear() - the only correct way to cancel from UI
+	ISTimedActionQueue.clear(self.player)
+	
+	-- Reset action in progress flag and UI state
+	self.actionInProgress = false
+	self._wasPlayerShopActionRunning = false
+	
+	-- Restore buttons
 	self.buyCartButton.enable = true
 	self.buyCartButton:setVisible(true)
 	self.cancelBuyButton.enable = false
 	self.cancelBuyButton:setVisible(false)
-	local actionQueue = ISTimedActionQueue.getTimedActionQueue(self.player)
-	local currentAction = actionQueue.queue[1]
-	if not currentAction then
-		return
-	end
-	if not (currentAction.Type == "PlayerShopBuyAction") then
-		return
-	end
-	currentAction.action:forceStop()
 end
 
 function PlayerShopUI:buyCartBtn()
@@ -518,26 +518,27 @@ end
 function PlayerShopUI:render()
 	ISCollapsableWindow.render(self)
 	local actionQueue = ISTimedActionQueue.getTimedActionQueue(self.player)
-	local currentAction = actionQueue.queue[1]
-	if not currentAction then
-		-- Action completed: clear cart and reset buttons
-		if self.actionInProgress then
-			self.cartItems:clear()
-			self:updateTotal()
+	local currentAction = actionQueue.current -- ✓ CRITICAL: Use queue.current, not queue[1]
+	
+	-- Check if this is a player shop action (using marker field, not class identity)
+	local isPlayerShopAction = currentAction and currentAction._shopActionType == "playerBuy"
+	
+	if isPlayerShopAction then
+		-- Action is running: draw progress
+		self._wasPlayerShopActionRunning = true
+		self:drawProgressBar((self.width / 2) + 180, 420, 120, 10, currentAction:getJobDelta(), self.fgBar)
+	else
+		-- Action is not running: finalize UI state once (state latch prevents flickering)
+		if self._wasPlayerShopActionRunning then
+			self._wasPlayerShopActionRunning = false
+			-- Clear cart and reset buttons only on transition
+			if self.actionInProgress then
+				self.cartItems:clear()
+				self:updateTotal()
+			end
+			self.actionInProgress = false
 		end
-		self.actionInProgress = false
-		return
 	end
-	if not (currentAction.Type == "PlayerShopBuyAction") then
-		-- Different action type: clear shop action state
-		if self.actionInProgress then
-			self.cartItems:clear()
-			self:updateTotal()
-		end
-		self.actionInProgress = false
-		return
-	end
-	self:drawProgressBar((self.width / 2) + 180, 420, 120, 10, currentAction.action:getJobDelta(), self.fgBar)
 end
 
 function PlayerShopUI:updateTotal()

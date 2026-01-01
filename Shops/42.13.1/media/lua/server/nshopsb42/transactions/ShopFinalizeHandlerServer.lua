@@ -4,6 +4,7 @@
 -- In MP: Only server registers and finalizes; client receives data
 
 local SharedLogger = require("nshopsb42/utils/SharedLogger")
+local Builder = require("nshopsb42/pricing/ShopPriceModifierBuilder")
 
 local Shop = SHOPSB42.Shop
 local ShopEvents = SHOPSB42.ShopEvents
@@ -31,6 +32,43 @@ function ShopFinalizeHandler.finalizeNow()
 		SharedLogger.log("Shops", "[ShopFinalizeHandler] Finalizing sell registry...")
 		Shop.FinalizeSellRegistry()
 	end
+
+	-- NEW: Build and cache price modifiers server-side
+	SharedLogger.log("Shops", "[ShopFinalizeHandler] Building price modifiers...")
+	local priceModifiers = Builder.buildPriceModifiers()
+
+	-- Store on server for reuse during transactions
+	SHOPSB42.Shop.PriceModifiers = priceModifiers
+
+	if priceModifiers.requiresServer then
+		SharedLogger.log("Shops", "[ShopFinalizeHandler] WARNING: Some hooks require server-side calculation")
+	end
+
+	SharedLogger.log("Shops", "[ShopFinalizeHandler] Price modifiers built and cached")
+end
+
+-- NEW: Send data to a specific player (called when they connect)
+function ShopFinalizeHandler.sendShopDataToPlayer(player)
+	if not isServer() then return end
+
+	local Shop = SHOPSB42.Shop
+
+	-- Send shop items and config
+	local shopData = {
+		Items = Shop.Items,
+		PlayerBuy = Shop.PlayerBuy,
+		PlayerSell = Shop.PlayerSell,
+		BuyIsWhitelist = Shop.BuyIsWhitelist,
+		SellIsWhitelist = Shop.SellIsWhitelist,
+	}
+
+	sendServerCommandTo(player, "Shops", "SyncShopData", shopData)
+
+	-- Send cached price modifiers
+	local priceModifiers = Shop.PriceModifiers or {}
+	sendServerCommandTo(player, "Shops", "SyncPriceModifiers", priceModifiers)
+
+	SharedLogger.log("Shops", "[ShopFinalizeHandler] Synced shop data to " .. player:getUsername())
 end
 
 -- Register server-side event hooks for item loading

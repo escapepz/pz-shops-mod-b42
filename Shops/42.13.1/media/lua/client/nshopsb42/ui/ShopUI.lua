@@ -10,9 +10,46 @@ local ShopUITooltip = SHOPSB42.ShopUITooltip
 local ShopTabUI = SHOPSB42.ShopTabUI
 local ShopBuyAction = SHOPSB42.ShopBuyAction
 local ShopSellAction = SHOPSB42.ShopSellAction
+local Calculator = require("nshopsb42/pricing/ShopPriceCalculatorShared")
 
 local function generateTxnId()
 	return tostring(getGameTime():getWorldAgeHours()) .. "-" .. tostring(ZombRand(1, 1000000000))
+end
+
+-- Calculate buy price using shared calculator with fallback
+local function calcBuyPrice(itemId, player, basePrice)
+	if not basePrice then
+		return nil
+	end
+
+	-- Try using shared calculator for preview
+	local modifiers = Shop.PriceModifiers or {}
+	local price = Calculator.calcBuyPrice(itemId, player, modifiers)
+
+	-- Fallback to base price if calculator returns nil (server-only)
+	if not price then
+		price = basePrice
+	end
+
+	return price
+end
+
+-- Calculate sell price using shared calculator with fallback
+local function calcSellPrice(item, player, basePrice)
+	if not basePrice or not item then
+		return nil
+	end
+
+	-- Try using shared calculator for preview
+	local modifiers = Shop.PriceModifiers or {}
+	local price = Calculator.calcSellPrice(item, player, modifiers)
+
+	-- Fallback to base price if calculator returns nil (server-only)
+	if not price then
+		price = basePrice
+	end
+
+	return price
 end
 
 SHOPSB42.ShopUI = ISCollapsableWindow:derive("nshopsb42_ShopUI")
@@ -429,7 +466,10 @@ function ShopUI:onActivateView()
 						isSpecialCoin = v.specialCoin or false,
 						isBroken = isBroken,
 					}
-					local dynamicPrice = Shop.resolvePlayerSellPrice(character, item, context)
+					-- Use shared calculator for preview price
+					local calculatedPrice = calcSellPrice(item, character, price)
+					-- Fall back to old method if calculator unavailable
+					local dynamicPrice = calculatedPrice or Shop.resolvePlayerSellPrice(character, item, context)
 					v.price = dynamicPrice or price
 					v.id = item:getID()
 					v.name = Nfunction.trimString(item:getName(), 42)
@@ -463,7 +503,10 @@ function ShopUI:onActivateView()
 					isSpecialCoin = shopItemDef.specialCoin or false,
 					isBroken = false,
 				}
-				local dynamicPrice = Shop.resolvePlayerBuyPrice(character, k, context)
+				-- Use shared calculator for preview price
+				local calculatedPrice = calcBuyPrice(k, character, shopItemDef.price)
+				-- Fall back to old method if calculator unavailable
+				local dynamicPrice = calculatedPrice or Shop.resolvePlayerBuyPrice(character, k, context)
 				v.price = dynamicPrice or shopItemDef.price
 				v.basePrice = shopItemDef.price -- Store base price for discount display
 			end
@@ -522,7 +565,10 @@ function ShopUI:onActivateView()
 					isSpecialCoin = v.specialCoin or false,
 					isBroken = false,
 				}
-				local dynamicPrice = Shop.resolvePlayerBuyPrice(character, k, context)
+				-- Use shared calculator for preview price
+				local calculatedPrice = calcBuyPrice(k, character, v.price)
+				-- Fall back to old method if calculator unavailable
+				local dynamicPrice = calculatedPrice or Shop.resolvePlayerBuyPrice(character, k, context)
 				v.basePrice = v.price -- Store base price for discount display
 				v.price = dynamicPrice or v.price
 				shopItems:addItem(k, v)

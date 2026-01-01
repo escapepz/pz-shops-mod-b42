@@ -36,15 +36,29 @@ require("nshopsb42/patches/ISInventoryPagePatch")
 require("nshopsb42/patches/ISInventoryTransferActionPatch")
 require("nshopsb42/patches/ISToolTipInvPatch")
 
+-- Sync client for receiving shop data from server
+require("nshopsb42/sync/ShopSyncClient")
+
 -- Initialize player shop after all dependencies loaded
 PSClient.Initialize()
 
 -- Load sprite cursor UI on game start (when vanilla ISBuildingObject is available)
 -- Modules use lazy-load pattern: class derivation happens on first call
 local function onGameStart()
+	local Utilities = require("nshopsb42/utils/Utilities.lua")
 	local ShopSpriteCursorUIModule = require("nshopsb42/transactions/ShopSpriteCursorUI")
 	ShopSpriteCursorUIModule.ensureInitialized()
 	writeLog("Shops", "[Client Init] ShopSpriteCursorUI loaded and initialized")
+
+	-- Initialize shop sync client and request data from server
+	local ShopSyncClient = SHOPSB42.ShopSyncClient
+	ShopSyncClient.Initialize()
+
+	-- Request shop data from server (MP) or trigger sync (SP)
+	if Utilities.IsClientOrSinglePlayer() then
+		sendClientCommand("Shops", "RequestShopData", {})
+		writeLog("Shops", "[Client Init] Requested shop data from server")
+	end
 end
 
 Events.OnGameStart.Add(onGameStart)

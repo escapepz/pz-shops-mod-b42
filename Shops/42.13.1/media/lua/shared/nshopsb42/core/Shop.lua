@@ -14,6 +14,9 @@ Shop.Tabs = Shop.Tabs or {}
 Shop.PlayerBuy = Shop.PlayerBuy or {}
 Shop.PlayerSell = Shop.PlayerSell or {}
 
+-- Price hook revision counter (tracks mutations post-finalization)
+Shop.PriceHookRevision = 0
+
 -- Define Tab constants needed by all code
 Tab.Favorite = "Favorite"
 Tab.Sell = "Sell"

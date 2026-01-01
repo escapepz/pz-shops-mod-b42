@@ -17,6 +17,14 @@ local ShopFinalizeHandler = SHOPSB42.ShopFinalizeHandler
 
 ShopFinalizeHandler._finalizationAttempted = ShopFinalizeHandler._finalizationAttempted or false
 
+-- Callback for price hook mutations (Phase 1.2)
+local function onPriceHookAdded()
+	if Shop._finalized then
+		Shop.PriceHookRevision = Shop.PriceHookRevision + 1
+		ShopFinalizeHandler.resyncPriceModifiers()
+	end
+end
+
 function ShopFinalizeHandler.finalizeNow()
 	if ShopFinalizeHandler._finalizationAttempted then
 		return
@@ -45,6 +53,44 @@ function ShopFinalizeHandler.finalizeNow()
 	end
 
 	SharedLogger.log("Shops", "[ShopFinalizeHandler] Price modifiers built and cached")
+
+	-- Register hook listeners for post-finalization changes (Phase 1.2)
+	if ShopEvents.OnShopModifyBuyPrice then
+		ShopEvents.OnShopModifyBuyPrice:Add(onPriceHookAdded)
+	end
+	if ShopEvents.OnShopOverrideBuyPrice then
+		ShopEvents.OnShopOverrideBuyPrice:Add(onPriceHookAdded)
+	end
+	if ShopEvents.OnShopModifySellPrice then
+		ShopEvents.OnShopModifySellPrice:Add(onPriceHookAdded)
+	end
+	if ShopEvents.OnShopOverrideSellPrice then
+		ShopEvents.OnShopOverrideSellPrice:Add(onPriceHookAdded)
+	end
+
+	SharedLogger.log("Shops", "[ShopFinalizeHandler] Hook listeners registered")
+end
+
+-- Rebuild price modifiers and broadcast to all online players (Phase 1.3)
+function ShopFinalizeHandler.resyncPriceModifiers()
+	if not isServer() then return end
+
+	local modifiers = Builder.buildPriceModifiers()
+	Shop.PriceModifiers = modifiers
+
+	for _, player in ipairs(getOnlinePlayers()) do
+		sendServerCommandTo(
+			player,
+			"Shops",
+			"SyncPriceModifiers",
+			{
+				revision = Shop.PriceHookRevision,
+				modifiers = modifiers
+			}
+		)
+	end
+
+	SharedLogger.log("Shops", "[ShopFinalizeHandler] Price modifiers resynced to all players (revision: " .. Shop.PriceHookRevision .. ")")
 end
 
 -- NEW: Send data to a specific player (called when they connect)
@@ -68,7 +114,10 @@ function ShopFinalizeHandler.sendShopDataToPlayer(player)
 
 	-- Send cached price modifiers
 	local priceModifiers = Shop.PriceModifiers or {}
-	sendServerCommandTo(player, "Shops", "SyncPriceModifiers", priceModifiers)
+	sendServerCommandTo(player, "Shops", "SyncPriceModifiers", {
+		revision = Shop.PriceHookRevision,
+		modifiers = priceModifiers
+	})
 
 	SharedLogger.log("Shops", "[ShopFinalizeHandler] Synced shop data to " .. player:getUsername())
 end

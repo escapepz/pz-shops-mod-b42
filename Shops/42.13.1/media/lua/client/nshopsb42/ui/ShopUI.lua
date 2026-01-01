@@ -416,6 +416,11 @@ function ShopUI:onActivateView()
 	end
 	self.lastTab = tabType
 
+	-- Phase 3.6: Invalidate and recalc visible rows for new tab
+	for _, row in ipairs(self:getVisibleRows()) do
+		self:onRowBecameVisible(row)
+	end
+
 	if tabType == Tab.Sell then
 		tab.moveAllButton.enable = true
 		tab.moveAllButton:setVisible(true)
@@ -823,6 +828,11 @@ function ShopUI:buildBuyTicket()
 end
 
 function ShopUI:buyCartBtn()
+	-- Phase 3.3: Debounce check before dispatch
+	if not self:canDispatchAction() then
+		return
+	end
+
 	self.actionInProgress = true
 
 	local ticket = self:buildBuyTicket()
@@ -873,6 +883,11 @@ function ShopUI:buildSellList()
 end
 
 function ShopUI:sellCartBtn()
+	-- Phase 3.3: Debounce check before dispatch
+	if not self:canDispatchAction() then
+		return
+	end
+
 	-- Validate wallet is linked before starting sell
 	local username = self.player:getUsername()
 	local account = Balance.getUserAccount(username)
@@ -1016,6 +1031,88 @@ function ShopUI:close()
 	self:removeFromUIManager()
 end
 
+-- Phase 3.2: Cancel pending transactions
+function ShopUI:cancelPendingTransactions()
+	if self.activeTimedAction then
+		self.activeTimedAction:forceStop()
+		self.activeTimedAction = nil
+	end
+
+	self:setButtonsEnabled(false)
+
+	-- Optional short debounce (300ms)
+	self._priceUpdateCooldown = getTimestampMs()
+end
+
+-- Phase 3.3: Debounce check before transaction dispatch
+function ShopUI:canDispatchAction()
+	if self._priceUpdateCooldown
+		and getTimestampMs() - self._priceUpdateCooldown < 300 then
+		return false
+	end
+	return true
+end
+
+-- Helper: Set button enabled state
+function ShopUI:setButtonsEnabled(enabled)
+	if self.buyCartButton then
+		self.buyCartButton.enable = enabled
+	end
+	if self.sellCartButton then
+		self.sellCartButton.enable = enabled
+	end
+	if self.cancelBuyButton then
+		self.cancelBuyButton.enable = enabled
+	end
+end
+
+-- Phase 3.5: Recalculate single row price lazily
+function ShopUI:recalculateRowPrice(row)
+	if not row then return end
+
+	local player = self.player
+	local mods = Shop.PriceModifiers or {}
+
+	local price
+	if row.type then
+		-- Buy tab: calculate buy price for item type
+		price = Calculator.calcBuyPrice(row.type, player, mods)
+	elseif row.item and row.item.invItem then
+		-- Sell tab: calculate sell price for inventory item
+		price = Calculator.calcSellPrice(row.item.invItem, player, mods)
+	end
+
+	if not price then
+		price = row.basePrice or row.price
+		row:setPriceApproximate(true)
+	else
+		row:setPriceApproximate(false)
+	end
+
+	row.price = price
+	row.priceRevision = Shop.PriceHookRevision
+	row:updatePrice(price)
+end
+
+-- Phase 3.6: Row activation handler (called when row becomes visible)
+function ShopUI:onRowBecameVisible(row)
+	if not row then return end
+
+	-- If row's price revision is stale, recalculate
+	if row.priceRevision ~= Shop.PriceHookRevision then
+		self:recalculateRowPrice(row)
+	end
+end
+
+-- Helper: Get visible rows from current tab
+function ShopUI:getVisibleRows()
+	local tab = self.panel.activeView.view
+	if not tab or not tab.shopItems then
+		return {}
+	end
+	return tab.shopItems.items or {}
+end
+
 function ShopUI:new(x, y, width, height, player)
 	local o = {}
 	if x == 0 and y == 0 then
@@ -1029,5 +1126,9 @@ function ShopUI:new(x, y, width, height, player)
 	o.title = UIText.ShopUITitle
 	o.player = player
 	o.resizable = false
+
+	-- Phase 3.4: Initialize row price revision tracking
+	o._priceUpdateCooldown = nil
+
 	return o
 end

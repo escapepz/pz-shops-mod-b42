@@ -38,6 +38,7 @@ IGUI_EN = {
     IGUI_Shop_Total = "Total",
     IGUI_Shop_Balance = "Balance",
     IGUI_Shop_DropOnFloor = "* Items will drop on floor",
+    IGUI_Shop_PricesChanged = "Shop prices have changed.",
 
     IGUI_Balance_Link = "Link",
     IGUI_Balance_Unlink = "Unlink",

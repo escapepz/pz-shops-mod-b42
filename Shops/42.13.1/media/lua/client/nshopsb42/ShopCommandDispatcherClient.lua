@@ -95,6 +95,11 @@ function Commands.ClearShopSpriteDrag(args)
 		getWorld():getCell():setDrag(nil, 0)
 		SharedLogger.log("Shops", "[ShopCommandDispatcher:ClearShopSpriteDrag] Sprite drag cleared")
 	end
+
+	-- Clear the ShopSpriteCursorUI instance so rotation doesn't work on stale instance
+	if SHOPSB42.ShopSpriteCursorUI then
+		SHOPSB42.ShopSpriteCursorUI.instance = nil
+	end
 end
 
 -- =============================================================================

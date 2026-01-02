@@ -24,3 +24,5 @@ mklink /J "C:\Users\PC\Zomboid\mods\ShopsAdminTools" "D:\DATA\2025\ProjectZ-impr
 
 mklink /J "D:\DATA\2025\ProjectZ-improve\PZ Mods\project-zomboid-studio\Shopsb42.worktrees\wip\Logs\Server" "C:\Users\PC\Zomboid\Logs"
 mklink /J "D:\DATA\2025\ProjectZ-improve\PZ Mods\project-zomboid-studio\Shopsb42.worktrees\wip\Logs\Client" "C:\ZomboidClient1\Logs"
+
+mklink /J "D:\DATA\2025\ProjectZ-improve\PZ Mods\project-zomboid-studio\Shopsb42.worktrees\wip\tmp\Vanilla" "C:\Program Files (x86)\Steam\steamapps\common\ProjectZomboid\media\lua"

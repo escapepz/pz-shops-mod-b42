@@ -1,6 +1,18 @@
 # Agent Guidelines for Shopsb42
 
-use ./docs/B42.13_MP_Project_Zomboid_ API_for_Inventory_Items.md and ./docs/B42.13_MP_Migration_Guide.md as system context
+## General Principles
+
+- **Prefer serena tools**: Use serena tools first for all code operations (find, read, edit, insert, replace) to save tokens. Fall back to Amp tools only when serena cannot handle the task.
+
+## Documentation & API Reference
+
+- **Core Docs**: `./docs/B42.13_MP_Project_Zomboid_ API_for_Inventory_Items.md` and `./docs/B42.13_MP_Migration_Guide.md`
+- **PZ API Definitions**: `.libraries/library/lua/` - Contains PZ engine API type definitions and method signatures
+  - Use when unsure about correct method names (e.g., `square:getObjects()` not `square:getTileObjects()`)
+  - Check existing code in `Shops/` for working examples before relying on definitions
+- **Vanilla Game Code**: `tmp\Vanilla` - Extracted vanilla Project Zomboid Lua code for reference
+  - Search here to understand how the game implements core features (building, containers, inventory, etc.)
+  - Use as reference for proper API usage patterns and idioms
 
 ## Architecture & Structure
 - **Project type**: Lua mod for Project Zomboid Build 42.13.1
@@ -29,15 +41,27 @@ use ./docs/B42.13_MP_Project_Zomboid_ API_for_Inventory_Items.md and ./docs/B42.
   - SharedLogger automatically adds `[SERVER]` or `[CLIENT]` context to all messages
   - Only SharedLogger.lua is permitted to call the global `writeLog()` function internally
 
+## Environment
+
+- **Development OS**: Windows (no Unix tools available - use `dir`, `findstr` instead of `ls`, `grep`, `head`, `tail`)
+- **File paths**: Use Windows backslash separators (`\`) in bash commands or powershell
+- **File creation**: Avoid PowerShell for creating Lua files - it adds UTF-8 BOM which PZ cannot read. Use serena tools first (to save tokens), or Amp's `create_file` tool as fallback.
+
 ## Checking Game Logs
 
-When debugging, check the Shops mod logs in the `Logs/` directory:
+When debugging, check the Shops mod logs in the root `Logs/` directory only (do NOT search in nested folders):
 
-**Server logs:** `Logs/Server/*_Shops.txt` - Find the most recent file with `_Shops.txt` suffix
-**Client logs:** `Logs/Client/*_Shops.txt` - Find the most recent file with `_Shops.txt` suffix
+**Server logs:** `Logs/Server/*_Shops.txt` - Most recent file with `_Shops.txt` suffix in the root Server folder
+**Client logs:** `Logs/Client/*_Shops.txt` - Most recent file with `_Shops.txt` suffix in the root Client folder
 
-Example:
-- `Logs/Server/2026-01-02_17-23_Shops.txt`
-- `Logs/Client/2026-01-02_17-29_Shops.txt`
+Do NOT look in:
+- `Logs/Server/logs_YYYY-MM-DD/` (nested date folders)
+- `Logs/Client/logs_YYYY-MM-DD/` (nested date folders)
+
+Shops-specific logs appear as separate `*_Shops.txt` files directly in `Logs/Server/` or `Logs/Client/`, NOT in the dated subfolders.
+
+Example of correct paths:
+- `Logs/Server/2026-01-02_17-23_Shops.txt` (in root Server folder)
+- `Logs/Client/2026-01-02_17-29_Shops.txt` (in root Client folder)
 
 These files contain SharedLogger output for the Shops mod only (clean, structured logs).

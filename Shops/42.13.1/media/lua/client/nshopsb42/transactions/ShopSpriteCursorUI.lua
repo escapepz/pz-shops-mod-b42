@@ -36,6 +36,7 @@ local function ensureInitialized()
 		o.noNeedHammer = true
 		o.skipBuildAction = true
 		o.spriteIndex = 1
+		o.north = false -- Start with west (index 1), north=false; when toggled, index 2 = north=true
 		return o
 	end
 
@@ -89,16 +90,35 @@ local function ensureInitialized()
 		if key ~= getCore():getKey("Rotate building") then
 			return
 		end
-		local spriteIndex = ShopSpriteCursorUI.instance.spriteIndex
+
+		local instance = ShopSpriteCursorUI.instance
+		if not instance.sprites or #instance.sprites ~= 2 then
+			SharedLogger.log("Shops", "[ShopSpriteCursorUI:toggleSprites] KEY PRESSED but ERROR - sprites not set correctly (count=" .. (instance.sprites and #instance.sprites or "nil") .. ")")
+			return
+		end
+
+		-- Toggle between the two sprite variants (even/odd for rotation)
+		local spriteIndex = instance.spriteIndex
 		if spriteIndex == 2 then
 			spriteIndex = 1
 		else
 			spriteIndex = 2
 		end
-		local nextSprite = ShopSpriteCursorUI.instance.sprites[spriteIndex]
-		ShopSpriteCursorUI.instance.spriteIndex = spriteIndex
-		ShopSpriteCursorUI.instance:setSprite(nextSprite)
-		ShopSpriteCursorUI.instance:setNorthSprite(nextSprite)
+
+		local nextSprite = instance.sprites[spriteIndex]
+		instance.spriteIndex = spriteIndex
+		instance.north = (spriteIndex == 2) -- Index 1 = west (false), Index 2 = north (true)
+
+		SharedLogger.log(
+			"Shops",
+			"[ShopSpriteCursorUI:toggleSprites] ROTATION OK - sprite="
+				.. nextSprite
+				.. " north="
+				.. tostring(instance.north)
+		)
+
+		instance:setSprite(nextSprite)
+		instance:setNorthSprite(nextSprite)
 	end
 
 	-- Register key listener (always safe in client/ context)

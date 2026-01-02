@@ -134,12 +134,12 @@ function ISAddPlayerShopAction:complete()
 	shop:getModData().owner = player:getUsername()
 	shop:getModData().income = {}
 
-	-- Add to world using AddSpecialObject (matches old working pattern)
-	square:AddSpecialObject(shop)
-	SharedLogger.log("Shops", "[ISAddPlayerShopAction:complete] Shop added to special objects")
+	-- Add to world using AddTileObject (B42 standard for thumpables)
+	square:AddTileObject(shop)
+	SharedLogger.log("Shops", "[ISAddPlayerShopAction:complete] Shop added to tile")
 
-	-- Sync moddata to all clients
-	shop:transmitModData()
+	-- Transmit object and moddata to all clients
+	shop:transmitCompleteItemToClients()
 	SharedLogger.log("Shops", "[ISAddPlayerShopAction:complete] Transmitted to clients")
 
 	-- Remove item from inventory + sync (atomic with creation)

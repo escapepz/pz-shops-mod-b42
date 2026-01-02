@@ -90,24 +90,11 @@ function Commands.PlayerShopSyncStatusData(player, args)
 	-- Retrieve shop status from PlayerShopServer
 	local PlayerShopServer = require("nshopsb42/PlayerShopServer")
 	if PlayerShopServer.PlayerShopStatus then
-		Utilities.SendServerCommandTo(player, "nshopsb42", "PlayerShopSyncStatusData", { PlayerShopServer.PlayerShopStatus })
-	end
-end
-
-function Commands.PlayerShopRemoveItemFromInventory(player, args)
-	local itemID = args.itemID
-	if not itemID then
-		return
-	end
-
-	local item = player:getInventory():getItemById(itemID)
-	if item then
-		local container = item:getContainer()
-		container:Remove(item)
-		sendRemoveItemFromContainer(container, item)
-		SharedLogger.log(
-			"Shops",
-			"[ShopCommandDispatcher:PlayerShopRemoveItemFromInventory] Item removed - ID: " .. tostring(itemID)
+		Utilities.SendServerCommandTo(
+			player,
+			"nshopsb42",
+			"PlayerShopSyncStatusData",
+			{ PlayerShopServer.PlayerShopStatus }
 		)
 	end
 end
@@ -181,51 +168,124 @@ function Commands.PlayerShopRemoveItemFromInventory(player, args)
 end
 
 function Commands.PlayerShopPickupShop(player, args)
+	if not player or not args or not args[1] then
+		SharedLogger.log("Shops", "[ShopCommandDispatcher:PlayerShopPickupShop] REJECTED - invalid args")
+		return
+	end
+
 	local coords = args[1]
-	local square = getCell():getGridSquare(coords.x, coords.y, coords.z)
+	if not coords or not coords.x or not coords.y then
+		SharedLogger.log("Shops", "[ShopCommandDispatcher:PlayerShopPickupShop] REJECTED - invalid coords")
+		return
+	end
+
+	local cell = getCell()
+	if not cell then
+		SharedLogger.log("Shops", "[ShopCommandDispatcher:PlayerShopPickupShop] REJECTED - getCell() returned nil")
+		return
+	end
+
+	local square = cell:getGridSquare(coords.x, coords.y, coords.z)
 	if not square then
+		SharedLogger.log(
+			"Shops",
+			"[ShopCommandDispatcher:PlayerShopPickupShop] REJECTED - square not found at "
+				.. coords.x
+				.. ","
+				.. coords.y
+		)
 		return
 	end
 
 	local PlayerShop = require("nshopsb42/core/PlayerShop")
 	local shop = nil
-	for i = 0, square:getSpecialObjects():size() - 1 do
-		local o = square:getSpecialObjects():get(i)
-		local spriteStr = o:getSprite():getName()
-		if string.find(spriteStr, PlayerShop.spritePrefix) then
-			shop = o
+
+	-- Look in objects (where AddTileObject places items)
+	local objects = square:getObjects()
+	if not objects then
+		SharedLogger.log("Shops", "[ShopCommandDispatcher:PlayerShopPickupShop] REJECTED - getObjects() returned nil")
+		return
+	end
+
+	for i = 0, objects:size() - 1 do
+		local o = objects:get(i)
+		if not o then
 			break
+		end
+		if o:getSprite() then
+			local spriteStr = o:getSprite():getName()
+			if spriteStr and string.find(spriteStr, PlayerShop.spritePrefix) then
+				shop = o
+				break
+			end
 		end
 	end
 
 	if not shop then
+		SharedLogger.log(
+			"Shops",
+			"[ShopCommandDispatcher:PlayerShopPickupShop] REJECTED - shop not found at " .. coords.x .. "," .. coords.y
+		)
 		return
 	end
 
 	-- Check if shop is empty
-	local items = shop:getContainer():getItems()
-	if items and items:size() > 0 then
+	local container = shop:getContainer()
+	if not container then
+		SharedLogger.log("Shops", "[ShopCommandDispatcher:PlayerShopPickupShop] REJECTED - shop:getContainer() returned nil")
 		return
 	end
 
-	local income = shop:getModData().income
+	local items = container:getItems()
+	if items and items:size() > 0 then
+		SharedLogger.log("Shops", "[ShopCommandDispatcher:PlayerShopPickupShop] REJECTED - shop has items")
+		return
+	end
+
+	local modData = shop:getModData()
+	if not modData then
+		SharedLogger.log("Shops", "[ShopCommandDispatcher:PlayerShopPickupShop] REJECTED - shop:getModData() returned nil")
+		return
+	end
+
+	local income = modData.income
 	if income and #income > 0 then
+		SharedLogger.log("Shops", "[ShopCommandDispatcher:PlayerShopPickupShop] REJECTED - shop has income")
 		return
 	end
 
 	-- Get item type
 	local itemType = "Shops.PlayerShop"
-	if shop:getContainer():getType() == "freezer" then
+	local containerType = container:getType()
+	if containerType == "freezer" then
 		itemType = "Shops.PlayerShopFreezer"
 	end
 
 	-- Remove shop from world
-	shop:getSquare():transmitRemoveItemFromSquare(shop)
+	local shopSquare = shop:getSquare()
+	if not shopSquare then
+		SharedLogger.log("Shops", "[ShopCommandDispatcher:PlayerShopPickupShop] REJECTED - shop:getSquare() returned nil")
+		return
+	end
+	shopSquare:transmitRemoveItemFromSquare(shop)
+	SharedLogger.log("Shops", "[ShopCommandDispatcher:PlayerShopPickupShop] Shop removed from world")
 
 	-- Add item to player inventory
 	local newItem = instanceItem(itemType)
-	player:getInventory():AddItem(newItem)
-	sendAddItemToContainer(player:getInventory(), newItem)
+	if not newItem then
+		SharedLogger.log("Shops", "[ShopCommandDispatcher:PlayerShopPickupShop] REJECTED - instanceItem() returned nil")
+		return
+	end
+
+	local playerInv = player:getInventory()
+	if not playerInv then
+		SharedLogger.log("Shops", "[ShopCommandDispatcher:PlayerShopPickupShop] REJECTED - player:getInventory() returned nil")
+		return
+	end
+
+	playerInv:AddItem(newItem)
+	sendAddItemToContainer(playerInv, newItem)
+	SharedLogger.log("Shops", "[ShopCommandDispatcher:PlayerShopPickupShop] SUCCESS - item added to inventory")
 end
 
 -- =============================================================================

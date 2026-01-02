@@ -78,10 +78,18 @@ function ShopSyncClient.Initialize()
 	local Shop = SHOPSB42.Shop
 	Shop.BuyPriceRevision = nil
 	Shop.SellRuleRevision = nil
-	Shop.CalculatedPrices = {
-		buyPrices = {},
-		sellPrices = {},
-	}
+	
+	-- Initialize CalculatedPrices with proper namespace (Phase 3+)
+	-- Ensure we preserve any existing data and create stable references
+	Shop.CalculatedPrices = Shop.CalculatedPrices or {}
+	Shop.CalculatedPrices.buyPrices = Shop.CalculatedPrices.buyPrices or {}
+	Shop.CalculatedPrices.sellPrices = Shop.CalculatedPrices.sellPrices or {}
+	
+	-- Expose as top-level references for backward compatibility and direct access
+	-- This ensures ShopUI can access prices via Shop.BuyPrices directly
+	Shop.BuyPrices = Shop.CalculatedPrices.buyPrices
+	Shop.SellPrices = Shop.CalculatedPrices.sellPrices
+	
 	Shop.SellModifiers = {}
 	Shop.SellOverrides = {}
 
@@ -195,11 +203,25 @@ end
 -- Split refresh handlers (Phase 3.5)
 function ShopSyncClient.onBuyPricesChanged()
 	SharedLogger.log("Shops", "[ShopSyncClient] Buy prices changed, refreshing UI")
-	ShopSyncClient.refreshUIForPriceChange()
+	ShopSyncClient._notifyAndRefreshUI()
 end
 
 function ShopSyncClient.onSellRulesChanged()
 	SharedLogger.log("Shops", "[ShopSyncClient] Sell rules changed, refreshing UI")
+	ShopSyncClient._notifyAndRefreshUI()
+end
+
+-- Helper: Notify player and refresh UI (Phase 3.5)
+function ShopSyncClient._notifyAndRefreshUI()
+	-- 1. Notify player first
+	local player = getPlayer()
+	if player then
+		player:setHaloNote(getText("IGUI_Shop_PricesChanged") or "Shop prices have changed", 0, 255, 0, 400)
+	end
+
+	-- 2. Refresh UI (if UI is open)
+	-- - Invalidates caches for inactive tabs (will rebuild on activation)
+	-- - Recalculates visible rows in the active tab only
 	ShopSyncClient.refreshUIForPriceChange()
 end
 

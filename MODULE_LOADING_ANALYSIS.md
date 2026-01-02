@@ -2,25 +2,29 @@
 
 ## Critical Issues Found
 
-### 1. ✅ FIXED: Timed Action Classes in Shared Folder
-**Severity: HIGH** - These depend on `TimedActions/ISBaseTimedAction` (client-only)
+### 1. ✅ CORRECT: Timed Action Classes in Shared Folder
+**Status: CORRECT LOCATION**
 
-**Client-only modules in shared/** folder:
-- `Shops/42.13.1/media/lua/shared/nshopsb42/timers/ShopSellAction.lua` - Requires `TimedActions/ISBaseTimedAction`
-- `Shops/42.13.1/media/lua/shared/nshopsb42/timers/ShopBuyAction.lua` - Requires `TimedActions/ISBaseTimedAction`
-- `Shops/42.13.1/media/lua/shared/nshopsb42/timers/SendTransferAction.lua` - Requires `TimedActions/ISBaseTimedAction`
-- `Shops/42.13.1/media/lua/shared/nshopsb42/timers/PlayerShopBuyAction.lua` - Requires `TimedActions/ISBaseTimedAction`
-- `Shops/42.13.1/media/lua/shared/nshopsb42/timers/ISAddShopAction.lua` - Requires `TimedActions/ISBaseTimedAction`
-- `Shops/42.13.1/media/lua/shared/nshopsb42/timers/ISAddPlayerShopAction.lua` - Requires `TimedActions/ISBaseTimedAction`
+**Per B42.13 API Guide** (`docs/GUIDE/timedaction.md`, line 15):
+- **Timed Actions MUST be in `media/lua/shared` folder**
+- Reason: Actions execute `perform()` on client and `complete()` on server
+- Class definition must exist on **both sides** for NetAction reconstruction
 
-**Previous loading locations:**
-- ASharedInit.lua (lines 43-46) - Required on both server and client
-- AClientInit.lua (lines 18-20) - Duplicate loading
+**Timed action modules (correctly in shared/):**
+- `Shops/42.13.1/media/lua/shared/nshopsb42/timers/ShopSellAction.lua` ✅
+- `Shops/42.13.1/media/lua/shared/nshopsb42/timers/ShopBuyAction.lua` ✅
+- `Shops/42.13.1/media/lua/shared/nshopsb42/timers/SendTransferAction.lua` ✅
+- `Shops/42.13.1/media/lua/shared/nshopsb42/timers/PlayerShopBuyAction.lua` ✅
+- `Shops/42.13.1/media/lua/shared/nshopsb42/timers/ISAddShopAction.lua` ✅
+- `Shops/42.13.1/media/lua/shared/nshopsb42/timers/ISAddPlayerShopAction.lua` ✅
 
-**Status: ✅ FIXED**
-- Removed from ASharedInit.lua
-- Consolidated in AClientInit.lua (lines 18-21)
-- Added comment explaining they're client-only
+**Loading location:**
+- ASharedInit.lua (lines 43-49) ✅
+
+**Note**: ISBaseTimedAction dependency is fine because:
+- PZ engine loads all `.lua` files automatically (regardless of folder)
+- `require()` only controls execution order, not scope
+- ISBaseTimedAction is available on both client and server
 
 ---
 
@@ -68,12 +72,15 @@ These should load on both server and client:
 - `nshopsb42/patches/*.lua` (UI patches) ✅
 - `nshopsb42/PlayerShopClient.lua` ✅
 - `nshopsb42/transactions/ShopSpriteCursorUI.lua` ✅
-- **`nshopsb42/timers/ShopSellAction.lua`** ✅ (now client-only)
-- **`nshopsb42/timers/ShopBuyAction.lua`** ✅ (now client-only)
-- **`nshopsb42/timers/SendTransferAction.lua`** ✅ (now client-only)
-- **`nshopsb42/timers/PlayerShopBuyAction.lua`** ✅ (now client-only)
-- **`nshopsb42/timers/ISAddShopAction.lua`** ✅ (now client-only)
-- **`nshopsb42/timers/ISAddPlayerShopAction.lua`** ✅ (now client-only)
+
+### Shared Modules (Timed Actions - Special Case)
+Per B42.13 API guide, timed actions **must be shared**:
+- **`nshopsb42/timers/ShopSellAction.lua`** ✅ (shared - correct location)
+- **`nshopsb42/timers/ShopBuyAction.lua`** ✅ (shared - correct location)
+- **`nshopsb42/timers/SendTransferAction.lua`** ✅ (shared - correct location)
+- **`nshopsb42/timers/PlayerShopBuyAction.lua`** ✅ (shared - correct location)
+- **`nshopsb42/timers/ISAddShopAction.lua`** ✅ (shared - correct location)
+- **`nshopsb42/timers/ISAddPlayerShopAction.lua`** ✅ (shared - correct location)
 
 ---
 
@@ -139,9 +146,10 @@ All module loading follows correct patterns:
 
 ## Conclusion
 
-✅ **Status: CLEAN** (after fix)
+✅ **Status: CLEAN**
 
-All modules are loaded in correct contexts. The only issue (timed actions in shared) has been resolved by:
-1. Removing requires from ASharedInit.lua (lines 43-46)
-2. Adding requires to AClientInit.lua (lines 18-21) before UI components load
-3. Adding explanatory comments about why they're client-only
+All modules are loaded in correct contexts:
+- Timed actions are correctly in **shared/** folder (per B42.13 API guide)
+- They are loaded in ASharedInit.lua (lines 43-49)
+- This allows proper MP reconstruction with perform() on client and complete() on server
+- ISBaseTimedAction dependency is fine (engine loads all `.lua` files automatically)

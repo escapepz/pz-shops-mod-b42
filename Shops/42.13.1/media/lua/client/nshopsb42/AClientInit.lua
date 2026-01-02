@@ -14,12 +14,6 @@ local PSClient = require("nshopsb42/PlayerShopClient")
 
 require("nshopsb42/balance/BalanceClient")
 
--- Timed actions (required by UI components - client-only since they depend on ISBaseTimedAction)
-require("nshopsb42/timers/ShopSellAction")
-require("nshopsb42/timers/ShopBuyAction")
-require("nshopsb42/timers/SendTransferAction")
-require("nshopsb42/timers/PlayerShopBuyAction")
-
 -- UI components (load dependencies first, before components that depend on them)
 require("nshopsb42/ui/ContainerViewerUI")
 require("nshopsb42/ui/BundleViewerUI")

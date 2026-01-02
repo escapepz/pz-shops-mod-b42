@@ -39,9 +39,13 @@ require("nshopsb42/core/PlayerShop")
 require("nshopsb42/validation/InventoryTransferValidation")
 require("nshopsb42/utils/Nfunction")
 
--- Note: Timed actions (ShopBuyAction, ShopSellAction, SendTransferAction, PlayerShopBuyAction)
--- are now loaded in client/nshopsb42/AClientInit.lua instead of here, since they depend on
--- client-only ISBaseTimedAction class. Server does not need them.
+-- Timed actions (must be in shared folder for proper MP reconstruction)
+-- Per B42 API: Timed actions execute perform() on client and complete() on server
+-- Class definition must exist on both sides
+require("nshopsb42/timers/ShopBuyAction")
+require("nshopsb42/timers/ShopSellAction")
+require("nshopsb42/timers/SendTransferAction")
+require("nshopsb42/timers/PlayerShopBuyAction")
 
 -- Note: ShopSpriteCursorUI is now client-only (moved to client/ directory)
 -- It is loaded by client/nshopsb42/AClientInit.lua

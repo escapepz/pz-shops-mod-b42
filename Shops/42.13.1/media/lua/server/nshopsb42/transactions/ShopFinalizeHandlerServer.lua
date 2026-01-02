@@ -18,30 +18,64 @@ local ShopFinalizeHandler = SHOPSB42.ShopFinalizeHandler
 
 ShopFinalizeHandler._finalizationAttempted = ShopFinalizeHandler._finalizationAttempted or false
 
--- Helper: Calculate all item prices for server-only hooks (calculated once for all players)
+-- Track previous calculated prices for delta detection (Step 1)
+ShopFinalizeHandler._previousBuyPrices = {}
+ShopFinalizeHandler._previousSellPrices = {}
+
+-- Helper: Calculate prices for ONLY defined items in PlayerBuy + PlayerSell registries (Step 2)
 local function buildCalculatedPrices()
 	local calculatedPrices = {
 		buyPrices = {},
 		sellPrices = {},
 	}
 
-	-- Calculate buy prices for all items
-	-- Use nil player for generic calculation (hooks should not depend on specific player)
-	if Shop.Items then
-		for itemId, itemData in pairs(Shop.Items) do
-			local buyPrice = Shop.resolvePlayerBuyPrice(nil, itemId, { type = "sync" })
-			if buyPrice then
-				calculatedPrices.buyPrices[itemId] = buyPrice
+	-- ONLY calculate buy prices for defined items in PlayerBuy registry
+	if Shop.PlayerBuy then
+		for itemId, config in pairs(Shop.PlayerBuy) do
+			if config.enabled then
+				local buyPrice = Shop.resolvePlayerBuyPrice(nil, itemId, { type = "sync" })
+				if buyPrice then
+					calculatedPrices.buyPrices[itemId] = buyPrice
+				end
 			end
 		end
 	end
 
-	-- Calculate sell prices for all sell items
-	-- PlayerSell maps item IDs to sell configs, not actual item objects
-	-- For sell price calculation, we need item objects, so we skip this for now
-	-- The UI will calculate sell prices dynamically using inventory items
+	-- ONLY calculate sell prices for defined items in PlayerSell registry
+	-- (Note: Still need item objects for sell price hooks, may defer)
+	if Shop.PlayerSell then
+		for itemId, config in pairs(Shop.PlayerSell) do
+			if config.enabled and not config.blacklisted then
+				-- Sell price calculation deferred to client for now
+				-- Client will use modifiers from this broadcast
+			end
+		end
+	end
 
 	return calculatedPrices
+end
+
+-- Detect price changes by comparing new prices with previous state (Step 3)
+local function detectPriceChanges(newCalculatedPrices, previousPrices)
+	local changed = {}
+
+	-- Only check items in PlayerBuy registry (defined items)
+	if newCalculatedPrices.buyPrices then
+		for itemId, newPrice in pairs(newCalculatedPrices.buyPrices) do
+			if Shop.PlayerBuy[itemId] then -- ← Only registered items
+				local oldPrice = previousPrices[itemId]
+				if oldPrice ~= newPrice then
+					changed[itemId] = newPrice
+					SharedLogger.log(
+						"Shops",
+						"[PriceDelta] Changed: " .. itemId .. " from " .. tostring(oldPrice) .. " to " .. newPrice
+					)
+				end
+			end
+		end
+	end
+
+	return changed
 end
 
 -- Callback for price hook mutations (Phase 1.2)
@@ -52,7 +86,7 @@ local function onPriceHookAdded()
 	end
 end
 
--- Callback for runtime price hook changes (test hooks, live updates)
+-- Callback for runtime price hook changes (test hooks, live updates) (Step 4)
 function ShopFinalizeHandler.onPriceHooksChanged()
 	SharedLogger.log("Shops", "[ShopFinalizeHandler] onPriceHooksChanged() called")
 
@@ -72,21 +106,37 @@ function ShopFinalizeHandler.onPriceHooksChanged()
 	Shop.PriceModifiers = modifiers
 	SharedLogger.log("Shops", "[ShopFinalizeHandler] Rebuilt modifiers, rebuilding calculated prices...")
 
-	-- Calculate prices once (not per-player, since hooks don't vary by player)
+	-- Calculate prices for defined items only
 	local calculatedPrices = buildCalculatedPrices()
 
-	local buyPriceCount = 0
-	if calculatedPrices.buyPrices then
-		for _ in pairs(calculatedPrices.buyPrices) do
-			buyPriceCount = buyPriceCount + 1
+	-- Detect which prices actually changed from previous state (delta detection)
+	local changedPrices = detectPriceChanges(calculatedPrices, ShopFinalizeHandler._previousBuyPrices)
+
+	local changeCount = 0
+	for _ in pairs(changedPrices) do
+		changeCount = changeCount + 1
+	end
+
+	local definedItemCount = 0
+	if Shop.PlayerBuy then
+		for _ in pairs(Shop.PlayerBuy) do
+			definedItemCount = definedItemCount + 1
 		end
 	end
+
 	SharedLogger.log(
 		"Shops",
-		"[ShopFinalizeHandler] Calculated " .. buyPriceCount .. " buy prices, broadcasting to all players..."
+		"[ShopFinalizeHandler] Detected "
+			.. changeCount
+			.. " price changes out of "
+			.. definedItemCount
+			.. " defined items"
 	)
 
-	-- DEBUG: Log some calculated prices for verification
+	-- Store new prices for next comparison
+	ShopFinalizeHandler._previousBuyPrices = calculatedPrices.buyPrices or {}
+
+	-- DEBUG: Log sample changed prices
 	if calculatedPrices.buyPrices["Base.Apple"] then
 		SharedLogger.log(
 			"Shops",
@@ -94,11 +144,11 @@ function ShopFinalizeHandler.onPriceHooksChanged()
 		)
 	end
 
-	-- Broadcast to all players at once
+	-- Broadcast: Send modifiers (for sell calculations) + changed prices only (optimized)
 	Utilities.SendServerCommandToAll("Shops", "SyncPriceModifiers", {
 		revision = Shop.PriceHookRevision,
-		modifiers = modifiers,
-		calculatedPrices = calculatedPrices,
+		modifiers = modifiers, -- ← KEEP (needed for sell price hooks)
+		changed = changedPrices, -- ← OPTIMIZED: Only changed items
 	})
 
 	SharedLogger.log(
@@ -159,7 +209,7 @@ function ShopFinalizeHandler.finalizeNow()
 	SharedLogger.log("Shops", "[ShopFinalizeHandler] Finalization complete - live price hook broadcasting ENABLED")
 end
 
--- Rebuild price modifiers and broadcast to all online players (Phase 1.3)
+-- Rebuild price modifiers and broadcast to all online players (Phase 1.3) (Step 6)
 function ShopFinalizeHandler.resyncPriceModifiers()
 	if not Utilities.IsServerOrSinglePlayer() then
 		return
@@ -168,14 +218,18 @@ function ShopFinalizeHandler.resyncPriceModifiers()
 	local modifiers = Builder.buildPriceModifiers()
 	Shop.PriceModifiers = modifiers
 
-	-- Calculate prices once (not per-player, since hooks don't vary by player)
+	-- Calculate prices for defined items only
 	local calculatedPrices = buildCalculatedPrices()
 
-	-- Broadcast to all players at once
+	-- Detect changes for optimized broadcast
+	local changedPrices = detectPriceChanges(calculatedPrices, ShopFinalizeHandler._previousBuyPrices)
+	ShopFinalizeHandler._previousBuyPrices = calculatedPrices.buyPrices or {}
+
+	-- Broadcast to all players at once (optimized with delta)
 	Utilities.SendServerCommandToAll("Shops", "SyncPriceModifiers", {
 		revision = Shop.PriceHookRevision,
-		modifiers = modifiers,
-		calculatedPrices = calculatedPrices,
+		modifiers = modifiers, -- ← KEEP (needed for sell price hooks)
+		changed = changedPrices, -- ← OPTIMIZED: Only changed items
 	})
 
 	SharedLogger.log(
@@ -186,7 +240,7 @@ function ShopFinalizeHandler.resyncPriceModifiers()
 	)
 end
 
--- NEW: Send data to a specific player (called when they connect)
+-- NEW: Send data to a specific player (called when they connect) (Step 5)
 function ShopFinalizeHandler.sendShopDataToPlayer(player)
 	if not Utilities.IsServerOrSinglePlayer() then
 		SharedLogger.log("Shops", "[ShopFinalizeHandler] sendShopDataToPlayer not in server context, aborting")
@@ -219,7 +273,7 @@ function ShopFinalizeHandler.sendShopDataToPlayer(player)
 	Utilities.SendServerCommandTo(player, "Shops", "SyncShopData", shopData)
 	SharedLogger.log("Shops", "[ShopFinalizeHandler] SyncShopData sent")
 
-	-- Send cached price modifiers with calculated prices
+	-- Send cached price modifiers with calculated prices (initial sync: full prices)
 	local priceModifiers = Shop.PriceModifiers or {}
 	local calculatedPrices = buildCalculatedPrices()
 
@@ -227,10 +281,13 @@ function ShopFinalizeHandler.sendShopDataToPlayer(player)
 		"Shops",
 		"[ShopFinalizeHandler] Sending SyncPriceModifiers (revision: " .. tostring(Shop.PriceHookRevision or 0) .. ")"
 	)
+
+	-- Initial sync: Send full prices + modifiers
 	Utilities.SendServerCommandTo(player, "Shops", "SyncPriceModifiers", {
 		revision = Shop.PriceHookRevision,
-		modifiers = priceModifiers,
-		calculatedPrices = calculatedPrices,
+		modifiers = priceModifiers, -- ← KEEP (needed for sell price calculations)
+		calculatedPrices = calculatedPrices, -- ← Full prices on initial sync only
+		isInitialSync = true, -- ← Flag to client
 	})
 	SharedLogger.log("Shops", "[ShopFinalizeHandler] SyncPriceModifiers sent")
 

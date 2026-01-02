@@ -96,7 +96,6 @@ function ShopTabUI:doDrawShopItem(y, item, alt)
 	if item.item.price then
 		local basePrice = item.item.basePrice or item.item.price
 		local finalPrice = item.item.price
-		local discount = basePrice - finalPrice
 
 		local coinImg = Currency.CoinsTexture.Coin
 		if item.item.specialCoin then
@@ -109,21 +108,27 @@ function ShopTabUI:doDrawShopItem(y, item, alt)
 		-- Price section starts at 280, constrained to not overlap buttons
 		local priceX = 280
 
-		if discount > 0 then
-			-- Show base price (gray strikethrough) at X=305
-			local basePriceFormatted = Currency.format(basePrice)
-			self:drawText(basePriceFormatted, priceX, y + 8, 0.5, 0.5, 0.5, a, UIFont.Small)
+		local finalPriceFormatted = Currency.format(finalPrice)
 
-			-- Show final price (green) at X=340 (35px spacing)
-			local finalPriceFormatted = Currency.format(finalPrice)
-			self:drawText(finalPriceFormatted, priceX + 35, y + 8, 0.2, 1, 0.2, a, UIFont.Small)
+		if finalPrice ~= basePrice then
+			-- Price changed: finalPrice at original position, basePrice moves below
+			if finalPrice > basePrice then
+				-- Price increased: show finalPrice in white at top, basePrice grayed out below
+				self:drawText(finalPriceFormatted, priceX, y + 8, 1, 1, 1, a, UIFont.Small)
+				local basePriceFormatted = Currency.format(basePrice)
+				self:drawText(basePriceFormatted, priceX, y + 8 + self.SMALL_FONT_HGT, 0.3, 0.3, 0.3, a, UIFont.Small)
+			else
+				-- Price decreased: show finalPrice in green at top, basePrice grayed out below + discount %
+				self:drawText(finalPriceFormatted, priceX, y + 8, 0.2, 1, 0.2, a, UIFont.Small)
+				local basePriceFormatted = Currency.format(basePrice)
+				self:drawText(basePriceFormatted, priceX, y + 8 + self.SMALL_FONT_HGT, 0.3, 0.3, 0.3, a, UIFont.Small)
 
-			-- Show discount percentage at X=370 (65px spacing) - compact format
-			local discountPct = math.floor((discount / basePrice) * 100)
-			self:drawText("-" .. discountPct .. "%", priceX + 65, y + 8, 0.2, 1, 0.2, a, UIFont.Small)
+				local discount = basePrice - finalPrice
+				local discountPct = math.floor((discount / basePrice) * 100)
+				self:drawText("-" .. discountPct .. "%", priceX + 48, y + 8, 0.2, 1, 0.2, a, UIFont.Small)
+			end
 		else
-			-- No discount: show final price in white at X=305
-			local finalPriceFormatted = Currency.format(finalPrice)
+			-- No change: show final price in white at original position
 			self:drawText(finalPriceFormatted, priceX, y + 8, 1, 1, 1, a, UIFont.Small)
 		end
 	end

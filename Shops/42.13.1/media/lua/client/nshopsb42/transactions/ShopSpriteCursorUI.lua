@@ -135,12 +135,18 @@ setmetatable(module, {
 -- Also provide explicit methods for clarity
 function module:new(character, sprites)
 	ensureInitialized()
-	return ShopSpriteCursorUI:new(character, sprites)
+	if ShopSpriteCursorUI then
+		return ShopSpriteCursorUI:new(character, sprites)
+	end
+	return nil
 end
 
 function module:derive(name)
 	ensureInitialized()
-	return ShopSpriteCursorUI:derive(name)
+	if ShopSpriteCursorUI then
+		return ShopSpriteCursorUI:derive(name)
+	end
+	return nil
 end
 
 -- Expose initialization function for explicit control

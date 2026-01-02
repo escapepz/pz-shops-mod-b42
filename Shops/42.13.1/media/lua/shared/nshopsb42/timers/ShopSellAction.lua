@@ -150,9 +150,22 @@ function ShopSellAction:complete()
 	if total > 0 or totalSpecial > 0 then
 		-- Direct ModData manipulation since we're on server
 		-- Account existence already validated above, safe to access
+		SharedLogger.logAction(
+			"ShopSellAction",
+			"complete",
+			"Adding balance - total=" .. total .. ", totalSpecial=" .. totalSpecial
+		)
 		account.coin = account.coin + total
 		account.specialCoin = account.specialCoin + totalSpecial
+		SharedLogger.logAction(
+			"ShopSellAction",
+			"complete",
+			"Transmitting balance update - coin=" .. account.coin .. ", specialCoin=" .. account.specialCoin
+		)
 		ModData.transmit("CoinBalance")
+		SharedLogger.logAction("ShopSellAction", "complete", "Balance transmitted successfully")
+	else
+		SharedLogger.logAction("ShopSellAction", "complete", "No balance to add (total=0, totalSpecial=0)")
 	end
 
 	-- Mark transaction as processed

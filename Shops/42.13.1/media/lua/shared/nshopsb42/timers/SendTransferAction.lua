@@ -43,7 +43,7 @@ end
 
 function SendTransferAction:complete()
 	SharedLogger.logAction("SendTransferAction", "complete", "ENTRY - recipient=" .. tostring(self.recipient))
-	sendClientCommand(self.character, "BS", "Transfer", {
+	sendClientCommand(self.character, "nshopsb42", "BalanceTransfer", {
 		coin = self.coin,
 		specialCoin = self.specialCoin,
 		recipient = self.recipient,

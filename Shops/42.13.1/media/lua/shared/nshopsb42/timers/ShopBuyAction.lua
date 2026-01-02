@@ -76,6 +76,11 @@ function ShopBuyAction:complete()
 	end
 
 	-- Retrieve shop from world using stored coordinates
+	SharedLogger.logAction(
+		"ShopBuyAction",
+		"complete",
+		"Looking for shop at " .. self.shopCoords.x .. "," .. self.shopCoords.y .. "," .. self.shopCoords.z
+	)
 	local shop = Utilities.FindShopAtCoords(self.shopCoords.x, self.shopCoords.y, self.shopCoords.z, Shop.spritePrefix)
 	if not shop then
 		SharedLogger.logAction(
@@ -90,6 +95,7 @@ function ShopBuyAction:complete()
 		)
 		return false
 	end
+	SharedLogger.logAction("ShopBuyAction", "complete", "Shop found, proceeding with transaction")
 
 	-- Server-side proximity validation (enforce purchase-at-kiosk rule)
 	local shopSquare = shop:getSquare()
@@ -145,7 +151,13 @@ function ShopBuyAction:complete()
 
 	account.coin = account.coin - totalCoin
 	account.specialCoin = account.specialCoin - totalSpecialCoin
+	SharedLogger.logAction(
+		"ShopBuyAction",
+		"complete",
+		"Transmitting balance update - coin=" .. account.coin .. ", specialCoin=" .. account.specialCoin
+	)
 	ModData.transmit("CoinBalance")
+	SharedLogger.logAction("ShopBuyAction", "complete", "Balance transmitted successfully")
 
 	-- Spawn purchased items
 	local playerInv = self.character:getInventory()

@@ -207,7 +207,7 @@ function IncomeUI:getBtn()
 
 	account = Balance.getUserAccount(self.character:getUsername())
 	if account then
-		sendClientCommand(self.character, "BS", "VirtualDeposit", {
+		sendClientCommand(self.character, "nshopsb42", "BalanceVirtualDeposit", {
 			username = self.character:getUsername(),
 			coin = total,
 			specialCoin = totalSpecial,

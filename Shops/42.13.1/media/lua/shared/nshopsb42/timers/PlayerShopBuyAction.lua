@@ -153,7 +153,7 @@ function PlayerShopBuyAction:complete()
 
 	-- Step 5: Withdraw currency (server-initiated)
 	if totalCoin > 0 or totalSpecial > 0 then
-		sendClientCommand(self.character, "BS", "Withdraw", {
+		sendClientCommand(self.character, "nshopsb42", "BalanceWithdraw", {
 			coin = totalCoin,
 			specialCoin = totalSpecial,
 		})

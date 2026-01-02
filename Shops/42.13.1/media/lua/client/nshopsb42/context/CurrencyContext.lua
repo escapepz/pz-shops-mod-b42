@@ -63,7 +63,7 @@ function Currency.coinsToAccount(worldobjects, items, coinQuantity)
 		table.insert(itemIDs, v:getID())
 	end
 	-- Server will remove items from inventory after validation
-	sendClientCommand(player, "BS", "Deposit", {
+	sendClientCommand(player, "nshopsb42", "BalanceDeposit", {
 		coin = coinQuantity.coin,
 		specialCoin = coinQuantity.specialCoin,
 		itemIDs = itemIDs,
@@ -139,7 +139,7 @@ function Currency.linkWallet(worldobjects, wallet, player)
 			.. ", linkedTo="
 			.. tostring(wallet:getModData().linkedTo)
 	)
-	sendClientCommand(player, "BS", "CreateAccount", {
+	sendClientCommand(player, "nshopsb42", "BalanceCreateAccount", {
 		linkedTo = linkedTo,
 		walletID = wallet:getID(),
 	})
@@ -206,7 +206,7 @@ function Currency.unlinkWallet(worldobjects, wallet)
 			.. ", linkedTo="
 			.. tostring(wallet:getModData().linkedTo)
 	)
-	sendClientCommand(player, "BS", "UnlinkWallet", {
+	sendClientCommand(player, "nshopsb42", "BalanceUnlinkWallet", {
 		walletID = wallet:getID(),
 	})
 	-- Only request ModData in multiplayer - in SP the ModData is already available
@@ -260,7 +260,7 @@ end
 
 function Currency.claimOfflineMailbox(worldobjects, wallet, player)
 	local username = player:getUsername()
-	sendClientCommand(player, "BS", "ClaimMailbox", {
+	sendClientCommand(player, "nshopsb42", "BalanceClaimMailbox", {
 		walletID = wallet:getID(),
 	})
 	SharedLogger.log("Shops", string.format("[CLIENT] Claim Offline Mailbox: Requested for %s", username))

@@ -58,7 +58,7 @@ function Balance.deposit(username, coin, specialCoin)
 		return
 	end
 
-	sendClientCommand(getPlayer(), "shops", "VirtualDeposit", {
+	sendClientCommand(getPlayer(), "nshopsb42", "BalanceVirtualDeposit", {
 		username = username,
 		coin = coin,
 		specialCoin = specialCoin,

@@ -54,7 +54,7 @@ PSClient.Initialize()
 -- Initialize state flags for server handshake in SHOPSB42 namespace
 SHOPSB42.serverReady = false
 SHOPSB42.hasRequestedData = false
-SHOPSB42.hasReceivedData = false  -- Set by dispatcher when SyncShopData arrives
+SHOPSB42.hasReceivedData = false -- Set by dispatcher when SyncShopData arrives
 SHOPSB42.requestRetryCount = 0
 SHOPSB42.lastRequestTick = 0
 
@@ -90,7 +90,7 @@ local function onGameStart()
 		SHOPSB42.hasRequestedData = true
 		SHOPSB42.requestRetryCount = 0
 		SHOPSB42.lastRequestTick = 0
-		
+
 		-- First, test with a minimal command
 		local success0, err0 = pcall(function()
 			sendClientCommand("nshopsb42", "TestPing", {})
@@ -101,7 +101,7 @@ local function onGameStart()
 		else
 			SharedLogger.log("Shops", "[Client Init onGameStart] ERROR sending TestPing: " .. tostring(err0))
 		end
-		
+
 		-- Then send the actual request
 		local success, err = pcall(function()
 			sendClientCommand("nshopsb42", "RequestShopData", {})
@@ -120,26 +120,33 @@ end
 -- Retry RequestShopData every 60 ticks (3 seconds) if not received from server
 -- This handles the case where the initial send was silently dropped
 local function onPlayerUpdateRetry(player)
-	if not player or SHOPSB42.hasReceivedData then return end
-	
-	if not SHOPSB42.hasRequestedData then return end
-	
+	if not player or SHOPSB42.hasReceivedData then
+		return
+	end
+
+	if not SHOPSB42.hasRequestedData then
+		return
+	end
+
 	local SharedLogger = SHOPSB42.SharedLogger
 	SHOPSB42.lastRequestTick = SHOPSB42.lastRequestTick + 1
-	
+
 	-- Retry every 60 ticks (approximately 3 seconds), max 3 retries
 	if SHOPSB42.lastRequestTick >= 60 and SHOPSB42.requestRetryCount < 3 then
 		SHOPSB42.requestRetryCount = SHOPSB42.requestRetryCount + 1
 		SHOPSB42.lastRequestTick = 0
-		
+
 		local success, err = pcall(function()
 			sendClientCommand("nshopsb42", "RequestShopData", {})
 		end)
-		
+
 		if success then
 			SharedLogger.log("Shops", "[Client] RequestShopData retry #" .. SHOPSB42.requestRetryCount)
 		else
-			SharedLogger.log("Shops", "[Client] ERROR on retry #" .. SHOPSB42.requestRetryCount .. ": " .. tostring(err))
+			SharedLogger.log(
+				"Shops",
+				"[Client] ERROR on retry #" .. SHOPSB42.requestRetryCount .. ": " .. tostring(err)
+			)
 		end
 	end
 end

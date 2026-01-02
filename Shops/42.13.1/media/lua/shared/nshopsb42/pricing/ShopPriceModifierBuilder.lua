@@ -9,8 +9,7 @@ SHOPSB42.ShopPriceModifierBuilder = SHOPSB42.ShopPriceModifierBuilder or {}
 local Builder = SHOPSB42.ShopPriceModifierBuilder
 
 -- Build price modifier data from registered hooks
--- For server-only mode: calculates actual prices for all items using hooks
--- Returns {buyOverrides, sellOverrides, requiresServer}
+-- Returns {buyOverrides, sellOverrides, buyModifiers, sellModifiers, requiresServer}
 function Builder.buildPriceModifiers()
 	local Shop = SHOPSB42.Shop
 	local ShopPriceEvents = SHOPSB42.ShopPriceEvents
@@ -18,6 +17,8 @@ function Builder.buildPriceModifiers()
 	local modifiers = {
 		buyOverrides = {},
 		sellOverrides = {},
+		buyModifiers = {},
+		sellModifiers = {}, -- Serializable rules for sell price preview
 		requiresServer = false, -- Flag: if true, client should not use cached prices
 	}
 
@@ -31,20 +32,68 @@ function Builder.buildPriceModifiers()
 		"[PriceModifierBuilder] Registered hooks - Buy: " .. buyHookCount .. ", Sell: " .. sellHookCount
 	)
 
-	-- If hooks are registered, we mark prices as server-only (opaque hook functions)
-	-- The actual price calculation happens server-side via resolvePlayerBuyPrice / resolvePlayerSellPrice
-	if buyHookCount > 0 or sellHookCount > 0 then
+	-- Extract serializable sell modifier rules from TestPriceHooks (if available)
+	local TestPriceHooks = SHOPSB42.TestPriceHooks
+	if TestPriceHooks and TestPriceHooks.sellModifierRules then
+		-- Filter and copy rules where multiplier != 1.0 (active modifiers)
+		for _, rule in ipairs(TestPriceHooks.sellModifierRules) do
+			if rule.effect and rule.effect.value and rule.effect.value ~= 1.0 then
+				-- Deep copy the rule to avoid shared references
+				local ruleCopy = {
+					itemId = rule.itemId,
+					type = rule.type,
+					priority = rule.priority,
+					condition = rule.condition,
+					effect = { kind = rule.effect.kind, value = rule.effect.value },
+				}
+				table.insert(modifiers.sellModifiers, ruleCopy)
+				SharedLogger.log(
+					"Shops",
+					"[PriceModifierBuilder] Added sell modifier rule for "
+						.. rule.itemId
+						.. " (multiplier="
+						.. rule.effect.value
+						.. ")"
+				)
+			end
+		end
+	end
+
+	-- Extract serializable sell override rules from TestPriceHooks (if available)
+	if TestPriceHooks and TestPriceHooks.sellOverrideRules then
+		for itemId, price in pairs(TestPriceHooks.sellOverrideRules) do
+			if price ~= nil then
+				modifiers.sellOverrides[itemId] = price
+				SharedLogger.log(
+					"Shops",
+					"[PriceModifierBuilder] Added sell override rule for " .. itemId .. " (price=" .. price .. ")"
+				)
+			end
+		end
+	end
+
+	-- Buy hooks require server-only prices (cannot serialize hook functions)
+	if buyHookCount > 0 then
 		modifiers.requiresServer = true
+		SharedLogger.log("Shops", "[PriceModifierBuilder] Buy hooks require server-only price calculation")
+	end
+
+	-- Sell hooks are now represented as serializable rules (don't require server for preview)
+	if sellHookCount > 0 and #modifiers.sellModifiers == 0 and #modifiers.sellOverrides == 0 then
+		-- If sell hooks are registered but no rules extracted, mark as server-only
+		modifiers.requiresServer = true
+		SharedLogger.log("Shops", "[PriceModifierBuilder] Sell hooks registered but not serializable - server-only")
+	elseif #modifiers.sellModifiers > 0 or #modifiers.sellOverrides > 0 then
 		SharedLogger.log(
 			"Shops",
-			"[PriceModifierBuilder] Detected "
-				.. buyHookCount
-				.. " buy hooks and "
-				.. sellHookCount
-				.. " sell hooks - marking prices as server-only"
+			"[PriceModifierBuilder] Sell modifiers available for client preview ("
+				.. #modifiers.sellModifiers
+				.. " rules, "
+				.. #modifiers.sellOverrides
+				.. " overrides)"
 		)
 	else
-		SharedLogger.log("Shops", "[PriceModifierBuilder] No hooks registered - using base prices")
+		SharedLogger.log("Shops", "[PriceModifierBuilder] No price hooks registered - using base prices")
 	end
 
 	return modifiers

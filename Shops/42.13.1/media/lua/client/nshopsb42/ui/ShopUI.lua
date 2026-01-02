@@ -32,10 +32,10 @@ local function calcBuyPrice(itemId, player, basePrice)
 			writeLog(
 				"Shops",
 				"[ShopUI:calcBuyPrice] Base.Apple: basePrice="
-				.. basePrice
-				.. ", calculated="
-				.. price
-				.. " (from server)"
+					.. basePrice
+					.. ", calculated="
+					.. price
+					.. " (from server)"
 			)
 		end
 
@@ -56,11 +56,11 @@ local function calcBuyPrice(itemId, player, basePrice)
 		writeLog(
 			"Shops",
 			"[ShopUI:calcBuyPrice] Base.Apple: basePrice="
-			.. basePrice
-			.. ", calculated="
-			.. price
-			.. ", modifiers count="
-			.. #modifiers
+				.. basePrice
+				.. ", calculated="
+				.. price
+				.. ", modifiers count="
+				.. #modifiers
 		)
 	end
 
@@ -85,18 +85,21 @@ local function calcSellPrice(item, player, basePrice)
 			writeLog(
 				"Shops",
 				"[ShopUI:calcSellPrice] Base.Apple: basePrice="
-				.. basePrice
-				.. ", calculated="
-				.. price
-				.. " (from server)"
+					.. basePrice
+					.. ", calculated="
+					.. price
+					.. " (from server)"
 			)
 		end
 
 		return price
 	end
 
-	-- Try using shared calculator for preview
-	local modifiers = Shop.PriceModifiers or {}
+	-- Try using shared calculator for preview (Phase 4.1: use separate modifiers)
+	local modifiers = {
+		sellModifiers = Shop.SellModifiers or {},
+		sellOverrides = Shop.SellOverrides or {},
+	}
 	local price = Calculator.calcSellPrice(item, player, modifiers)
 
 	-- Fallback to base price if calculator returns nil (server-only)
@@ -109,11 +112,11 @@ local function calcSellPrice(item, player, basePrice)
 		writeLog(
 			"Shops",
 			"[ShopUI:calcSellPrice] Base.Apple: basePrice="
-			.. basePrice
-			.. ", calculated="
-			.. price
-			.. ", modifiers count="
-			.. #modifiers
+				.. basePrice
+				.. ", calculated="
+				.. price
+				.. ", modifiers count="
+				.. #modifiers
 		)
 	end
 

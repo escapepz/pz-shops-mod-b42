@@ -74,20 +74,76 @@ end
 
 -- Register server command handlers
 function ShopSyncClient.Initialize()
-	-- Phase 2.2: Initialize client revision tracking
+	-- Phase 3.1: Initialize independent revision tracking
 	local Shop = SHOPSB42.Shop
-	Shop.PriceHookRevision = nil -- Initially unknown
-	Shop.PriceModifiers = {}
+	Shop.BuyPriceRevision = nil
+	Shop.SellRuleRevision = nil
 	Shop.CalculatedPrices = {
 		buyPrices = {},
 		sellPrices = {},
 	}
+	Shop.SellModifiers = {}
+	Shop.SellOverrides = {}
 
 	-- Track if prices changed while UI was closed
 	ShopSyncClient.pricesChangedWhileClosed = false
 
 	Events.OnServerCommand.Add(ShopSyncClient.handleServerCommand)
 	SharedLogger.log("Shops", "[ShopSyncClient] Initialized - event listener registered for OnServerCommand")
+end
+
+-- Handle SyncBuyPrices broadcast (Phase 3.3)
+function ShopSyncClient.handleSyncBuyPrices(data)
+	SharedLogger.log("Shops", "[ShopSyncClient] Received SyncBuyPrices from server")
+
+	local Shop = SHOPSB42.Shop
+	local oldRevision = Shop.BuyPriceRevision
+	local newRevision = data.revision or 0
+
+	Shop.BuyPriceRevision = newRevision
+
+	if data.isInitialSync then
+		-- Initial sync: store all prices
+		Shop.CalculatedPrices.buyPrices = data.buyPrices or {}
+		SharedLogger.log("Shops", "[ShopSyncClient] Initial BUY price sync (rev=" .. newRevision .. ")")
+	elseif data.buyPrices then
+		-- Delta update: merge changed prices
+		for itemId, price in pairs(data.buyPrices) do
+			Shop.CalculatedPrices.buyPrices[itemId] = price
+		end
+		SharedLogger.log(
+			"Shops",
+			"[ShopSyncClient] Delta BUY price update (rev=" .. tostring(oldRevision) .. "->" .. newRevision .. ")"
+		)
+	end
+
+	-- Trigger UI refresh if revision changed
+	if oldRevision ~= nil and newRevision ~= oldRevision then
+		ShopSyncClient.onBuyPricesChanged()
+	end
+end
+
+-- Handle SyncSellRules broadcast (Phase 3.4)
+function ShopSyncClient.handleSyncSellRules(data)
+	SharedLogger.log("Shops", "[ShopSyncClient] Received SyncSellRules from server")
+
+	local Shop = SHOPSB42.Shop
+	local oldRevision = Shop.SellRuleRevision
+	local newRevision = data.revision or 0
+
+	Shop.SellRuleRevision = newRevision
+	Shop.SellModifiers = data.sellModifiers or {}
+	Shop.SellOverrides = data.sellOverrides or {}
+
+	SharedLogger.log(
+		"Shops",
+		"[ShopSyncClient] SELL rules updated (rev=" .. tostring(oldRevision) .. "->" .. newRevision .. ")"
+	)
+
+	-- Trigger UI refresh if revision changed
+	if oldRevision ~= nil and newRevision ~= oldRevision then
+		ShopSyncClient.onSellRulesChanged()
+	end
 end
 
 function ShopSyncClient.handleServerCommand(module, command, data)
@@ -127,79 +183,24 @@ function ShopSyncClient.handleServerCommand(module, command, data)
 			local price = Shop.PlayerBuy["Base.Apple"].price or "unknown"
 			SharedLogger.log("Shops", "[ShopSyncClient] Base.Apple found in PlayerBuy (price=" .. price .. ")")
 		end
-	elseif command == "SyncPriceModifiers" then
-		SharedLogger.log("Shops", "[ShopSyncClient] Received SyncPriceModifiers from server")
-
-		-- Phase 2.1: Detect revision changes
-		local newRevision = data.revision or 0
-		local oldRevision = Shop.PriceHookRevision
-		local revisionChanged = Shop.PriceHookRevision ~= nil and newRevision ~= Shop.PriceHookRevision
-
-		Shop.PriceHookRevision = newRevision
-
-		-- Always update modifiers (needed for sell price calculations) (Step 7)
-		if data.modifiers then
-			Shop.PriceModifiers = data.modifiers
-			SharedLogger.log("Shops", "[CLIENT] [ShopSyncClient] Updated price modifiers for sell calculations")
-		end
-
-		-- Handle both full sync (initial) and delta updates (Step 7)
-		local calculatedPricesUpdated = false
-
-		if data.isInitialSync then
-			-- Initial sync: full prices for all defined items (don't trigger UI refresh yet)
-			SharedLogger.log("Shops", "[CLIENT] [ShopSyncClient] Initial sync - storing full prices (no UI refresh)")
-			Shop.CalculatedPrices = data.calculatedPrices or { buyPrices = {}, sellPrices = {} }
-			-- Don't set calculatedPricesUpdated = true for initial sync (UI not ready)
-		elseif data.changed then
-			-- Delta update: only changed prices (Step 7)
-			SharedLogger.log("Shops", "[CLIENT] [ShopSyncClient] Delta update - updating changed prices")
-			if not Shop.CalculatedPrices then
-				Shop.CalculatedPrices = { buyPrices = {}, sellPrices = {} }
-			end
-
-			-- Update only changed items
-			for itemId, newPrice in pairs(data.changed) do
-				Shop.CalculatedPrices.buyPrices[itemId] = newPrice
-				SharedLogger.log(
-					"Shops",
-					"[CLIENT] [ShopSyncClient] Updated price for " .. itemId .. " to " .. newPrice
-				)
-			end
-			calculatedPricesUpdated = true
-		end
-
-		local modCount = 0
-		if Shop.PriceModifiers then
-			if Shop.PriceModifiers.buyModifiers then
-				modCount = modCount + #Shop.PriceModifiers.buyModifiers
-			end
-			if Shop.PriceModifiers.sellModifiers then
-				modCount = modCount + #Shop.PriceModifiers.sellModifiers
-			end
-		end
-
-		SharedLogger.log(
-			"Shops",
-			"[ShopSyncClient] Revision: "
-				.. tostring(oldRevision)
-				.. " -> "
-				.. newRevision
-				.. ", modifiers: "
-				.. modCount
-		)
-
-		-- Trigger UI refresh if revision changed OR calculated prices were updated
-		if revisionChanged or calculatedPricesUpdated then
-			SharedLogger.log("Shops", "[ShopSyncClient] Price data changed, triggering onPriceHooksChanged()")
-			ShopSyncClient.pricesChangedWhileClosed = true
-			ShopSyncClient.onPriceHooksChanged()
-		else
-			SharedLogger.log("Shops", "[ShopSyncClient] Price hook revision same or first time, no reaction needed")
-		end
+	elseif command == "SyncBuyPrices" then
+		ShopSyncClient.handleSyncBuyPrices(data)
+	elseif command == "SyncSellRules" then
+		ShopSyncClient.handleSyncSellRules(data)
 	else
-		SharedLogger.log("Shops", "[ShopSyncClient] Received unknown command: " .. command)
+		SharedLogger.log("Shops", "[ShopSyncClient] Unknown command: " .. command)
 	end
+end
+
+-- Split refresh handlers (Phase 3.5)
+function ShopSyncClient.onBuyPricesChanged()
+	SharedLogger.log("Shops", "[ShopSyncClient] Buy prices changed, refreshing UI")
+	ShopSyncClient.refreshUIForPriceChange()
+end
+
+function ShopSyncClient.onSellRulesChanged()
+	SharedLogger.log("Shops", "[ShopSyncClient] Sell rules changed, refreshing UI")
+	ShopSyncClient.refreshUIForPriceChange()
 end
 
 -- Handler for price hook changes (Phase 3.1 + 3.7)

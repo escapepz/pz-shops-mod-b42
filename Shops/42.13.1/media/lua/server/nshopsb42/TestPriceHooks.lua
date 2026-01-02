@@ -18,6 +18,31 @@ TestPriceHooks.batSellMultiplier = 1.0 -- Baseball bat sell price multiplier
 TestPriceHooks.appleOverrideBuyPrice = nil -- Override buy price for Apple (nil = disabled)
 TestPriceHooks.batOverrideSellPrice = nil -- Override sell price for BaseballBat (nil = disabled)
 
+-- Serializable sell modifier rules (for client-side UI preview)
+TestPriceHooks.sellModifierRules = {
+	-- Bat sell price multiplier rule
+	{
+		itemId = "Base.BaseballBat",
+		type = "sell",
+		priority = 50,
+		condition = { kind = "always" },
+		effect = { kind = "multiply", value = 1.0 }, -- Will be updated dynamically
+	},
+	-- Apple sell price multiplier rule (for testing)
+	{
+		itemId = "Base.Apple",
+		type = "sell",
+		priority = 50,
+		condition = { kind = "always" },
+		effect = { kind = "multiply", value = 1.0 }, -- Will be updated dynamically
+	},
+}
+
+TestPriceHooks.sellOverrideRules = {
+	-- Baseball Bat sell price override
+	-- Base.BaseballBat = nil, -- Will be set when override is active
+}
+
 -- Initialize test hooks (call from server init)
 function TestPriceHooks.initialize()
 	SharedLogger.log("Shops", "[TestPriceHooks] Initializing test hooks for Base.Apple (buy and sell)")
@@ -87,7 +112,10 @@ function TestPriceHooks.overrideAppleBuyPrice(itemId, price)
 
 	SharedLogger.log(
 		"Shops",
-		"[TestPriceHooks] Overriding buy price for Base.Apple: " .. price .. " -> " .. TestPriceHooks.appleOverrideBuyPrice
+		"[TestPriceHooks] Overriding buy price for Base.Apple: "
+			.. price
+			.. " -> "
+			.. TestPriceHooks.appleOverrideBuyPrice
 	)
 	return TestPriceHooks.appleOverrideBuyPrice
 end
@@ -130,7 +158,8 @@ function TestPriceHooks.modifyBatSellPrice(item, basePrice, modifiers)
 	table.insert(modifiers, { multiplier = TestPriceHooks.batSellMultiplier })
 	SharedLogger.log(
 		"Shops",
-		"[TestPriceHooks] Applied sell price modifier to Base.BaseballBat: multiplier=" .. TestPriceHooks.batSellMultiplier
+		"[TestPriceHooks] Applied sell price modifier to Base.BaseballBat: multiplier="
+			.. TestPriceHooks.batSellMultiplier
 	)
 end
 
@@ -150,7 +179,10 @@ function TestPriceHooks.overrideBatSellPrice(item, price)
 
 	SharedLogger.log(
 		"Shops",
-		"[TestPriceHooks] Overriding sell price for Base.BaseballBat: " .. price .. " -> " .. TestPriceHooks.batOverrideSellPrice
+		"[TestPriceHooks] Overriding sell price for Base.BaseballBat: "
+			.. price
+			.. " -> "
+			.. TestPriceHooks.batOverrideSellPrice
 	)
 	return TestPriceHooks.batOverrideSellPrice
 end
@@ -246,6 +278,18 @@ function TestPriceHooks.setBatSellMultiplier(multiplier)
 		"[TestPriceHooks] TestPriceHooks.batSellMultiplier=" .. tostring(TestPriceHooks.batSellMultiplier)
 	)
 
+	-- Update serializable rule for client-side preview
+	for _, rule in ipairs(TestPriceHooks.sellModifierRules) do
+		if rule.itemId == "Base.BaseballBat" then
+			rule.effect.value = multiplier
+			SharedLogger.log(
+				"Shops",
+				"[TestPriceHooks] Updated serializable rule for Base.BaseballBat: multiplier=" .. multiplier
+			)
+			break
+		end
+	end
+
 	-- Notify Shops that hooks changed
 	local ShopFinalizeHandler = SHOPSB42.ShopFinalizeHandler
 	if ShopFinalizeHandler == nil then
@@ -280,6 +324,13 @@ function TestPriceHooks.setBatOverrideSellPrice(price)
 	SharedLogger.log(
 		"Shops",
 		"[TestPriceHooks] TestPriceHooks.batOverrideSellPrice=" .. tostring(TestPriceHooks.batOverrideSellPrice)
+	)
+
+	-- Update serializable override rule for client-side preview
+	TestPriceHooks.sellOverrideRules["Base.BaseballBat"] = price
+	SharedLogger.log(
+		"Shops",
+		"[TestPriceHooks] Updated serializable override rule for Base.BaseballBat: price=" .. price
 	)
 
 	-- Notify Shops that hooks changed
@@ -343,6 +394,12 @@ function TestPriceHooks.disable()
 	TestPriceHooks.batSellMultiplier = 1.0
 	TestPriceHooks.appleOverrideBuyPrice = nil
 	TestPriceHooks.batOverrideSellPrice = nil
+
+	-- Reset serializable rules
+	for _, rule in ipairs(TestPriceHooks.sellModifierRules) do
+		rule.effect.value = 1.0 -- Reset multiplier to 1.0 (no modification)
+	end
+	TestPriceHooks.sellOverrideRules = {} -- Clear all overrides
 
 	SharedLogger.log("Shops", "[TestPriceHooks] Test hooks disabled (all modifiers and overrides reset)")
 

@@ -751,3 +751,5 @@ end
 
 -- Event listeners consolidated into ShopCommandDispatcherServer
 -- BS_OnClientCommand logic is now handled by unified dispatcher
+
+return BServer

@@ -39,13 +39,9 @@ require("nshopsb42/core/PlayerShop")
 require("nshopsb42/validation/InventoryTransferValidation")
 require("nshopsb42/utils/Nfunction")
 
--- Timed actions (must be in shared folder for proper MP reconstruction)
--- Per B42 API: Timed actions execute perform() on client and complete() on server
--- Class definition must exist on both sides
-require("nshopsb42/timers/ShopBuyAction")
-require("nshopsb42/timers/ShopSellAction")
-require("nshopsb42/timers/SendTransferAction")
-require("nshopsb42/timers/PlayerShopBuyAction")
+-- Note: Timed actions are in shared/nshopsb42/timers/ folder
+-- PZ engine loads them automatically from shared/ - no require() needed
+-- They're loaded by the game engine before any NetAction deserialization happens
 
 -- Note: ShopSpriteCursorUI is now client-only (moved to client/ directory)
 -- It is loaded by client/nshopsb42/AClientInit.lua

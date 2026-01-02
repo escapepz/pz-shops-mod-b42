@@ -5,8 +5,8 @@ local Utilities = require("nshopsb42/utils/Utilities")
 local PlayerShop = require("nshopsb42/core/PlayerShop")
 local SharedLogger = SHOPSB42.SharedLogger
 
-SHOPSB42.PlayerShopBuyAction = ISBaseTimedAction:derive("PlayerShopBuyAction")
-local PlayerShopBuyAction = SHOPSB42.PlayerShopBuyAction
+PlayerShopBuyAction = ISBaseTimedAction:derive("PlayerShopBuyAction")
+SHOPSB42.PlayerShopBuyAction = PlayerShopBuyAction
 
 function PlayerShopBuyAction:isValid()
 	local username = self.character:getUsername()

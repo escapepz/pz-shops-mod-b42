@@ -1,7 +1,7 @@
 require("TimedActions/ISBaseTimedAction")
 
-SHOPSB42.SendTransferAction = ISBaseTimedAction:derive("SendTransferAction")
-local SendTransferAction = SHOPSB42.SendTransferAction
+SendTransferAction = ISBaseTimedAction:derive("SendTransferAction")
+SHOPSB42.SendTransferAction = SendTransferAction
 local Balance = SHOPSB42.Balance
 local SharedLogger = SHOPSB42.SharedLogger
 

@@ -1,7 +1,7 @@
 require("TimedActions/ISBaseTimedAction")
 
-SHOPSB42.ShopSellAction = ISBaseTimedAction:derive("ShopSellAction")
-local ShopSellAction = SHOPSB42.ShopSellAction
+ShopSellAction = ISBaseTimedAction:derive("ShopSellAction")
+SHOPSB42.ShopSellAction = ShopSellAction
 local Nfunction = require("nshopsb42/utils/Nfunction")
 local Shop = SHOPSB42.Shop
 local Balance = SHOPSB42.Balance

@@ -19,9 +19,17 @@ require("nshopsb42/balance/BalanceAudit")
 -- Command handlers (must load after balance and other systems)
 require("nshopsb42/transactions/ShopCommandHandlerServer")
 
+-- Command dispatcher (must load after all command handlers are defined)
+require("nshopsb42/ShopCommandDispatcherServer")
+
 -- Server-side patches
 require("nshopsb42/patches/ISDestroyCursorPatch")
 
 -- Initialize player shop and finalize (must be after all dependencies)
 PSServer.Initialize()
 ShopInitServer.Initialize()
+
+-- Server-initiated handshake: client must request on a properly-timed event
+-- The original approach of server-initiated sends has race conditions
+-- Instead, we rely on the client to request data at the right time
+-- The dispatcher will handle RequestShopData when it arrives

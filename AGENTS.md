@@ -33,6 +33,7 @@
 - **Comments**: Use `--` for single-line comments
 - **Lua version**: Target Project Zomboid's Lua API (B42.13+)
 - **File structure**: All shared code must be in `shared/`, separated by client/server when needed
+- **Formatting**: Run `stylua Shops\42.13.1\media\lua` after making code changes to maintain consistent formatting
 - **Logging**: Always use `SharedLogger.log()` for centralized logging. Never use `writeLog()` or other logging functions
   - `SharedLogger` is defined in `shared/nshopsb42/utils/SharedLogger.lua` and extends the SHOPSB42 namespace
   - Access via `SHOPSB42.SharedLogger.log()` or local reference: `local SharedLogger = SHOPSB42.SharedLogger`
@@ -40,28 +41,36 @@
   - Usage: `SharedLogger.log(modName, message)` where modName is typically "Shops"
   - SharedLogger automatically adds `[SERVER]` or `[CLIENT]` context to all messages
   - Only SharedLogger.lua is permitted to call the global `writeLog()` function internally
+- **Client Events**: Use `Events.OnConnected` for server-to-client data requests (fires on every connection/reconnection). Do NOT rely solely on `Events.OnGameStart` as it only fires once per game session and will not re-trigger when client reconnects to a restarted server.
 
 ## Environment
 
 - **Development OS**: Windows (avoid all Unix tools - no `ls`, `grep`, `head`, `tail`, `cat`, etc. Use Windows CLI: `dir`, `findstr`, `type`, etc.)
+  - For getting latest file: Use `powershell -Command "Get-ChildItem ... | Sort-Object LastWriteTime -Descending | Select-Object -First 1"`
+  - Do NOT pipe `dir /O:-D` output to `head` (Unix command, doesn't exist on Windows)
 - **File paths**: Use Windows backslash separators (`\`) in bash commands or powershell
 - **File creation**: Avoid PowerShell for creating Lua files - it adds UTF-8 BOM which PZ cannot read. Use serena tools first (to save tokens), or Amp's `create_file` tool as fallback.
 
 ## Checking Game Logs
 
-When debugging, check the Shops mod logs in the root `Logs/` directory only (do NOT search in nested folders):
+When debugging, check logs in the root `Logs/` directory only (do NOT search in nested folders):
 
-**Server logs:** `Logs/Server/*_Shops.txt` - Most recent file with `_Shops.txt` suffix in the root Server folder
-**Client logs:** `Logs/Client/*_Shops.txt` - Most recent file with `_Shops.txt` suffix in the root Client folder
+**Mod-specific logs:**
+- **Server logs:** `Logs/Server/*_Shops.txt` - Most recent file with `_Shops.txt` suffix in the root Server folder
+- **Client logs:** `Logs/Client/*_Shops.txt` - Most recent file with `_Shops.txt` suffix in the root Client folder
+- These files contain SharedLogger output for the Shops mod only (clean, structured logs)
+
+**Game runtime logs (for errors/file issues):**
+- **Server debug:** `Logs/Server/*_DebugLog.txt` - Game console log for server-side errors
+- **Client debug:** `Logs/Client/*_DebugLog.txt` - Game console log for client-side errors
+- Check these if there are file loading errors or Lua errors from the game runtime
 
 Do NOT look in:
 - `Logs/Server/logs_YYYY-MM-DD/` (nested date folders)
 - `Logs/Client/logs_YYYY-MM-DD/` (nested date folders)
 
-Shops-specific logs appear as separate `*_Shops.txt` files directly in `Logs/Server/` or `Logs/Client/`, NOT in the dated subfolders.
-
 Example of correct paths:
-- `Logs/Server/2026-01-02_17-23_Shops.txt` (in root Server folder)
-- `Logs/Client/2026-01-02_17-29_Shops.txt` (in root Client folder)
-
-These files contain SharedLogger output for the Shops mod only (clean, structured logs).
+- `Logs/Server/2026-01-02_17-23_Shops.txt` (Shops mod log)
+- `Logs/Server/2026-01-02_17-23_DebugLog.txt` (Game debug log)
+- `Logs/Client/2026-01-02_17-29_Shops.txt` (Shops mod log)
+- `Logs/Client/2026-01-02_17-29_DebugLog.txt` (Game debug log)

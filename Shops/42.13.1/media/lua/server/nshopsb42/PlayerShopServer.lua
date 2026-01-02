@@ -126,4 +126,7 @@ function PSServer.Initialize()
 	SharedLogger.log("Shops", "[PlayerShopServer] Initialize() called (listener registered in dispatcher)")
 end
 
+-- Export PlayerShopStatus for dispatcher access
+PSServer.PlayerShopStatus = PlayerShopStatus
+
 return PSServer

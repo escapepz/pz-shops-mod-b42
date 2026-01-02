@@ -93,7 +93,12 @@ local function ensureInitialized()
 
 		local instance = ShopSpriteCursorUI.instance
 		if not instance.sprites or #instance.sprites ~= 2 then
-			SharedLogger.log("Shops", "[ShopSpriteCursorUI:toggleSprites] KEY PRESSED but ERROR - sprites not set correctly (count=" .. (instance.sprites and #instance.sprites or "nil") .. ")")
+			SharedLogger.log(
+				"Shops",
+				"[ShopSpriteCursorUI:toggleSprites] KEY PRESSED but ERROR - sprites not set correctly (count="
+					.. (instance.sprites and #instance.sprites or "nil")
+					.. ")"
+			)
 			return
 		end
 

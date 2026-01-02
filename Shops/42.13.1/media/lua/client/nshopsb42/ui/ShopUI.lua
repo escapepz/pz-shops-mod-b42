@@ -1002,7 +1002,15 @@ function ShopUI:buyCartBtn()
 	self.actionInProgress = true
 
 	local ticket = self:buildBuyTicket()
-	local action = ShopBuyAction:new(self.player, self.shop, ticket)
+	-- Extract shop coordinates for serialization (objects don't serialize over network)
+	local shopCoords = nil
+	if self.shop then
+		local square = self.shop:getSquare()
+		shopCoords = { x = square:getX(), y = square:getY(), z = square:getZ() }
+	else
+		shopCoords = { x = 0, y = 0, z = 0 }
+	end
+	local action = ShopBuyAction:new(self.player, shopCoords, ticket)
 
 	ISTimedActionQueue.add(action)
 	self.buyCartButton.enable = false
@@ -1070,7 +1078,15 @@ function ShopUI:sellCartBtn()
 	self.actionInProgress = true
 
 	local sellList = self:buildSellList()
-	local action = ShopSellAction:new(self.player, self.shop, sellList)
+	-- Extract shop coordinates for serialization (objects don't serialize over network)
+	local shopCoords = nil
+	if self.shop then
+		local square = self.shop:getSquare()
+		shopCoords = { x = square:getX(), y = square:getY(), z = square:getZ() }
+	else
+		shopCoords = { x = 0, y = 0, z = 0 }
+	end
+	local action = ShopSellAction:new(self.player, shopCoords, sellList)
 
 	ISTimedActionQueue.add(action)
 	self.sellCartButton.enable = false

@@ -184,11 +184,10 @@ function PlayerShopBuyAction:complete()
 	return true
 end
 
-function PlayerShopBuyAction:new(character, shop, ticket)
+function PlayerShopBuyAction:new(character, shopCoords, ticket)
 	local o = ISBaseTimedAction.new(PlayerShopBuyAction, character)
-	-- Store shop coordinates for server-side lookup (avoid storing object references)
-	local square = shop:getSquare()
-	o.shopCoords = { x = square:getX(), y = square:getY(), z = square:getZ() }
+	-- Store shop coordinates for server-side lookup (always passed as table {x, y, z})
+	o.shopCoords = shopCoords or { x = 0, y = 0, z = 0 }
 	o.ticket = ticket -- Lua table - serializable
 	o._shopActionType = "playerBuy" -- Marker field for UI type checking (avoids class identity issues)
 	o.stopOnWalk = true

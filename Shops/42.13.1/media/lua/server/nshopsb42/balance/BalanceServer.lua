@@ -435,7 +435,7 @@ function BServer.Transfer(player, args)
 			coin = coin,
 			specialCoin = specialCoin,
 		}
-		Utilities.SendServerCommandTo(recipientPlayer, "BS", "TransferReceived", noti)
+		Utilities.SendServerCommandTo(recipientPlayer, "nshopsb42", "BalanceTransferReceived", noti)
 	else
 		-- Offline path: enqueue mailbox entry
 		local mailbox = ModData.getOrCreate("BalanceMailbox")
@@ -650,7 +650,7 @@ function BServer.ClaimMailbox(player, args)
 			fromMailbox = true,
 			entryCount = entryCount,
 		}
-		Utilities.SendServerCommandTo(player, "BS", "MailboxReceived", noti)
+		Utilities.SendServerCommandTo(player, "nshopsb42", "BalanceMailboxReceived", noti)
 	end
 end
 

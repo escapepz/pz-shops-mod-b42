@@ -121,7 +121,7 @@ function SetPriceUI:setButton()
 			price = finalPrice,
 			specialCoin = finalIsSpecialCoin,
 		}
-		sendClientCommand("PS", "SetItemPrice", args)
+		sendClientCommand("nshopsb42", "PlayerShopSetItemPrice", args)
 	end
 	self:close()
 end

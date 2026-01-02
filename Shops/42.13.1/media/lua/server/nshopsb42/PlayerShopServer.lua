@@ -8,12 +8,12 @@ local PlayerShopStatus = {}
 function PSServer.ToggleBusy(player, args)
 	PlayerShopStatus[args[1]] = args[2]
 	-- Broadcast to all players
-	Utilities.SendServerCommandToAll("PS", "ToggleBusy", args)
+	Utilities.SendServerCommandToAll("nshopsb42", "PlayerShopToggleBusy", args)
 end
 
 function PSServer.SyncStatusData(player, args)
 	-- Send to specific player
-	Utilities.SendServerCommandTo(player, "PS", "SyncStatusData", { PlayerShopStatus })
+	Utilities.SendServerCommandTo(player, "nshopsb42", "PlayerShopSyncStatusData", { PlayerShopStatus })
 end
 
 local function getShopObject(coords)

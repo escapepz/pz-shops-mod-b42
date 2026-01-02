@@ -98,27 +98,27 @@ function Commands.ClearShopSpriteDrag(args)
 end
 
 -- =============================================================================
--- PLAYERSHOP COMMANDS (from PlayerShopClient)
+-- PLAYERSHOP COMMANDS (from PlayerShopClient - consolidated into nshopsb42)
 -- =============================================================================
 
-function Commands.PS_ToggleBusy(args)
+function Commands.PlayerShopToggleBusy(args)
 	local PlayerShop = SHOPSB42.PlayerShop
 	PlayerShop.status[args[1]] = args[2]
-	SharedLogger.log("Shops", "[ShopCommandDispatcher:PS_ToggleBusy] Status updated")
+	SharedLogger.log("Shops", "[ShopCommandDispatcher:PlayerShopToggleBusy] Status updated")
 end
 
-function Commands.PS_SyncStatusData(args)
+function Commands.PlayerShopSyncStatusData(args)
 	local PlayerShop = SHOPSB42.PlayerShop
 	PlayerShop.status = args[1]
-	SharedLogger.log("Shops", "[ShopCommandDispatcher:PS_SyncStatusData] Status synced")
+	SharedLogger.log("Shops", "[ShopCommandDispatcher:PlayerShopSyncStatusData] Status synced")
 end
 
 -- =============================================================================
--- BALANCE COMMANDS (from BalanceClient)
+-- BALANCE COMMANDS (from BalanceClient - consolidated into nshopsb42)
 -- =============================================================================
 
-function Commands.BS_TransferReceived(noti)
-	SharedLogger.log("Shops", "[ShopCommandDispatcher:BS_TransferReceived] Received transfer notification")
+function Commands.BalanceTransferReceived(noti)
+	SharedLogger.log("Shops", "[ShopCommandDispatcher:BalanceTransferReceived] Received transfer notification")
 
 	local player = getPlayer()
 	if not player then
@@ -136,8 +136,8 @@ function Commands.BS_TransferReceived(noti)
 	player:setHaloNote(msg, 255, 255, 255, 400)
 end
 
-function Commands.BS_MailboxReceived(noti)
-	SharedLogger.log("Shops", "[ShopCommandDispatcher:BS_MailboxReceived] Received mailbox notification")
+function Commands.BalanceMailboxReceived(noti)
+	SharedLogger.log("Shops", "[ShopCommandDispatcher:BalanceMailboxReceived] Received mailbox notification")
 
 	local player = getPlayer()
 	if not player then
@@ -161,15 +161,8 @@ end
 -- =============================================================================
 
 function Dispatcher.onServerCommand(module, command, args)
-	if module ~= "nshopsb42" and module ~= "PS" and module ~= "BS" then
+	if module ~= "nshopsb42" then
 		return
-	end
-
-	-- Normalize module names to match command table
-	if module == "PS" then
-		command = "PS_" .. command
-	elseif module == "BS" then
-		command = "BS_" .. command
 	end
 
 	SharedLogger.log("Shops", "[ShopCommandDispatcher] OnServerCommand - module=" .. module .. " command=" .. command)

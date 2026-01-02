@@ -79,22 +79,40 @@ function Commands.RemoveShop(player, args)
 end
 
 -- =============================================================================
--- PLAYERSHOP COMMANDS (from PlayerShopServer)
+-- PLAYERSHOP COMMANDS (from PlayerShopServer - consolidated into nshopsb42)
 -- =============================================================================
 
-function Commands.ToggleBusy(player, args)
-	Utilities.SendServerCommandToAll("PS", "ToggleBusy", args)
+function Commands.PlayerShopToggleBusy(player, args)
+	Utilities.SendServerCommandToAll("nshopsb42", "PlayerShopToggleBusy", args)
 end
 
-function Commands.SyncStatusData(player, args)
+function Commands.PlayerShopSyncStatusData(player, args)
 	-- Retrieve shop status from PlayerShopServer
 	local PlayerShopServer = require("nshopsb42/PlayerShopServer")
 	if PlayerShopServer.PlayerShopStatus then
-		Utilities.SendServerCommandTo(player, "PS", "SyncStatusData", { PlayerShopServer.PlayerShopStatus })
+		Utilities.SendServerCommandTo(player, "nshopsb42", "PlayerShopSyncStatusData", { PlayerShopServer.PlayerShopStatus })
 	end
 end
 
-function Commands.ChangeSprite(player, args)
+function Commands.PlayerShopRemoveItemFromInventory(player, args)
+	local itemID = args.itemID
+	if not itemID then
+		return
+	end
+
+	local item = player:getInventory():getItemById(itemID)
+	if item then
+		local container = item:getContainer()
+		container:Remove(item)
+		sendRemoveItemFromContainer(container, item)
+		SharedLogger.log(
+			"Shops",
+			"[ShopCommandDispatcher:PlayerShopRemoveItemFromInventory] Item removed - ID: " .. tostring(itemID)
+		)
+	end
+end
+
+function Commands.PlayerShopChangeSprite(player, args)
 	local sprite = args[1]
 	local coords = args[2]
 
@@ -115,7 +133,7 @@ function Commands.ChangeSprite(player, args)
 	end
 end
 
-function Commands.SetItemPrice(player, args)
+function Commands.PlayerShopSetItemPrice(player, args)
 	local itemID = args.itemID
 	local price = args.price
 	local specialCoin = args.specialCoin
@@ -144,7 +162,7 @@ function Commands.SetItemPrice(player, args)
 	syncItemModData(player, item)
 end
 
-function Commands.RemoveItemFromInventory(player, args)
+function Commands.PlayerShopRemoveItemFromInventory(player, args)
 	local itemID = args.itemID
 	if not itemID then
 		return
@@ -157,12 +175,12 @@ function Commands.RemoveItemFromInventory(player, args)
 		sendRemoveItemFromContainer(container, item)
 		SharedLogger.log(
 			"Shops",
-			"[ShopCommandDispatcher:RemoveItemFromInventory] Item removed - ID: " .. tostring(itemID)
+			"[ShopCommandDispatcher:PlayerShopRemoveItemFromInventory] Item removed - ID: " .. tostring(itemID)
 		)
 	end
 end
 
-function Commands.PickupShop(player, args)
+function Commands.PlayerShopPickupShop(player, args)
 	local coords = args[1]
 	local square = getCell():getGridSquare(coords.x, coords.y, coords.z)
 	if not square then
@@ -211,10 +229,10 @@ function Commands.PickupShop(player, args)
 end
 
 -- =============================================================================
--- BALANCE COMMANDS (from BalanceServer)
+-- BALANCE COMMANDS (from BalanceServer - consolidated into nshopsb42)
 -- =============================================================================
 
-function Commands.CreateAccount(player, args)
+function Commands.BalanceCreateAccount(player, args)
 	if not player or not args then
 		return
 	end
@@ -251,7 +269,7 @@ function Commands.CreateAccount(player, args)
 	ModData.transmit("CoinBalance")
 end
 
-function Commands.VirtualDeposit(player, args)
+function Commands.BalanceVirtualDeposit(player, args)
 	if not player or not args then
 		return
 	end
@@ -297,7 +315,7 @@ function Commands.VirtualDeposit(player, args)
 	ModData.transmit("CoinBalance")
 end
 
-function Commands.Deposit(player, args)
+function Commands.BalanceDeposit(player, args)
 	if not player or not args then
 		return
 	end
@@ -350,7 +368,7 @@ function Commands.Deposit(player, args)
 	ModData.transmit("CoinBalance")
 end
 
-function Commands.Transfer(player, args)
+function Commands.BalanceTransfer(player, args)
 	-- Delegate to BalanceServer for complex transfer logic
 	local BalanceServer = require("nshopsb42/balance/BalanceServer")
 	if BalanceServer.Transfer then
@@ -358,7 +376,7 @@ function Commands.Transfer(player, args)
 	end
 end
 
-function Commands.Withdraw(player, args)
+function Commands.BalanceWithdraw(player, args)
 	if not player or not args then
 		return
 	end
@@ -392,7 +410,7 @@ function Commands.Withdraw(player, args)
 	ModData.transmit("CoinBalance")
 end
 
-function Commands.UnlinkWallet(player, args)
+function Commands.BalanceUnlinkWallet(player, args)
 	if not player or not args then
 		return
 	end
@@ -405,7 +423,7 @@ function Commands.UnlinkWallet(player, args)
 	end
 	account.linkedTo = nil
 
-	SharedLogger.log("Shops", "[ShopCommandDispatcher:UnlinkWallet] Unlinked " .. username)
+	SharedLogger.log("Shops", "[ShopCommandDispatcher:BalanceUnlinkWallet] Unlinked " .. username)
 
 	-- Sync wallet modData if ID provided
 	if walletID then
@@ -421,13 +439,13 @@ function Commands.UnlinkWallet(player, args)
 	ModData.transmit("CoinBalance")
 end
 
-function Commands.ClaimMailbox(player, args)
+function Commands.BalanceClaimMailbox(player, args)
 	if not player or not args then
 		return
 	end
 
 	local username = player:getUsername()
-	SharedLogger.log("Shops", "[ShopCommandDispatcher:ClaimMailbox] Claimed by " .. username)
+	SharedLogger.log("Shops", "[ShopCommandDispatcher:BalanceClaimMailbox] Claimed by " .. username)
 
 	-- Delegate to BalanceServer for mailbox delivery
 	local BalanceServer = require("nshopsb42/balance/BalanceServer")
@@ -436,7 +454,7 @@ function Commands.ClaimMailbox(player, args)
 	end
 end
 
-function Commands.Rollback(player, args)
+function Commands.BalanceRollback(player, args)
 	if not player or not args then
 		return
 	end
@@ -449,12 +467,12 @@ function Commands.Rollback(player, args)
 end
 
 -- =============================================================================
--- LOGGING COMMANDS (from LogsServer)
+-- LOGGING COMMANDS (from LogsServer - consolidated into nshopsb42)
 -- =============================================================================
 
-function Commands.TransactionShopLog(player, args)
+function Commands.LogsTransactionShopLog(player, args)
 	local msg = args[1]
-	SharedLogger.log("Shops", "[ShopCommandDispatcher:TransactionShopLog] " .. msg)
+	SharedLogger.log("Shops", "[ShopCommandDispatcher:LogsTransactionShopLog] " .. msg)
 end
 
 -- =============================================================================
@@ -462,20 +480,8 @@ end
 -- =============================================================================
 
 function Dispatcher.onClientCommand(module, command, player, args)
-	if module ~= "nshopsb42" and module ~= "PS" and module ~= "BS" and module ~= "LS" and module ~= "shops" then
+	if module ~= "nshopsb42" then
 		return
-	end
-
-	-- Normalize module names to match command table
-	if module == "PS" then
-		command = "PS_" .. command
-	elseif module == "BS" then
-		command = "BS_" .. command
-	elseif module == "LS" then
-		command = "LS_" .. command
-	elseif module == "shops" then
-		-- Legacy: shops module maps to BS commands
-		command = "BS_" .. command
 	end
 
 	local SharedLogger = require("nshopsb42/utils/SharedLogger")

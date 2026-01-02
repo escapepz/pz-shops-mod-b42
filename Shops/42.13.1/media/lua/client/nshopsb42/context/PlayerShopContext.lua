@@ -117,7 +117,7 @@ function PlayerShop.PickupShop(worldobjects, player, shop)
 		y = shop:getY(),
 		z = shop:getZ(),
 	}
-	sendClientCommand("PS", "PickupShop", { coords })
+	sendClientCommand("nshopsb42", "PlayerShopPickupShop", { coords })
 	PlayerShop.toggleBusy(shop, player:getUsername(), false)
 end
 
@@ -158,7 +158,7 @@ function PlayerShop.toggleBusy(shop, username, busy)
 		buyer = username,
 		time = getTimestampMs() + shopLockTime,
 	}
-	sendClientCommand("PS", "ToggleBusy", { shopId, data })
+	sendClientCommand("nshopsb42", "PlayerShopToggleBusy", { shopId, data })
 end
 
 function PlayerShop.ChangeSprite(worldobjects, playerNum, sprites, shop)
@@ -183,7 +183,7 @@ function PlayerShop.ChangeSprite(worldobjects, playerNum, sprites, shop)
 
 	if newSprite then
 		SharedLogger.log("Shops", "ChangeSprite: Sending command with sprite=" .. newSprite)
-		sendClientCommand("PS", "ChangeSprite", { newSprite, coords })
+		sendClientCommand("nshopsb42", "PlayerShopChangeSprite", { newSprite, coords })
 		shop:setSprite(newSprite)
 	end
 end

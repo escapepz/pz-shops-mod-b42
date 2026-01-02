@@ -51,7 +51,7 @@ function Dispatcher.onConnected()
 
 	-- BalanceClient handler
 	local BClient = SHOPSB42.BalanceClient
-	if BClient.OnConnected then
+	if BClient and BClient.OnConnected then
 		BClient.OnConnected()
 	end
 end

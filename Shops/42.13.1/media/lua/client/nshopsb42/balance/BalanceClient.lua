@@ -55,3 +55,6 @@ end
 -- OnServerCommand listener consolidated into ShopCommandDispatcherClient
 -- OnReceiveGlobalModData listener consolidated into ModDataDispatcherClient (Phase 5)
 -- OnConnected listener consolidated into ModDataDispatcherClient (Phase 5)
+
+SHOPSB42.BalanceClient = BClient
+return BClient

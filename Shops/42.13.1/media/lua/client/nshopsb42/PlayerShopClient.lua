@@ -10,7 +10,7 @@ function PSClient.SyncStatusData(args)
 end
 
 local function SyncPlayerShopStatusData()
-	sendClientCommand("PS", "SyncStatusData", {})
+	sendClientCommand("nshopsb42", "PlayerShopSyncStatusData", {})
 	Events.OnTick.Remove(SyncPlayerShopStatusData)
 end
 

@@ -43,7 +43,7 @@
 
 ## Environment
 
-- **Development OS**: Windows (no Unix tools available - use `dir`, `findstr` instead of `ls`, `grep`, `head`, `tail`)
+- **Development OS**: Windows (avoid all Unix tools - no `ls`, `grep`, `head`, `tail`, `cat`, etc. Use Windows CLI: `dir`, `findstr`, `type`, etc.)
 - **File paths**: Use Windows backslash separators (`\`) in bash commands or powershell
 - **File creation**: Avoid PowerShell for creating Lua files - it adds UTF-8 BOM which PZ cannot read. Use serena tools first (to save tokens), or Amp's `create_file` tool as fallback.
 

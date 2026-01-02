@@ -36,6 +36,8 @@ function Shop.addShop(worldobjects, playerNum, sprites)
 	-- Set actionClass to ISAddShopAction for admin shops
 	local cursorUI = SHOPSB42.ShopSpriteCursorUI:new(player, sprites)
 	cursorUI.actionClass = SHOPSB42.ISAddShopAction
+	-- Store as instance so toggleSprites() can access it
+	SHOPSB42.ShopSpriteCursorUI.instance = cursorUI
 	getCell():setDrag(cursorUI, playerNum)
 end
 

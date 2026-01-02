@@ -7,22 +7,113 @@ local SharedLogger = require("nshopsb42/utils/SharedLogger")
 SHOPSB42.ShopSyncClient = SHOPSB42.ShopSyncClient or {}
 local ShopSyncClient = SHOPSB42.ShopSyncClient
 
+-- Invalidation reason constants (defines explicit UI refresh contract)
+-- This prevents future changes from accidentally blurring Sell/All behavior
+ShopSyncClient.InvalidateReason = {
+	BUY_PRICE_DELTA = "buy_price_delta", -- Price values changed, rows self-heal
+	SELL_RULE_CHANGE = "sell_rule_change", -- Sell rules changed, inventory rebuild needed
+	STRUCTURAL_CHANGE = "structural_change", -- Registry/membership changed, full rebuild needed
+}
+
+-- Unified UI invalidation entry point (enforces explicit decision logic)
+-- Reason determines whether to rebuild tab or just invalidate prices
+function ShopSyncClient.invalidateUI(reason)
+	local ui = SHOPSB42.ShopUI and SHOPSB42.ShopUI.instance
+	if not ui then
+		SharedLogger.log("Shops", "[ShopSyncClient] invalidateUI called but ShopUI not open - deferring")
+		return false
+	end
+
+	if not ui.panel or not ui.panel.activeView then
+		SharedLogger.log("Shops", "[ShopSyncClient] invalidateUI called but no active tab - deferring")
+		return false
+	end
+
+	local tab = ui.panel.activeView.view
+	if not tab then
+		return false
+	end
+
+	local tabType = tab.tabType
+
+	-- Dispatch based on invalidation reason (explicit contract)
+	if reason == ShopSyncClient.InvalidateReason.SELL_RULE_CHANGE then
+		-- Sell tab rules changed: always rebuild (inventory rows don't self-heal)
+		SharedLogger.log("Shops", "[ShopSyncClient] Invalidating due to SELL_RULE_CHANGE")
+		if tabType == 2 then -- Tab.Sell
+			ui:rebuildActiveTab()
+			SharedLogger.log("Shops", "[ShopSyncClient] Rebuilt Sell tab on rule change")
+		else
+			-- Sell is not active: cache will be invalidated on next activation
+			if ui.shopItemsCache then
+				ui.shopItemsCache[2] = nil
+			end
+		end
+		return true
+	elseif reason == ShopSyncClient.InvalidateReason.BUY_PRICE_DELTA then
+		-- Buy prices changed: invalidate visible rows (rows self-heal via lazy recalc)
+		SharedLogger.log("Shops", "[ShopSyncClient] Invalidating due to BUY_PRICE_DELTA")
+		if ui.cancelPendingTransactions then
+			ui:cancelPendingTransactions()
+		end
+		-- Invalidate non-active tabs for rebuild on next activation
+		if ui.shopItemsCache then
+			for tabType2, _ in pairs(ui.shopItemsCache) do
+				if tabType2 ~= tabType then
+					ui.shopItemsCache[tabType2] = nil
+				end
+			end
+		end
+		-- Active tab: let rows recalculate on next visibility (no rebuild needed)
+		SharedLogger.log("Shops", "[ShopSyncClient] Invalidated prices for lazy recalculation")
+		return true
+	elseif reason == ShopSyncClient.InvalidateReason.STRUCTURAL_CHANGE then
+		-- Registry/membership changed: rebuild all tabs (items added/removed or mode changed)
+		SharedLogger.log("Shops", "[ShopSyncClient] Invalidating due to STRUCTURAL_CHANGE")
+		ui:rebuildActiveTab()
+		if ui.shopItemsCache then
+			ui.shopItemsCache = {}
+		end
+		SharedLogger.log("Shops", "[ShopSyncClient] Rebuilt active tab and cleared cache due to structural change")
+		return true
+	else
+		SharedLogger.log("Shops", "[ShopSyncClient] Unknown invalidation reason: " .. tostring(reason))
+		return false
+	end
+end
+
 -- Refresh UI components when prices change (cancel actions, refresh rows)
 function ShopSyncClient.refreshUIForPriceChange()
 	local ui = SHOPSB42.ShopUI.instance
+	SharedLogger.log(
+		"Shops",
+		"[ShopSyncClient.refreshUIForPriceChange] ENTRY - ui instance exists: " .. tostring(ui ~= nil)
+	)
 
 	-- Mark cache as invalidated (will be handled on next access)
 	if ui then
 		ui.cacheInvalidated = true
-		SharedLogger.log("Shops", "[CLIENT] [ShopSyncClient] Marked cache as invalidated for price recalculation")
+		SharedLogger.log(
+			"Shops",
+			"[ShopSyncClient.refreshUIForPriceChange] Marked cache as invalidated for price recalculation"
+		)
 	end
 
 	if not ui or not ui.panel or not ui.panel.activeView then
-		SharedLogger.log("Shops", "[CLIENT] [ShopSyncClient] Shop UI not open, deferring refresh until UI opens")
+		SharedLogger.log(
+			"Shops",
+			"[ShopSyncClient.refreshUIForPriceChange] Shop UI not open (ui="
+				.. tostring(ui ~= nil)
+				.. ", panel="
+				.. tostring(ui and ui.panel ~= nil)
+				.. ", activeView="
+				.. tostring(ui and ui.panel and ui.panel.activeView ~= nil)
+				.. "), deferring refresh"
+		)
 		return false
 	end
 
-	SharedLogger.log("Shops", "[CLIENT] [ShopSyncClient] Price hook changed, refreshing UI...")
+	SharedLogger.log("Shops", "[ShopSyncClient.refreshUIForPriceChange] Price hook changed, refreshing UI...")
 
 	-- Cancel any local buy/sell actions if available
 	if ui.cancelPendingTransactions then
@@ -32,6 +123,7 @@ function ShopSyncClient.refreshUIForPriceChange()
 	-- Get active tab (only materialized tab)
 	local activeTab = ui.panel.activeView.view
 	local activeTabType = activeTab.tabType
+	SharedLogger.log("Shops", "[ShopSyncClient.refreshUIForPriceChange] Active tab type: " .. tostring(activeTabType))
 
 	-- Step 1: Invalidate caches for NON-active tabs
 	-- These will rebuild fresh when activated next
@@ -41,7 +133,7 @@ function ShopSyncClient.refreshUIForPriceChange()
 				ui.shopItemsCache[tabType] = nil
 				SharedLogger.log(
 					"Shops",
-					"[CLIENT] [ShopSyncClient] Invalidated cache for inactive tab: " .. tostring(tabType)
+					"[ShopSyncClient.refreshUIForPriceChange] Invalidated cache for inactive tab: " .. tostring(tabType)
 				)
 			end
 		end
@@ -51,24 +143,40 @@ function ShopSyncClient.refreshUIForPriceChange()
 	-- This reuses onActivateView() logic and respects ISScrollingListBox redraw contract
 	local success, result = pcall(function()
 		if ui.rebuildActiveTab then
+			SharedLogger.log("Shops", "[ShopSyncClient.refreshUIForPriceChange] Calling ui:rebuildActiveTab()...")
 			local rebuilt = ui:rebuildActiveTab()
+			SharedLogger.log(
+				"Shops",
+				"[ShopSyncClient.refreshUIForPriceChange] rebuildActiveTab returned: " .. tostring(rebuilt)
+			)
 			if rebuilt then
 				SharedLogger.log(
 					"Shops",
-					"[CLIENT] [ShopSyncClient] Rebuilt active tab with updated prices (scroll preserved)"
+					"[ShopSyncClient.refreshUIForPriceChange] Successfully rebuilt active tab with updated prices"
+				)
+			else
+				SharedLogger.log(
+					"Shops",
+					"[ShopSyncClient.refreshUIForPriceChange] rebuildActiveTab returned false/nil"
 				)
 			end
 			return rebuilt
+		else
+			SharedLogger.log("Shops", "[ShopSyncClient.refreshUIForPriceChange] ui.rebuildActiveTab not available")
 		end
 		return false
 	end)
 
 	if not success then
-		SharedLogger.log("Shops", "[CLIENT] [ShopSyncClient] Error rebuilding active tab: " .. tostring(result))
+		SharedLogger.log(
+			"Shops",
+			"[ShopSyncClient.refreshUIForPriceChange] Error rebuilding active tab: " .. tostring(result)
+		)
 	end
 
 	-- Clear the flag since UI refresh was successful
 	ShopSyncClient.pricesChangedWhileClosed = false
+	SharedLogger.log("Shops", "[ShopSyncClient.refreshUIForPriceChange] EXIT - pricesChangedWhileClosed reset to FALSE")
 	return true
 end
 
@@ -78,26 +186,31 @@ function ShopSyncClient.Initialize()
 	local Shop = SHOPSB42.Shop
 	Shop.BuyPriceRevision = nil
 	Shop.SellRuleRevision = nil
-	
+
 	-- Initialize CalculatedPrices with proper namespace (Phase 3+)
 	-- Ensure we preserve any existing data and create stable references
 	Shop.CalculatedPrices = Shop.CalculatedPrices or {}
 	Shop.CalculatedPrices.buyPrices = Shop.CalculatedPrices.buyPrices or {}
 	Shop.CalculatedPrices.sellPrices = Shop.CalculatedPrices.sellPrices or {}
-	
+
 	-- Expose as top-level references for backward compatibility and direct access
 	-- This ensures ShopUI can access prices via Shop.BuyPrices directly
 	Shop.BuyPrices = Shop.CalculatedPrices.buyPrices
 	Shop.SellPrices = Shop.CalculatedPrices.sellPrices
-	
+
 	Shop.SellModifiers = {}
 	Shop.SellOverrides = {}
+
+	-- Track initial sync completion (Phase 3: atomicity handshake)
+	Shop._initialSyncComplete = false
+	Shop._initialSyncStartTime = nil
+	Shop._initialSyncCompleteTime = nil
 
 	-- Track if prices changed while UI was closed
 	ShopSyncClient.pricesChangedWhileClosed = false
 
-	Events.OnServerCommand.Add(ShopSyncClient.handleServerCommand)
-	SharedLogger.log("Shops", "[ShopSyncClient] Initialized - event listener registered for OnServerCommand")
+	-- Event listener consolidated into ShopCommandDispatcherClient
+	SharedLogger.log("Shops", "[ShopSyncClient] Initialized (dispatcher registered separately)")
 end
 
 -- Handle SyncBuyPrices broadcast (Phase 3.3)
@@ -105,30 +218,120 @@ function ShopSyncClient.handleSyncBuyPrices(data)
 	SharedLogger.log("Shops", "[ShopSyncClient] Received SyncBuyPrices from server")
 
 	local Shop = SHOPSB42.Shop
-	local oldRevision = Shop.BuyPriceRevision
-	local newRevision = data.revision or 0
+	local oldBuyRevision = Shop.BuyPriceRevision
+	local newBuyRevision = data.buyRevision or 0
+	local newSellRevision = data.sellRevision or 0
 
-	Shop.BuyPriceRevision = newRevision
+	-- NOTE: Do NOT update revisions yet! We need oldBuyRevision to remain unchanged for the comparison below
+	-- Revisions will be stored AFTER the change detection logic
+
+	-- Initialize modifier metadata storage if needed (Phase 2)
+	if not Shop._buyModifierMetadata then
+		Shop._buyModifierMetadata = {}
+	end
 
 	if data.isInitialSync then
 		-- Initial sync: store all prices
-		Shop.CalculatedPrices.buyPrices = data.buyPrices or {}
-		SharedLogger.log("Shops", "[ShopSyncClient] Initial BUY price sync (rev=" .. newRevision .. ")")
+		Shop.CalculatedPrices.buyPrices = {}
+
+		-- Extract and store modifier metadata (Phase 2: transparency)
+		for itemId, priceData in pairs(data.buyPrices or {}) do
+			if type(priceData) == "table" then
+				-- Extract price for UI (backward compatibility)
+				Shop.CalculatedPrices.buyPrices[itemId] = priceData.price
+				-- Store full price data with modifiers for external consumers
+				if priceData.modifiers then
+					Shop._buyModifierMetadata[itemId] = priceData.modifiers
+					SharedLogger.log(
+						"Shops",
+						"[ShopSyncClient] Stored modifiers for "
+							.. itemId
+							.. " ("
+							.. #priceData.modifiers
+							.. " modifiers)"
+					)
+				end
+			else
+				-- Legacy format: just a number
+				Shop.CalculatedPrices.buyPrices[itemId] = priceData
+			end
+		end
+
+		SharedLogger.log(
+			"Shops",
+			"[ShopSyncClient] Initial BUY price sync (buyRev="
+				.. newBuyRevision
+				.. ", sellRev="
+				.. newSellRevision
+				.. ")"
+		)
 	elseif data.buyPrices then
 		-- Delta update: merge changed prices
-		for itemId, price in pairs(data.buyPrices) do
-			Shop.CalculatedPrices.buyPrices[itemId] = price
+		for itemId, priceData in pairs(data.buyPrices) do
+			if type(priceData) == "table" then
+				-- Extract price for UI (backward compatibility)
+				Shop.CalculatedPrices.buyPrices[itemId] = priceData.price
+				-- Store full price data with modifiers for external consumers (Phase 2)
+				if priceData.modifiers then
+					Shop._buyModifierMetadata[itemId] = priceData.modifiers
+					SharedLogger.log("Shops", "[ShopSyncClient] Updated modifiers for " .. itemId)
+				end
+			else
+				-- Legacy format: just a number
+				Shop.CalculatedPrices.buyPrices[itemId] = priceData
+			end
 		end
 		SharedLogger.log(
 			"Shops",
-			"[ShopSyncClient] Delta BUY price update (rev=" .. tostring(oldRevision) .. "->" .. newRevision .. ")"
+			"[ShopSyncClient] Delta BUY price update (buyRev="
+				.. tostring(oldBuyRevision)
+				.. "->"
+				.. newBuyRevision
+				.. ", sellRev="
+				.. newSellRevision
+				.. ")"
 		)
 	end
 
-	-- Trigger UI refresh if revision changed
-	if oldRevision ~= nil and newRevision ~= oldRevision then
-		ShopSyncClient.onBuyPricesChanged()
+	-- Trigger UI invalidation if revision changed
+	-- Use explicit reason-based dispatch: buy price deltas invalidate rows, not tabs
+	if oldBuyRevision ~= nil and newBuyRevision ~= oldBuyRevision then
+		-- Check if UI is open - if not, mark that prices changed while closed
+		local uiOpen = SHOPSB42.ShopUI and SHOPSB42.ShopUI.instance
+		SharedLogger.log(
+			"Shops",
+			"[ShopSyncClient] BUY revision changed ("
+				.. tostring(oldBuyRevision)
+				.. "->"
+				.. tostring(newBuyRevision)
+				.. "), UI open="
+				.. tostring(uiOpen)
+		)
+		if not uiOpen then
+			ShopSyncClient.pricesChangedWhileClosed = true
+			SharedLogger.log(
+				"Shops",
+				"[ShopSyncClient] Price change detected while UI closed - pricesChangedWhileClosed set to TRUE"
+			)
+		else
+			SharedLogger.log("Shops", "[ShopSyncClient] Price change detected with UI open - invalidating directly")
+		end
+		ShopSyncClient.invalidateUI(ShopSyncClient.InvalidateReason.BUY_PRICE_DELTA)
+	else
+		SharedLogger.log(
+			"Shops",
+			"[ShopSyncClient] BUY revision unchanged (oldRev="
+				.. tostring(oldBuyRevision)
+				.. ", newRev="
+				.. tostring(newBuyRevision)
+				.. ")"
+		)
 	end
+
+	-- NOW store the BUY revision AFTER change detection (Phase 1: atomicity, post-comparison)
+	-- IMPORTANT: Only update BUY revision here! Do NOT update SellRuleRevision
+	-- The SellRules handler will update SellRuleRevision to prevent race conditions
+	Shop.BuyPriceRevision = newBuyRevision
 end
 
 -- Handle SyncSellRules broadcast (Phase 3.4)
@@ -136,68 +339,198 @@ function ShopSyncClient.handleSyncSellRules(data)
 	SharedLogger.log("Shops", "[ShopSyncClient] Received SyncSellRules from server")
 
 	local Shop = SHOPSB42.Shop
-	local oldRevision = Shop.SellRuleRevision
-	local newRevision = data.revision or 0
+	local oldSellRevision = Shop.SellRuleRevision
+	local newBuyRevision = data.buyRevision or 0
+	local newSellRevision = data.sellRevision or 0
 
-	Shop.SellRuleRevision = newRevision
+	-- NOTE: Do NOT update revisions yet! We need oldSellRevision to remain unchanged for the comparison below
+	-- Revisions will be stored AFTER the change detection logic
+
+	-- Store sell modifiers/overrides (these don't affect revision comparison, only prices do)
 	Shop.SellModifiers = data.sellModifiers or {}
 	Shop.SellOverrides = data.sellOverrides or {}
 
 	SharedLogger.log(
 		"Shops",
-		"[ShopSyncClient] SELL rules updated (rev=" .. tostring(oldRevision) .. "->" .. newRevision .. ")"
+		"[ShopSyncClient] SELL rules updated (buyRev="
+			.. newBuyRevision
+			.. ", sellRev="
+			.. tostring(oldSellRevision)
+			.. "->"
+			.. newSellRevision
+			.. ")"
 	)
 
-	-- Trigger UI refresh if revision changed
-	if oldRevision ~= nil and newRevision ~= oldRevision then
-		ShopSyncClient.onSellRulesChanged()
+	-- Trigger UI invalidation if revision changed
+	-- Use explicit reason-based dispatch: sell rules always rebuild (not lazy-recalcable)
+	if oldSellRevision ~= nil and newSellRevision ~= oldSellRevision then
+		-- Check if UI is open - if not, mark that prices changed while closed
+		local uiOpen = SHOPSB42.ShopUI and SHOPSB42.ShopUI.instance
+		SharedLogger.log(
+			"Shops",
+			"[ShopSyncClient] SELL revision changed ("
+				.. tostring(oldSellRevision)
+				.. "->"
+				.. tostring(newSellRevision)
+				.. "), UI open="
+				.. tostring(uiOpen)
+		)
+		if not uiOpen then
+			ShopSyncClient.pricesChangedWhileClosed = true
+			SharedLogger.log(
+				"Shops",
+				"[ShopSyncClient] Sell rule change detected while UI closed - pricesChangedWhileClosed set to TRUE"
+			)
+		else
+			SharedLogger.log("Shops", "[ShopSyncClient] Sell rule change detected with UI open - invalidating directly")
+		end
+		ShopSyncClient.invalidateUI(ShopSyncClient.InvalidateReason.SELL_RULE_CHANGE)
+	else
+		SharedLogger.log(
+			"Shops",
+			"[ShopSyncClient] SELL revision unchanged (oldRev="
+				.. tostring(oldSellRevision)
+				.. ", newRev="
+				.. tostring(newSellRevision)
+				.. ")"
+		)
+	end
+
+	-- NOW store the SELL revision AFTER change detection (Phase 1: atomicity, post-comparison)
+	-- IMPORTANT: Only update SELL revision here! Do NOT update BuyPriceRevision
+	-- The BuyPrices handler will update BuyPriceRevision to prevent race conditions
+	-- However, we DO need to record the buy revision from the message for consistency checking
+	Shop.SellRuleRevision = newSellRevision
+	-- Note: BuyPriceRevision was already updated by handleSyncBuyPrices if it changed
+end
+
+-- Command dispatcher consolidated into ShopCommandDispatcherClient
+-- This function is kept for reference but is no longer called directly
+-- function ShopSyncClient.handleServerCommand(module, command, data) ... end
+
+-- Handle SyncInitialComplete (Phase 3: completion handshake)
+function ShopSyncClient.handleSyncInitialComplete(data)
+	SharedLogger.log("Shops", "[ShopSyncClient] Received SyncInitialComplete from server")
+
+	local Shop = SHOPSB42.Shop
+	local incomingBuyRev = data.buyRevision or 0
+	local incomingSellRev = data.sellRevision or 0
+
+	-- Verify revision consistency before marking complete (Phase 3: validation)
+	if Shop.BuyPriceRevision ~= incomingBuyRev or Shop.SellRuleRevision ~= incomingSellRev then
+		SharedLogger.log(
+			"Shops",
+			"WARNING: Initial sync revision mismatch! Expected (buy="
+				.. incomingBuyRev
+				.. ", sell="
+				.. incomingSellRev
+				.. ") but have (buy="
+				.. (Shop.BuyPriceRevision or 0)
+				.. ", sell="
+				.. (Shop.SellRuleRevision or 0)
+				.. ")"
+		)
+		-- Continue anyway - might be race condition with updates
+	end
+
+	-- Mark initial sync as complete (Phase 3: critical gate)
+	Shop._initialSyncComplete = true
+	Shop._initialSyncCompleteTime = getGameTime()
+
+	SharedLogger.log(
+		"Shops",
+		"[ShopSyncClient] Initial sync COMPLETE (buyRev=" .. incomingBuyRev .. ", sellRev=" .. incomingSellRev .. ")"
+	)
+
+	-- Notify listeners that initial sync is complete
+	-- External code (like ShopUI) can use this to know when rendering is safe
+	if ShopSyncClient._initialSyncCompleteCallbacks then
+		for _, callback in ipairs(ShopSyncClient._initialSyncCompleteCallbacks) do
+			pcall(callback)
+		end
 	end
 end
 
-function ShopSyncClient.handleServerCommand(module, command, data)
-	if module ~= "Shops" then
-		return
+-- Helper: Register a callback for when initial sync completes (Phase 3)
+function ShopSyncClient.onInitialSyncComplete(callback)
+	if not ShopSyncClient._initialSyncCompleteCallbacks then
+		ShopSyncClient._initialSyncCompleteCallbacks = {}
 	end
+	table.insert(ShopSyncClient._initialSyncCompleteCallbacks, callback)
+end
 
+-- Helper: Check if initial sync is complete (Phase 3: public API)
+function ShopSyncClient.isShopReady()
 	local Shop = SHOPSB42.Shop
+	return Shop and Shop._initialSyncComplete == true
+end
 
-	if command == "SyncShopData" then
-		SharedLogger.log("Shops", "[ShopSyncClient] Received SyncShopData from server")
-		Shop.Items = data.Items or {}
-		Shop.PlayerBuy = data.PlayerBuy or {}
-		Shop.PlayerSell = data.PlayerSell or {}
-		Shop.BuyIsWhitelist = data.BuyIsWhitelist or false
-		Shop.SellIsWhitelist = data.SellIsWhitelist or false
+-- ============================================================================
+-- PHASE 4: Composite-State Helpers
+-- ============================================================================
+-- These helpers allow code to reason about pricing state without manually
+-- tracking two revision counters. They provide semantic clarity.
 
-		local itemCount = 0
-		local buyCount = 0
-		local sellCount = 0
-		for _ in pairs(Shop.Items) do
-			itemCount = itemCount + 1
-		end
-		for _ in pairs(Shop.PlayerBuy) do
-			buyCount = buyCount + 1
-		end
-		for _ in pairs(Shop.PlayerSell) do
-			sellCount = sellCount + 1
-		end
-		SharedLogger.log(
-			"Shops",
-			"[ShopSyncClient] Stored items: " .. itemCount .. " total, " .. buyCount .. " buy, " .. sellCount .. " sell"
-		)
-
-		-- DEBUG: Log if Base.Apple is in the data
-		if Shop.PlayerBuy["Base.Apple"] then
-			local price = Shop.PlayerBuy["Base.Apple"].price or "unknown"
-			SharedLogger.log("Shops", "[ShopSyncClient] Base.Apple found in PlayerBuy (price=" .. price .. ")")
-		end
-	elseif command == "SyncBuyPrices" then
-		ShopSyncClient.handleSyncBuyPrices(data)
-	elseif command == "SyncSellRules" then
-		ShopSyncClient.handleSyncSellRules(data)
-	else
-		SharedLogger.log("Shops", "[ShopSyncClient] Unknown command: " .. command)
+-- Check if pricing state is complete and ready to use (Phase 4)
+function ShopSyncClient.isPricingStateComplete()
+	local Shop = SHOPSB42.Shop
+	if not Shop then
+		return false
 	end
+
+	-- Complete means: initial sync finished AND both revisions are set
+	return Shop._initialSyncComplete and Shop.BuyPriceRevision ~= nil and Shop.SellRuleRevision ~= nil
+end
+
+-- Check if pricing state changed since last known state (Phase 4)
+-- Useful for detecting changes without gating on specific revision numbers
+function ShopSyncClient.isPricingStateChanged(prevBuyRev, prevSellRev)
+	local Shop = SHOPSB42.Shop
+	if not Shop then
+		return false
+	end
+
+	-- Changed if either revision is different
+	-- Handle nil comparisons gracefully
+	local buyChanged = (Shop.BuyPriceRevision or 0) ~= (prevBuyRev or 0)
+	local sellChanged = (Shop.SellRuleRevision or 0) ~= (prevSellRev or 0)
+
+	return buyChanged or sellChanged
+end
+
+-- Get both revisions as a composite tuple (Phase 4)
+function ShopSyncClient.getPricingRevisions()
+	local Shop = SHOPSB42.Shop
+	if not Shop then
+		return nil, nil
+	end
+	return Shop.BuyPriceRevision, Shop.SellRuleRevision
+end
+
+-- Capture current pricing state for later comparison (Phase 4)
+-- Returns a snapshot that can be compared with future state
+function ShopSyncClient.capturePricingState()
+	local Shop = SHOPSB42.Shop
+	if not Shop then
+		return nil
+	end
+
+	return {
+		buyRevision = Shop.BuyPriceRevision,
+		sellRevision = Shop.SellRuleRevision,
+		timestamp = getGameTime(),
+		isComplete = Shop._initialSyncComplete,
+	}
+end
+
+-- Check if captured state is different from current state (Phase 4)
+function ShopSyncClient.isPricingStateDifferent(capturedState)
+	if not capturedState then
+		return true
+	end
+
+	local currentBuy, currentSell = ShopSyncClient.getPricingRevisions()
+	return (currentBuy ~= capturedState.buyRevision) or (currentSell ~= capturedState.sellRevision)
 end
 
 -- Split refresh handlers (Phase 3.5)
@@ -245,11 +578,71 @@ end
 
 -- Called by ShopUI when it opens to check if prices changed while closed
 function ShopSyncClient.checkAndHandlePriceChanges()
+	SharedLogger.log("Shops", "[ShopSyncClient.checkAndHandlePriceChanges] ENTRY")
+	local Shop = SHOPSB42.Shop
+	SharedLogger.log(
+		"Shops",
+		"[ShopSyncClient.checkAndHandlePriceChanges] Flag value: pricesChangedWhileClosed="
+			.. tostring(ShopSyncClient.pricesChangedWhileClosed)
+	)
+	SharedLogger.log(
+		"Shops",
+		"[ShopSyncClient.checkAndHandlePriceChanges] Current revisions: buyRev="
+			.. tostring(Shop.BuyPriceRevision)
+			.. ", sellRev="
+			.. tostring(Shop.SellRuleRevision)
+	)
+
 	if ShopSyncClient.pricesChangedWhileClosed then
-		SharedLogger.log("Shops", "[CLIENT] [ShopSyncClient] Prices changed while UI was closed, refreshing UI now")
+		SharedLogger.log(
+			"Shops",
+			"[ShopSyncClient.checkAndHandlePriceChanges] Flag is TRUE - prices changed while UI was closed, calling refreshUIForPriceChange()..."
+		)
 		-- Only refresh UI - cache was already updated when price change arrived
-		ShopSyncClient.refreshUIForPriceChange()
+		local refreshResult = ShopSyncClient.refreshUIForPriceChange()
+		SharedLogger.log(
+			"Shops",
+			"[ShopSyncClient.checkAndHandlePriceChanges] refreshUIForPriceChange returned: " .. tostring(refreshResult)
+		)
+	else
+		SharedLogger.log(
+			"Shops",
+			"[ShopSyncClient.checkAndHandlePriceChanges] Flag is FALSE - no price changes detected while UI was closed"
+		)
 	end
+	SharedLogger.log("Shops", "[ShopSyncClient.checkAndHandlePriceChanges] EXIT")
+end
+
+-- ============================================================================
+-- PHASE 4: Public API Exports to Shop namespace
+-- ============================================================================
+-- These make the semantic helpers available via SHOPSB42.Shop for external mods
+
+local Shop = SHOPSB42.Shop
+
+-- Public: Get pricing state readiness (combines both revisions + sync flag)
+Shop.isPricingStateComplete = function()
+	return ShopSyncClient.isPricingStateComplete()
+end
+
+-- Public: Check if pricing changed since known state (works with revision tuples)
+Shop.isPricingStateChanged = function(prevBuyRev, prevSellRev)
+	return ShopSyncClient.isPricingStateChanged(prevBuyRev, prevSellRev)
+end
+
+-- Public: Get current buy and sell revisions as tuple
+Shop.getPricingRevisions = function()
+	return ShopSyncClient.getPricingRevisions()
+end
+
+-- Public: Capture state snapshot for later comparison
+Shop.capturePricingState = function()
+	return ShopSyncClient.capturePricingState()
+end
+
+-- Public: Check if captured state differs from current
+Shop.isPricingStateDifferent = function(capturedState)
+	return ShopSyncClient.isPricingStateDifferent(capturedState)
 end
 
 return ShopSyncClient

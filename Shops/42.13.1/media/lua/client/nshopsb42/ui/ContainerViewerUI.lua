@@ -1,7 +1,7 @@
 local Nfunction = require("nshopsb42/utils/Nfunction")
 local UIText = SHOPSB42.UIText
 local Shop = SHOPSB42.Shop
-SHOPSB42.ContainerViewerUI = ISCollapsableWindow:derive("nshopsb42_ContainerViewerUI")
+SHOPSB42.ContainerViewerUI = ISCollapsableWindow:derive("ContainerViewerUI")
 local ContainerViewerUI = SHOPSB42.ContainerViewerUI
 ContainerViewerUI.instance = nil
 ContainerViewerUI.SMALL_FONT_HGT = getTextManager():getFontFromEnum(UIFont.Small):getLineHeight()

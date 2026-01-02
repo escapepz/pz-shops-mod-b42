@@ -2,7 +2,6 @@
 -- Server-side shop initialization
 
 -- Simple test to verify logging works
-writeLog("Shops", "[ShopInitServer] Starting server shop initialization...")
 
 -- Load in explicit order to ensure dependencies are met
 -- First: Core constants and logger
@@ -34,6 +33,9 @@ require("nshopsb42/transactions/ShopTransactionValidationServer")
 -- Eighth: Server-side patches
 require("nshopsb42/patches/ISTransferActionPatch")
 
+-- Ninth: Event dispatchers (must be after all handlers are defined)
+require("nshopsb42/ShopCommandDispatcherServer")
+
 local ShopInitServerModule = {}
 
 function ShopInitServerModule.Initialize()
@@ -53,30 +55,6 @@ function ShopInitServerModule.Initialize()
 	TestPriceHooksCommand.register()
 end
 
--- NEW: Handle client requests for shop data (MP and SP)
-local function onClientCommand(module, command, player, data)
-	if module ~= "Shops" then
-		return
-	end
-
-	if command ~= "RequestShopData" then
-		SharedLogger.log("Shops", "[ShopInitServer] Received non-RequestShopData command: " .. command)
-		return
-	end
-
-	SharedLogger.log("Shops", "[ShopInitServer] Received RequestShopData from " .. player:getUsername())
-	local shop = SHOPSB42.Shop
-	SharedLogger.log("Shops", "[ShopInitServer] Shop._finalized: " .. tostring(shop._finalized))
-	SharedLogger.log("Shops", "[ShopInitServer] Shop.PriceHookRevision: " .. tostring(shop.PriceHookRevision))
-
-	-- Use cached modifiers from finalization phase
-	SharedLogger.log("Shops", "[ShopInitServer] Calling sendShopDataToPlayer...")
-	ShopFinalizeHandler.sendShopDataToPlayer(player)
-	SharedLogger.log("Shops", "[ShopInitServer] sendShopDataToPlayer completed")
-end
-
-Events.OnClientCommand.Add(onClientCommand)
-
 -- NEW: Trigger finalization and build modifiers on game start (server context)
 local function onGameStartServer()
 	if Utilities.IsServerOrSinglePlayer() then
@@ -93,6 +71,10 @@ local function onGameStartServer()
 	end
 end
 
-Events.OnGameStart.Add(onGameStartServer)
+if Events and Events.OnGameStart then
+	Events.OnGameStart.Add(onGameStartServer)
+else
+	SharedLogger.log("Shops", "[ShopInitServer] WARNING: Events.OnGameStart not available")
+end
 
 return ShopInitServerModule

@@ -20,7 +20,7 @@ local function ensureInitialized()
 	end
 
 	-- Create base class (this is the expensive operation we defer)
-	ShopSpriteCursorUI = ISBuildingObject:derive("nshopsb42_ShopSpriteCursorUI")
+	ShopSpriteCursorUI = ISBuildingObject:derive("ShopSpriteCursorUI")
 
 	-- Define methods
 	function ShopSpriteCursorUI:new(character, sprites)
@@ -153,24 +153,8 @@ end
 function module.ensureInitialized()
 	ensureInitialized()
 
-	-- only work in MP
-	Events.OnServerCommand.Add(function(module_name, command, args)
-		if module_name ~= "nshopsb42" then
-			return
-		end
-		if command ~= "ClearShopSpriteDrag" then
-			return
-		end
-
-		SharedLogger.log("Shops", "[ShopSpriteCursorUI] Received ClearShopSpriteDrag command")
-
-		if getWorld() and getWorld():getCell() then
-			getWorld():getCell():setDrag(nil, 0)
-			SharedLogger.log("Shops", "[ShopSpriteCursorUI] Sprite drag cleared")
-		end
-	end)
-
-	SharedLogger.log("Shops", "[ShopCommandHandlerClient] Initialized.")
+	-- Event listener consolidated into ShopCommandDispatcherClient
+	SharedLogger.log("Shops", "[ShopSpriteCursorUI] Initialized (dispatcher registered separately)")
 end
 
 return module

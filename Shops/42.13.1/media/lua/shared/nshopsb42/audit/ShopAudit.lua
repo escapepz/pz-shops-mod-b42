@@ -3,6 +3,7 @@
 -- Extends SHOPSB42 namespace (no new globals)
 
 local Utilities = require("nshopsb42/utils/Utilities")
+local SharedLogger = SHOPSB42.SharedLogger
 
 SHOPSB42.ShopAudit = SHOPSB42.ShopAudit or {}
 local ShopAudit = SHOPSB42.ShopAudit
@@ -15,7 +16,7 @@ local MAX_AGE_SECONDS = 7 * 24 * 60 * 60
 
 -- Retrieve or create the audit log ModData
 function ShopAudit.getLog()
-	return ModData.getOrCreate("nshopsb42_ShopAuditLog")
+	return ModData.getOrCreate("ShopAuditLog")
 end
 
 -- Prune old entries and enforce max count
@@ -63,11 +64,11 @@ function ShopAudit.append(entry)
 		ShopAudit.prune()
 
 		-- Sync to all clients
-		ModData.transmit("nshopsb42_ShopAuditLog")
+		ModData.transmit("ShopAuditLog")
 	end)
 
 	if not success then
-		writeLog("Shops", "[ShopAudit] append error: " .. tostring(err))
+		SharedLogger.log("Shops", "[ShopAudit] append error: " .. tostring(err))
 	end
 end
 

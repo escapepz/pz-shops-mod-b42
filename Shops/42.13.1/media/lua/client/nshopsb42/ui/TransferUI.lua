@@ -1,6 +1,6 @@
 -- SendTransferAction is already loaded by shared/nshopsb42/Init.lua, no need to require again
 
-SHOPSB42.TransferUI = ISCollapsableWindow:derive("nshopsb42_TransferUI")
+SHOPSB42.TransferUI = ISCollapsableWindow:derive("TransferUI")
 local TransferUI = SHOPSB42.TransferUI
 local Currency = SHOPSB42.Currency
 local Balance = SHOPSB42.Balance
@@ -403,15 +403,4 @@ function TransferUI:new(x, y, width, height, player)
 	return o
 end
 
--- Hook ModData updates for transfer confirmation
-local function onReceiveTransferUpdate(key, data)
-	if key ~= "CoinBalance" then
-		return
-	end
-	if not TransferUI.instance then
-		return
-	end
-	TransferUI.instance:onBalanceUpdate(data)
-end
-
-Events.OnReceiveGlobalModData.Add(onReceiveTransferUpdate)
+-- Event listener consolidated into ModDataDispatcherClient

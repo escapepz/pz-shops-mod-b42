@@ -8,6 +8,7 @@
     ".libraries",
     "docs",
     "build",
+    "Logs",
     "ShopsAdminTools",
     "ShopsHooksExample",
     "node_modules",

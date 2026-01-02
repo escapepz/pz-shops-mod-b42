@@ -4,6 +4,7 @@ local Utilities = require("nshopsb42/utils/Utilities")
 local Currency = SHOPSB42.Currency
 local UIText = SHOPSB42.UIText
 local Balance = SHOPSB42.Balance
+local SharedLogger = SHOPSB42.SharedLogger
 
 -- Lazy reference to TransferUI to avoid module-load-time dependency
 local function getTransferUI()
@@ -85,9 +86,9 @@ function Currency.CoinsToAccountObjectContextMenu(playerNum, context, items)
 		local walletItems = playerInv:getItemsFromFullType(k)
 		for i = 0, walletItems:size() - 1 do
 			local w = walletItems:get(i)
-			if w:getModData().nshopsb42_belongsTo == username and w:getModData().nshopsb42_linkedTo then
+			if w:getModData().belongsTo == username and w:getModData().linkedTo then
 				-- Check if wallet is valid (not stale)
-				if account and account.linkedTo == w:getModData().nshopsb42_linkedTo then
+				if account and account.linkedTo == w:getModData().linkedTo then
 					wallet = w
 					break
 				end
@@ -129,14 +130,14 @@ end
 function Currency.linkWallet(worldobjects, wallet, player)
 	local username = player:getUsername()
 	local linkedTo = username .. getTimestampMs()
-	wallet:getModData().nshopsb42_belongsTo = username
-	wallet:getModData().nshopsb42_linkedTo = linkedTo
-	writeLog(
+	wallet:getModData().belongsTo = username
+	wallet:getModData().linkedTo = linkedTo
+	SharedLogger.log(
 		"Shops",
 		"[CLIENT] Link: Set wallet modData - belongsTo="
-			.. tostring(wallet:getModData().nshopsb42_belongsTo)
+			.. tostring(wallet:getModData().belongsTo)
 			.. ", linkedTo="
-			.. tostring(wallet:getModData().nshopsb42_linkedTo)
+			.. tostring(wallet:getModData().linkedTo)
 	)
 	sendClientCommand(player, "BS", "CreateAccount", {
 		linkedTo = linkedTo,
@@ -170,8 +171,8 @@ function Currency.LinkWalletObjectContextMenu(playerNum, context, items)
 
 	-- Allow linking unlinked wallets or stale wallets (where linkedTo doesn't match server)
 	local account = Balance.getUserAccount(username)
-	local isStaleWallet = modData.nshopsb42_linkedTo and (not account or account.linkedTo ~= modData.nshopsb42_linkedTo)
-	if modData.nshopsb42_linkedTo and not isStaleWallet then
+	local isStaleWallet = modData.linkedTo and (not account or account.linkedTo ~= modData.linkedTo)
+	if modData.linkedTo and not isStaleWallet then
 		return -- Wallet is already linked and not stale
 	end
 
@@ -181,10 +182,10 @@ function Currency.LinkWalletObjectContextMenu(playerNum, context, items)
 		local walletItems = playerInv:getItemsFromFullType(k)
 		for i = 0, walletItems:size() - 1 do
 			local w = walletItems:get(i)
-			if w:getModData().nshopsb42_belongsTo == username and w:getModData().nshopsb42_linkedTo then
+			if w:getModData().belongsTo == username and w:getModData().linkedTo then
 				-- Check if this wallet is valid (not stale)
 				local wAccount = Balance.getUserAccount(username)
-				if wAccount and wAccount.linkedTo == w:getModData().nshopsb42_linkedTo then
+				if wAccount and wAccount.linkedTo == w:getModData().linkedTo then
 					return -- Player has a valid linked wallet, don't show Link option
 				end
 			end
@@ -196,14 +197,14 @@ end
 
 function Currency.unlinkWallet(worldobjects, wallet)
 	local player = getPlayer()
-	wallet:getModData().nshopsb42_belongsTo = nil
-	wallet:getModData().nshopsb42_linkedTo = nil
-	writeLog(
+	wallet:getModData().belongsTo = nil
+	wallet:getModData().linkedTo = nil
+	SharedLogger.log(
 		"Shops",
 		"[CLIENT] Unlink: Cleared wallet modData - belongsTo="
-			.. tostring(wallet:getModData().nshopsb42_belongsTo)
+			.. tostring(wallet:getModData().belongsTo)
 			.. ", linkedTo="
-			.. tostring(wallet:getModData().nshopsb42_linkedTo)
+			.. tostring(wallet:getModData().linkedTo)
 	)
 	sendClientCommand(player, "BS", "UnlinkWallet", {
 		walletID = wallet:getID(),
@@ -233,13 +234,13 @@ function Currency.UnlinkWalletObjectContextMenu(playerNum, context, items)
 	local player = getSpecificPlayer(playerNum)
 	local username = player:getUsername()
 	local modData = item:getModData()
-	if not (modData.nshopsb42_belongsTo == username and modData.nshopsb42_linkedTo) then
+	if not (modData.belongsTo == username and modData.linkedTo) then
 		return
 	end
 
 	-- Validate wallet modData matches server account to prevent stale wallet operations
 	local account = Balance.getUserAccount(username)
-	if not account or account.linkedTo ~= modData.nshopsb42_linkedTo then
+	if not account or account.linkedTo ~= modData.linkedTo then
 		return
 	end
 
@@ -262,14 +263,11 @@ function Currency.claimOfflineMailbox(worldobjects, wallet, player)
 	sendClientCommand(player, "BS", "ClaimMailbox", {
 		walletID = wallet:getID(),
 	})
-	writeLog("Shops", string.format("[CLIENT] Claim Offline Mailbox: Requested for %s", username))
+	SharedLogger.log("Shops", string.format("[CLIENT] Claim Offline Mailbox: Requested for %s", username))
 	-- Only request ModData in multiplayer - in SP the ModData is already available
 	if isMultiplayer() then
 		ModData.request("CoinBalance")
 	end
 end
 
-Events.OnPreFillInventoryObjectContextMenu.Add(Currency.LootCoinsObjectContextMenu)
-Events.OnPreFillInventoryObjectContextMenu.Add(Currency.LinkWalletObjectContextMenu)
-Events.OnPreFillInventoryObjectContextMenu.Add(Currency.UnlinkWalletObjectContextMenu)
-Events.OnPreFillInventoryObjectContextMenu.Add(Currency.CoinsToAccountObjectContextMenu)
+-- Event listeners consolidated into InventoryObjectContextMenuDispatcher

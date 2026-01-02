@@ -9,7 +9,7 @@ local TransactionRegistry = SHOPSB42.TransactionRegistry
 
 -- Retrieve or create the ModData storage for shop transactions
 function TransactionRegistry.get()
-	return ModData.getOrCreate("nshopsb42_ShopTransactions")
+	return ModData.getOrCreate("ShopTransactions")
 end
 
 -- Check if a transaction has already been processed
@@ -41,7 +41,7 @@ function TransactionRegistry.markProcessed(username, txnId)
 	end
 
 	data[username][txnId] = "processed"
-	ModData.transmit("nshopsb42_ShopTransactions")
+	ModData.transmit("ShopTransactions")
 end
 
 -- Mark a transaction as rolled back (prevented duplicate rollback processing)
@@ -59,7 +59,7 @@ function TransactionRegistry.markRolledBack(username, txnId)
 	-- Prevent re-rollback: mark status only if not already marked
 	if not data[username][txnId] then
 		data[username][txnId] = "rolled_back"
-		ModData.transmit("nshopsb42_ShopTransactions")
+		ModData.transmit("ShopTransactions")
 	end
 end
 

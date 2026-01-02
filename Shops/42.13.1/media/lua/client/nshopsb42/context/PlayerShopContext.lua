@@ -106,7 +106,7 @@ function PlayerShop.PickupShop(worldobjects, player, shop)
 		player:setHaloNote(UIText.RemoveItemsPlayerShop, 255, 255, 255, 400)
 		return
 	end
-	local income = shop:getModData().nshopsb42_income
+	local income = shop:getModData().income
 	if income and type(income) == "table" and #income > 0 then
 		player:setHaloNote(UIText.RemoveIncomePlayerShop, 255, 255, 255, 400)
 		return
@@ -195,7 +195,7 @@ function PlayerShop.PlayerShopContextMenu(playerNum, context, worldobjects)
 	SharedLogger.log("Shops", "PlayerShopContextMenu: wo found=" .. tostring(found))
 	local owner = ""
 	if found then
-		owner = wo:getModData().nshopsb42_owner
+		owner = wo:getModData().owner
 		local optionView = getText("IGUI_ViewPlayerShop", owner)
 		local clickedSquare = wo:getSquare()
 		local viewPS =
@@ -325,5 +325,6 @@ function PlayerShop.ItemsSellPrice(playerNum, context, items, worldobjects)
 	end
 end
 
-Events.OnFillInventoryObjectContextMenu.Add(PlayerShop.ItemsSellPrice)
-Events.OnPreFillWorldObjectContextMenu.Add(PlayerShop.PlayerShopContextMenu)
+-- Event listeners consolidated into dispatchers
+-- OnFillInventoryObjectContextMenu consolidated into InventoryObjectContextMenuDispatcher (Phase 4)
+-- OnPreFillWorldObjectContextMenu consolidated into WorldObjectContextMenuDispatcher (Phase 3)

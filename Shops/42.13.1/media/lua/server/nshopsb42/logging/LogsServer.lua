@@ -28,10 +28,5 @@ function LServer.TransactionShopLog(player, args)
 	writeLogToFile(msg)
 end
 
-local function LS_OnClientCommand(module, command, player, args)
-	if module == "LS" and LServer[command] then
-		LServer[command](player, args)
-	end
-end
-
-Events.OnClientCommand.Add(LS_OnClientCommand)
+-- Event listeners consolidated into ShopCommandDispatcherServer
+-- LS_OnClientCommand logic is now handled by unified dispatcher

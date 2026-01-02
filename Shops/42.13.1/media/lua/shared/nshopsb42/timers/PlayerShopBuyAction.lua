@@ -5,7 +5,7 @@ local Utilities = require("nshopsb42/utils/Utilities")
 local PlayerShop = require("nshopsb42/core/PlayerShop")
 local SharedLogger = SHOPSB42.SharedLogger
 
-SHOPSB42.PlayerShopBuyAction = ISBaseTimedAction:derive("nshopsb42_PlayerShopBuyAction")
+SHOPSB42.PlayerShopBuyAction = ISBaseTimedAction:derive("PlayerShopBuyAction")
 local PlayerShopBuyAction = SHOPSB42.PlayerShopBuyAction
 
 function PlayerShopBuyAction:isValid()
@@ -115,7 +115,7 @@ function PlayerShopBuyAction:complete()
 	-- Step 4: Iterate cart items and transfer
 	local playerInv = self.character:getInventory()
 	local shopModData = shop:getModData()
-	local income = shopModData.nshopsb42_income or {}
+	local income = shopModData.income or {}
 	local totalCoin = 0
 	local totalSpecial = 0
 
@@ -135,8 +135,8 @@ function PlayerShopBuyAction:complete()
 
 			-- Clear shop-specific ModData
 			local modData = invItem:getModData()
-			modData.nshopsb42_price = nil
-			modData.nshopsb42_specialCoin = nil
+			modData.price = nil
+			modData.specialCoin = nil
 			syncItemModData(self.character, invItem)
 
 			-- Track totals
@@ -164,7 +164,7 @@ function PlayerShopBuyAction:complete()
 			t = { tl = totalCoin, tls = totalSpecial },
 		}
 		table.insert(income, data)
-		shopModData.nshopsb42_income = income
+		shopModData.income = income
 	end
 
 	-- Step 6: Sync shop state

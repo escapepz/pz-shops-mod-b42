@@ -2,6 +2,7 @@
 -- Method 2: Override ISTransferAction:transferItem() with shop ownership checks
 
 local InventoryTransferValidation = require("nshopsb42/validation/InventoryTransferValidation")
+local SharedLogger = SHOPSB42.SharedLogger
 
 -- Store original function
 local OriginalTransferItem = ISTransferAction.transferItem
@@ -11,7 +12,7 @@ local OriginalTransferItem = ISTransferAction.transferItem
 function ISTransferAction:transferItem(character, item, srcContainer, destContainer, dropSquare)
 	local username = character and character:getUsername() or "Unknown"
 
-	writeLog(
+	SharedLogger.log(
 		"Shops",
 		"[ISTransferActionPatch] Transfer attempt - username="
 			.. username
@@ -25,14 +26,14 @@ function ISTransferAction:transferItem(character, item, srcContainer, destContai
 
 	-- Validate shop ownership using same conditions as client-side validation
 	if not InventoryTransferValidation.validateShopOwnership(character, srcContainer, destContainer) then
-		writeLog(
+		SharedLogger.log(
 			"Shops",
 			"[ISTransferActionPatch] Transfer REJECTED - Player does not own source/destination container"
 		)
 		return nil -- Return nil to indicate failure
 	end
 
-	writeLog("Shops", "[ISTransferActionPatch] Transfer ALLOWED - Proceeding with original transfer")
+	SharedLogger.log("Shops", "[ISTransferActionPatch] Transfer ALLOWED - Proceeding with original transfer")
 
 	-- Call the original transfer function
 	return OriginalTransferItem(self, character, item, srcContainer, destContainer, dropSquare)

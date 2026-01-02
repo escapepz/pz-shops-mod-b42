@@ -1,4 +1,4 @@
-SHOPSB42.ShopTabUI = ISPanelJoypad:derive("nshopsb42_ShopTabUI")
+SHOPSB42.ShopTabUI = ISPanelJoypad:derive("ShopTabUI")
 local ShopTabUI = SHOPSB42.ShopTabUI
 local Shop = SHOPSB42.Shop
 local UIText = SHOPSB42.UIText

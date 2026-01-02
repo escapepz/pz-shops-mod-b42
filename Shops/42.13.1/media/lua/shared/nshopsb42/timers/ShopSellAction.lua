@@ -1,6 +1,6 @@
 require("TimedActions/ISBaseTimedAction")
 
-SHOPSB42.ShopSellAction = ISBaseTimedAction:derive("nshopsb42_ShopSellAction")
+SHOPSB42.ShopSellAction = ISBaseTimedAction:derive("ShopSellAction")
 local ShopSellAction = SHOPSB42.ShopSellAction
 local Nfunction = require("nshopsb42/utils/Nfunction")
 local Shop = SHOPSB42.Shop
@@ -102,7 +102,7 @@ function ShopSellAction:complete()
 	local totalSpecial = 0
 
 	-- Validate account exists before processing items (fail early to prevent item loss)
-	local coinBalance = ModData.get("nshopsb42_CoinBalance")
+	local coinBalance = ModData.get("CoinBalance")
 	local account = coinBalance[username]
 	if not account then
 		SharedLogger.logAction("ShopSellAction", "complete", "REJECTED - no account found for user: " .. username)
@@ -152,7 +152,7 @@ function ShopSellAction:complete()
 		-- Account existence already validated above, safe to access
 		account.coin = account.coin + total
 		account.specialCoin = account.specialCoin + totalSpecial
-		ModData.transmit("nshopsb42_CoinBalance")
+		ModData.transmit("CoinBalance")
 	end
 
 	-- Mark transaction as processed

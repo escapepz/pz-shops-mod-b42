@@ -121,6 +121,4 @@ function Shop.ShopViewContextMenu(playerNum, context, worldobjects)
 	context:addOption(UIText.ShopViewItems, worldobjects, Shop.shopUI, playerNum, true)
 end
 
-Events.OnFillWorldObjectContextMenu.Add(Shop.ShopViewContextMenu)
-Events.OnPreFillWorldObjectContextMenu.Add(Shop.ShopContextMenu)
-Events.OnPreFillWorldObjectContextMenu.Add(Shop.ShopUIContextMenu)
+-- Event listeners consolidated into WorldObjectContextMenuDispatcher

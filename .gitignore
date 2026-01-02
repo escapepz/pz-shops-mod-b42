@@ -1,6 +1,7 @@
 .serena
 .libraries
 
+Logs/
 Helper/
 tmp/
 mods/

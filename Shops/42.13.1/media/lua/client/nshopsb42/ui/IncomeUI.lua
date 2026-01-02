@@ -1,4 +1,4 @@
-SHOPSB42.IncomeUI = ISCollapsableWindow:derive("nshopsb42_IncomeUI")
+SHOPSB42.IncomeUI = ISCollapsableWindow:derive("IncomeUI")
 local IncomeUI = SHOPSB42.IncomeUI
 local UIText = SHOPSB42.UIText
 local Currency = SHOPSB42.Currency
@@ -136,7 +136,7 @@ function IncomeUI:createChildren()
 
 	total = 0
 	totalSpecial = 0
-	local income = IncomeUI.instance.shop:getModData().nshopsb42_income
+	local income = IncomeUI.instance.shop:getModData().income
 	for k, v in pairs(income) do
 		self.tickets:addItem(v.buyer, v)
 		total = total + v.t.tl
@@ -213,7 +213,7 @@ function IncomeUI:getBtn()
 			specialCoin = totalSpecial,
 			source = "ShopIncome",
 		})
-		IncomeUI.instance.shop:getModData().nshopsb42_income = {}
+		IncomeUI.instance.shop:getModData().income = {}
 		IncomeUI.instance.shop:transmitModData()
 		self.character:playSound("CashRegister")
 	else

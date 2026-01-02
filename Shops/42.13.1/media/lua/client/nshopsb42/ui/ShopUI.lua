@@ -11,6 +11,7 @@ local ShopTabUI = SHOPSB42.ShopTabUI
 local ShopBuyAction = SHOPSB42.ShopBuyAction
 local ShopSellAction = SHOPSB42.ShopSellAction
 local Calculator = require("nshopsb42/pricing/ShopPriceCalculatorShared")
+local SharedLogger = SHOPSB42.SharedLogger
 
 local function generateTxnId()
 	return tostring(getGameTime():getWorldAgeHours()) .. "-" .. tostring(ZombRand(1, 1000000000))
@@ -29,7 +30,7 @@ local function calcBuyPrice(itemId, player, basePrice)
 
 		-- DEBUG: Log price calculations for Base.Apple
 		if itemId == "Base.Apple" then
-			writeLog(
+			SharedLogger.log(
 				"Shops",
 				"[ShopUI:calcBuyPrice] Base.Apple: basePrice="
 					.. basePrice
@@ -53,7 +54,7 @@ local function calcBuyPrice(itemId, player, basePrice)
 
 	-- DEBUG: Log price calculations for Base.Apple
 	if itemId == "Base.Apple" then
-		writeLog(
+		SharedLogger.log(
 			"Shops",
 			"[ShopUI:calcBuyPrice] Base.Apple: basePrice="
 				.. basePrice
@@ -82,7 +83,7 @@ local function calcSellPrice(item, player, basePrice)
 
 		-- DEBUG: Log price calculations for Base.Apple
 		if itemId == "Base.Apple" then
-			writeLog(
+			SharedLogger.log(
 				"Shops",
 				"[ShopUI:calcSellPrice] Base.Apple: basePrice="
 					.. basePrice
@@ -109,7 +110,7 @@ local function calcSellPrice(item, player, basePrice)
 
 	-- DEBUG: Log price calculations for Base.Apple
 	if itemId == "Base.Apple" then
-		writeLog(
+		SharedLogger.log(
 			"Shops",
 			"[ShopUI:calcSellPrice] Base.Apple: basePrice="
 				.. basePrice
@@ -123,7 +124,7 @@ local function calcSellPrice(item, player, basePrice)
 	return price
 end
 
-SHOPSB42.ShopUI = ISCollapsableWindow:derive("nshopsb42_ShopUI")
+SHOPSB42.ShopUI = ISCollapsableWindow:derive("ShopUI")
 local ShopUI = SHOPSB42.ShopUI
 ShopUI.instance = nil
 ShopUI.SMALL_FONT_HGT = getTextManager():getFontFromEnum(UIFont.Small):getLineHeight()
@@ -138,6 +139,7 @@ ShopUI.reloadItems = false
 ShopUI.lastTab = "none"
 ShopUI.ItemExistsCache = {}
 ShopUI._wasShopActionRunning = false -- State latch for race condition prevention
+ShopUI._lastPricingState = nil -- Track pricing revisions when UI closes for reopening detection
 local posX = 0
 local posY = 0
 
@@ -149,17 +151,41 @@ local width = 995
 local height = 550
 
 function ShopUI:show(player, viewMode, shop)
+	-- Phase 3: Gate on initial sync completion (atomicity check)
+	local ShopSyncClient = SHOPSB42.ShopSyncClient
+	if ShopSyncClient and not ShopSyncClient.isShopReady() then
+		SharedLogger.log("Shops", "[ShopUI:show] Shop not yet synced from server. Waiting...")
+		-- Queue the open request to retry when sync completes
+		ShopUI._pendingShowRequest = {
+			player = player,
+			viewMode = viewMode,
+			shop = shop,
+		}
+		-- Register callback to retry when sync completes
+		if ShopSyncClient.onInitialSyncComplete then
+			ShopSyncClient.onInitialSyncComplete(function()
+				if ShopUI._pendingShowRequest then
+					SharedLogger.log("Shops", "[ShopUI:show] Retrying show after sync complete")
+					local req = ShopUI._pendingShowRequest
+					ShopUI._pendingShowRequest = nil
+					ShopUI:show(req.player, req.viewMode, req.shop)
+				end
+			end)
+		end
+		return nil
+	end
+
 	local square = player:getSquare()
 	posX = square:getX()
 	posY = square:getY()
 
-	writeLog(
+	SharedLogger.log(
 		"Shops",
 		"[ShopUI:show] ENTRY - instance=" .. tostring(ShopUI.instance ~= nil) .. ", viewMode=" .. tostring(viewMode)
 	)
 
 	if ShopUI.instance == nil then
-		writeLog("Shops", "[ShopUI:show] Creating new ShopUI instance")
+		SharedLogger.log("Shops", "[ShopUI:show] Creating new ShopUI instance")
 		ShopUI.instance = ShopUI:new(0, 0, width, height, player)
 		ShopUI.instance.shop = shop
 		ShopUI.instance.viewMode = viewMode
@@ -176,8 +202,57 @@ function ShopUI:show(player, viewMode, shop)
 
 	-- Check if prices changed while UI was closed
 	local ShopSyncClient = SHOPSB42.ShopSyncClient
+	local Shop = SHOPSB42.Shop
 	if ShopSyncClient and ShopSyncClient.checkAndHandlePriceChanges then
+		SharedLogger.log("Shops", "[ShopUI:show] Calling checkAndHandlePriceChanges()...")
 		ShopSyncClient.checkAndHandlePriceChanges()
+		SharedLogger.log("Shops", "[ShopUI:show] checkAndHandlePriceChanges() completed")
+	end
+
+	-- Check if pricing state changed since last UI close
+	if ShopUI._lastPricingState and Shop then
+		local currentBuyRev = Shop.BuyPriceRevision
+		local currentSellRev = Shop.SellRuleRevision
+		local lastBuyRev = ShopUI._lastPricingState.buyRev
+		local lastSellRev = ShopUI._lastPricingState.sellRev
+
+		if currentBuyRev ~= lastBuyRev or currentSellRev ~= lastSellRev then
+			SharedLogger.log(
+				"Shops",
+				"[ShopUI:show] Pricing state changed since last close: buyRev="
+					.. tostring(lastBuyRev)
+					.. "->"
+					.. tostring(currentBuyRev)
+					.. ", sellRev="
+					.. tostring(lastSellRev)
+					.. "->"
+					.. tostring(currentSellRev)
+			)
+			-- Mark that prices changed while closed (UI was closed between revisions)
+			ShopSyncClient.pricesChangedWhileClosed = true
+			-- Trigger UI refresh
+			local refreshResult = ShopSyncClient.refreshUIForPriceChange()
+			SharedLogger.log("Shops", "[ShopUI:show] Triggered price change refresh due to revision mismatch")
+		end
+	end
+
+	-- DEBUG: Log current pricing state when UI opens
+	if ShopSyncClient then
+		SharedLogger.log(
+			"Shops",
+			"[ShopUI:show] Pricing state: buyRev="
+				.. tostring(Shop.BuyPriceRevision)
+				.. ", sellRev="
+				.. tostring(Shop.SellRuleRevision)
+				.. ", complete="
+				.. tostring(Shop._initialSyncComplete)
+		)
+		if Shop.BuyPrices and Shop.BuyPrices["Base.Apple"] then
+			SharedLogger.log(
+				"Shops",
+				"[ShopUI:show] Base.Apple cached price: " .. tostring(Shop.BuyPrices["Base.Apple"])
+			)
+		end
 	end
 
 	return ShopUI.instance
@@ -1108,6 +1183,22 @@ function ShopUI:close()
 	self.actionInProgress = false
 	self.reloadItems = false
 	self.selected = nil
+
+	-- Save pricing state before closing for comparison when reopening
+	local Shop = SHOPSB42.Shop
+	if Shop then
+		ShopUI._lastPricingState = {
+			buyRev = Shop.BuyPriceRevision,
+			sellRev = Shop.SellRuleRevision,
+		}
+		SharedLogger.log(
+			"Shops",
+			"[ShopUI:close] Saved pricing state: buyRev="
+				.. tostring(ShopUI._lastPricingState.buyRev)
+				.. ", sellRev="
+				.. tostring(ShopUI._lastPricingState.sellRev)
+		)
+	end
 
 	if PreviewUI.instance then
 		PreviewUI.instance:close()

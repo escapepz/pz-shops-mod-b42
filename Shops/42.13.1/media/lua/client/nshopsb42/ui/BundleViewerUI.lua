@@ -1,7 +1,7 @@
 -- BundleViewerUI - Show virtual bundle contents before purchase
 local UIText = SHOPSB42.UIText
 
-SHOPSB42.BundleViewerUI = ISCollapsableWindow:derive("nshopsb42_BundleViewerUI")
+SHOPSB42.BundleViewerUI = ISCollapsableWindow:derive("BundleViewerUI")
 local BundleViewerUI = SHOPSB42.BundleViewerUI
 
 BundleViewerUI.instance = nil

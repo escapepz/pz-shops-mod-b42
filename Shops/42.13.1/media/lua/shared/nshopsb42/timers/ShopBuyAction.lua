@@ -1,6 +1,6 @@
 require("TimedActions/ISBaseTimedAction")
 
-SHOPSB42.ShopBuyAction = ISBaseTimedAction:derive("nshopsb42_ShopBuyAction")
+SHOPSB42.ShopBuyAction = ISBaseTimedAction:derive("ShopBuyAction")
 local ShopBuyAction = SHOPSB42.ShopBuyAction
 local Nfunction = require("nshopsb42/utils/Nfunction")
 local Shop = SHOPSB42.Shop
@@ -135,7 +135,7 @@ function ShopBuyAction:complete()
 
 	-- Withdraw balance from virtual wallet
 	-- Direct ModData manipulation since we're on server
-	local account = ModData.get("nshopsb42_CoinBalance")[username]
+	local account = ModData.get("CoinBalance")[username]
 	if not account then
 		return false
 	end
@@ -145,7 +145,7 @@ function ShopBuyAction:complete()
 
 	account.coin = account.coin - totalCoin
 	account.specialCoin = account.specialCoin - totalSpecialCoin
-	ModData.transmit("nshopsb42_CoinBalance")
+	ModData.transmit("CoinBalance")
 
 	-- Spawn purchased items
 	local playerInv = self.character:getInventory()

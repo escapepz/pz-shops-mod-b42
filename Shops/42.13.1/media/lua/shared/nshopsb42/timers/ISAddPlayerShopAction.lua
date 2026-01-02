@@ -8,7 +8,7 @@ local Utilities = require("nshopsb42/utils/Utilities")
 local PlayerShop = SHOPSB42.PlayerShop
 local SharedLogger = require("nshopsb42/utils/SharedLogger")
 
-ISAddPlayerShopAction = ISBaseTimedAction:derive("nshopsb42_ISAddPlayerShopAction")
+ISAddPlayerShopAction = ISBaseTimedAction:derive("ISAddPlayerShopAction")
 SHOPSB42.ISAddPlayerShopAction = ISAddPlayerShopAction
 
 function ISAddPlayerShopAction:isValid()
@@ -131,8 +131,8 @@ function ISAddPlayerShopAction:complete()
 	end
 
 	-- Set ownership and initialize income tracking
-	shop:getModData().nshopsb42_owner = player:getUsername()
-	shop:getModData().nshopsb42_income = {}
+	shop:getModData().owner = player:getUsername()
+	shop:getModData().income = {}
 
 	-- Add to world using AddSpecialObject (matches old working pattern)
 	square:AddSpecialObject(shop)

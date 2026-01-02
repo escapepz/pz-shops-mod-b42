@@ -8,7 +8,7 @@ SHOPSB42.Balance = SHOPSB42.Balance or {}
 local Balance = SHOPSB42.Balance
 
 function Balance.getUserAccount(username)
-	local coinBalance = ModData.get("nshopsb42_CoinBalance")
+	local coinBalance = ModData.get("CoinBalance")
 	if not coinBalance then
 		return nil
 	end
@@ -33,7 +33,7 @@ end
 
 function Balance.getAccountsList()
 	local accounts = {}
-	local coinBalance = ModData.get("nshopsb42_CoinBalance")
+	local coinBalance = ModData.get("CoinBalance")
 	if not coinBalance then
 		return accounts
 	end

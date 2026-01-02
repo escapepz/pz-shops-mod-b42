@@ -30,3 +30,4 @@ safeRegister("ItemTag", "shops:PlayerShop")
 safeRegister("ItemTag", "shops:PlayerShopFreezer")
 
 -- Note: Craft Recipes are defined in S_Recipes.txt, not registered here
+

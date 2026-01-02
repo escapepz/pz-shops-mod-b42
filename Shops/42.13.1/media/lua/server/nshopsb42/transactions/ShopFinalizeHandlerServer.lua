@@ -28,6 +28,46 @@ ShopFinalizeHandler._previousSellRules = {
 	sellOverrides = {},
 }
 
+-- Helper: Compute buy price WITH modifier tracking for transparency (Phase 2)
+local function computeBuyPriceWithModifiers(itemId)
+	local item = Shop.Items[itemId]
+	if not item then
+		return nil
+	end
+
+	-- Check if player can buy this item
+	if not Shop.canPlayerBuy(itemId) then
+		return {
+			price = item.basePrice or item.price,
+			basePrice = item.basePrice or item.price,
+			modifiers = {},
+		}
+	end
+
+	local base = item.basePrice or item.price
+	local modifiers = {}
+
+	-- Trigger modify hooks to collect modifiers
+	local ShopPriceEvents = SHOPSB42.ShopPriceEvents
+	ShopPriceEvents.triggerOnShopModifyBuyPrice(nil, itemId, base, { type = "sync" }, modifiers)
+
+	-- Apply modifiers
+	local PriceUtils = require("nshopsb42/pricing/ShopPriceUtils")
+	local price = PriceUtils.applyModifiers(base, modifiers)
+
+	-- Check for overrides (don't include override in modifiers list, just use final price)
+	local override = ShopPriceEvents.triggerOnShopOverrideBuyPrice(nil, itemId, price, { type = "sync" })
+	if override then
+		price = override
+	end
+
+	return {
+		price = price,
+		basePrice = base,
+		modifiers = modifiers,
+	}
+end
+
 -- Helper: Calculate prices for ONLY defined items in PlayerBuy + PlayerSell registries (Step 2)
 local function buildCalculatedPrices()
 	local calculatedPrices = {
@@ -39,9 +79,9 @@ local function buildCalculatedPrices()
 	if Shop.PlayerBuy then
 		for itemId, config in pairs(Shop.PlayerBuy) do
 			if config.enabled then
-				local buyPrice = Shop.resolvePlayerBuyPrice(nil, itemId, { type = "sync" })
-				if buyPrice then
-					calculatedPrices.buyPrices[itemId] = buyPrice
+				local priceData = computeBuyPriceWithModifiers(itemId)
+				if priceData then
+					calculatedPrices.buyPrices[itemId] = priceData
 				end
 			end
 		end
@@ -62,16 +102,21 @@ local function buildCalculatedPrices()
 end
 
 -- Detect price changes by comparing new prices with previous state (Step 3)
+-- Now returns full price data WITH modifiers (Phase 2)
 local function detectPriceChanges(newCalculatedPrices, previousPrices)
 	local changed = {}
 
 	-- Only check items in PlayerBuy registry (defined items)
 	if newCalculatedPrices.buyPrices then
-		for itemId, newPrice in pairs(newCalculatedPrices.buyPrices) do
+		for itemId, newPriceData in pairs(newCalculatedPrices.buyPrices) do
 			if Shop.PlayerBuy[itemId] then -- ← Only registered items
-				local oldPrice = previousPrices[itemId]
+				local oldPriceData = previousPrices[itemId]
+				-- Compare final prices (oldPriceData might be just a number from old format)
+				local oldPrice = (type(oldPriceData) == "table") and oldPriceData.price or oldPriceData
+				local newPrice = (type(newPriceData) == "table") and newPriceData.price or newPriceData
+
 				if oldPrice ~= newPrice then
-					changed[itemId] = newPrice
+					changed[itemId] = newPriceData
 					SharedLogger.log(
 						"Shops",
 						"[PriceDelta] Changed: " .. itemId .. " from " .. tostring(oldPrice) .. " to " .. newPrice
@@ -132,11 +177,17 @@ function ShopFinalizeHandler.broadcastBuyPrices()
 
 	local calculatedPrices = buildCalculatedPrices()
 	local changedPrices = detectPriceChanges(calculatedPrices, ShopFinalizeHandler._previousBuyPrices)
-	ShopFinalizeHandler._previousBuyPrices = calculatedPrices.buyPrices or {}
 
-	Utilities.SendServerCommandToAll("Shops", "SyncBuyPrices", {
-		revision = Shop.BuyPriceRevision,
-		buyPrices = changedPrices, -- Delta: only changed items
+	-- Store full price data (with modifiers) for next comparison (Phase 2)
+	ShopFinalizeHandler._previousBuyPrices = {}
+	for itemId, priceData in pairs(calculatedPrices.buyPrices or {}) do
+		ShopFinalizeHandler._previousBuyPrices[itemId] = priceData
+	end
+
+	Utilities.SendServerCommandToAll("nshopsb42", "SyncBuyPrices", {
+		buyRevision = Shop.BuyPriceRevision,
+		sellRevision = Shop.SellRuleRevision, -- Both revisions for atomicity
+		buyPrices = changedPrices, -- Delta: only changed items (now includes modifiers)
 	})
 
 	SharedLogger.log("Shops", "[ShopFinalizeHandler] BUY prices broadcast (rev=" .. Shop.BuyPriceRevision .. ")")
@@ -158,8 +209,9 @@ function ShopFinalizeHandler.broadcastSellRules()
 	if not ruleSetsEqual(sellData, ShopFinalizeHandler._previousSellRules) then
 		ShopFinalizeHandler._previousSellRules = deepCopy(sellData)
 
-		Utilities.SendServerCommandToAll("Shops", "SyncSellRules", {
-			revision = Shop.SellRuleRevision,
+		Utilities.SendServerCommandToAll("nshopsb42", "SyncSellRules", {
+			buyRevision = Shop.BuyPriceRevision, -- ADD: Both revisions for atomicity
+			sellRevision = Shop.SellRuleRevision,
 			sellModifiers = sellData.sellModifiers,
 			sellOverrides = sellData.sellOverrides,
 		})
@@ -266,22 +318,32 @@ end
 
 -- NEW: Send data to a specific player (called when they connect) (Step 5)
 function ShopFinalizeHandler.sendShopDataToPlayer(player)
+	SharedLogger.log("Shops", "[ShopFinalizeHandler.sendShopDataToPlayer] ENTRY")
+
 	if not Utilities.IsServerOrSinglePlayer() then
+		SharedLogger.log("Shops", "[ShopFinalizeHandler.sendShopDataToPlayer] NOT in server context, aborting")
 		SharedLogger.log("Shops", "[ShopFinalizeHandler] sendShopDataToPlayer not in server context, aborting")
 		return
 	end
 
 	if not player then
+		SharedLogger.log("Shops", "[ShopFinalizeHandler.sendShopDataToPlayer] player is nil, aborting")
 		SharedLogger.log("Shops", "[ShopFinalizeHandler] sendShopDataToPlayer called with nil player, aborting")
 		return
 	end
 
-	SharedLogger.log("Shops", "[ShopFinalizeHandler] sendShopDataToPlayer starting for " .. player:getUsername())
+	local username = player:getUsername() or "unknown"
+	SharedLogger.log("Shops", "[ShopFinalizeHandler.sendShopDataToPlayer] Starting for player: " .. username)
+	SharedLogger.log("Shops", "[ShopFinalizeHandler] sendShopDataToPlayer starting for " .. username)
 
 	local itemCount = 0
 	for _ in pairs(Shop.Items) do
 		itemCount = itemCount + 1
 	end
+	SharedLogger.log(
+		"Shops",
+		"[ShopFinalizeHandler.sendShopDataToPlayer] Preparing SyncShopData with " .. itemCount .. " items"
+	)
 	SharedLogger.log("Shops", "[ShopFinalizeHandler] Preparing SyncShopData with " .. itemCount .. " items")
 
 	-- Send shop items and config
@@ -293,40 +355,110 @@ function ShopFinalizeHandler.sendShopDataToPlayer(player)
 		SellIsWhitelist = Shop.SellIsWhitelist,
 	}
 
+	SharedLogger.log("Shops", "[ShopFinalizeHandler.sendShopDataToPlayer] SENDING SyncShopData...")
 	SharedLogger.log("Shops", "[ShopFinalizeHandler] Sending SyncShopData command...")
-	Utilities.SendServerCommandTo(player, "Shops", "SyncShopData", shopData)
+	local success1, err1 = pcall(function()
+		Utilities.SendServerCommandTo(player, "nshopsb42", "SyncShopData", shopData)
+	end)
+	if not success1 then
+		SharedLogger.log(
+			"Shops",
+			"[ShopFinalizeHandler.sendShopDataToPlayer] ERROR sending SyncShopData: " .. tostring(err1)
+		)
+	else
+		SharedLogger.log("Shops", "[ShopFinalizeHandler.sendShopDataToPlayer] SyncShopData sent successfully")
+	end
 	SharedLogger.log("Shops", "[ShopFinalizeHandler] SyncShopData sent")
 
 	-- Send buy prices (initial sync) (Phase 2.8)
+	SharedLogger.log("Shops", "[ShopFinalizeHandler.sendShopDataToPlayer] Building buy prices...")
 	local buyData = buildCalculatedPrices()
+	SharedLogger.log(
+		"Shops",
+		"[ShopFinalizeHandler.sendShopDataToPlayer] SENDING SyncBuyPrices (buyRev="
+			.. tostring(Shop.BuyPriceRevision or 0)
+			.. ", sellRev="
+			.. tostring(Shop.SellRuleRevision or 0)
+			.. ")"
+	)
 	SharedLogger.log(
 		"Shops",
 		"[ShopFinalizeHandler] Sending SyncBuyPrices (revision: " .. tostring(Shop.BuyPriceRevision or 0) .. ")"
 	)
 
-	Utilities.SendServerCommandTo(player, "Shops", "SyncBuyPrices", {
-		revision = Shop.BuyPriceRevision,
-		buyPrices = buyData.buyPrices,
-		isInitialSync = true,
-	})
+	local success2, err2 = pcall(function()
+		Utilities.SendServerCommandTo(player, "nshopsb42", "SyncBuyPrices", {
+			buyRevision = Shop.BuyPriceRevision,
+			sellRevision = Shop.SellRuleRevision, -- Both revisions for atomicity
+			buyPrices = buyData.buyPrices, -- Now includes modifiers for transparency
+			isInitialSync = true,
+		})
+	end)
+	if not success2 then
+		SharedLogger.log(
+			"Shops",
+			"[ShopFinalizeHandler.sendShopDataToPlayer] ERROR sending SyncBuyPrices: " .. tostring(err2)
+		)
+	else
+		SharedLogger.log("Shops", "[ShopFinalizeHandler.sendShopDataToPlayer] SyncBuyPrices sent successfully")
+	end
 	SharedLogger.log("Shops", "[ShopFinalizeHandler] SyncBuyPrices sent")
 
 	-- Send sell rules (initial sync) (Phase 2.8)
+	SharedLogger.log("Shops", "[ShopFinalizeHandler.sendShopDataToPlayer] Building sell rules...")
 	local modifiers = Builder.buildPriceModifiers()
+	SharedLogger.log(
+		"Shops",
+		"[ShopFinalizeHandler.sendShopDataToPlayer] SENDING SyncSellRules (sellRev="
+			.. tostring(Shop.SellRuleRevision or 0)
+			.. ")"
+	)
 	SharedLogger.log(
 		"Shops",
 		"[ShopFinalizeHandler] Sending SyncSellRules (revision: " .. tostring(Shop.SellRuleRevision or 0) .. ")"
 	)
 
-	Utilities.SendServerCommandTo(player, "Shops", "SyncSellRules", {
-		revision = Shop.SellRuleRevision,
-		sellModifiers = modifiers.sellModifiers or {},
-		sellOverrides = modifiers.sellOverrides or {},
-		isInitialSync = true,
-	})
+	local success3, err3 = pcall(function()
+		Utilities.SendServerCommandTo(player, "nshopsb42", "SyncSellRules", {
+			buyRevision = Shop.BuyPriceRevision, -- Both revisions for atomicity
+			sellRevision = Shop.SellRuleRevision,
+			sellModifiers = modifiers.sellModifiers or {},
+			sellOverrides = modifiers.sellOverrides or {},
+			isInitialSync = true,
+		})
+	end)
+	if not success3 then
+		SharedLogger.log(
+			"Shops",
+			"[ShopFinalizeHandler.sendShopDataToPlayer] ERROR sending SyncSellRules: " .. tostring(err3)
+		)
+	else
+		SharedLogger.log("Shops", "[ShopFinalizeHandler.sendShopDataToPlayer] SyncSellRules sent successfully")
+	end
 	SharedLogger.log("Shops", "[ShopFinalizeHandler] SyncSellRules sent")
 
-	SharedLogger.log("Shops", "[ShopFinalizeHandler] Synced all data to " .. player:getUsername())
+	-- Send completion signal (Phase 3: completion handshake)
+	SharedLogger.log("Shops", "[ShopFinalizeHandler.sendShopDataToPlayer] SENDING SyncInitialComplete...")
+	SharedLogger.log("Shops", "[ShopFinalizeHandler] Sending SyncInitialComplete...")
+	local success4, err4 = pcall(function()
+		Utilities.SendServerCommandTo(player, "nshopsb42", "SyncInitialComplete", {
+			buyRevision = Shop.BuyPriceRevision,
+			sellRevision = Shop.SellRuleRevision,
+			timestamp = getGameTime(),
+		})
+	end)
+	if not success4 then
+		SharedLogger.log(
+			"Shops",
+			"[ShopFinalizeHandler.sendShopDataToPlayer] ERROR sending SyncInitialComplete: " .. tostring(err4)
+		)
+	else
+		SharedLogger.log("Shops", "[ShopFinalizeHandler.sendShopDataToPlayer] SyncInitialComplete sent successfully")
+	end
+	SharedLogger.log("Shops", "[ShopFinalizeHandler] SyncInitialComplete sent")
+
+	SharedLogger.log("Shops", "[ShopFinalizeHandler.sendShopDataToPlayer] EXIT - All data synced to " .. username)
+	SharedLogger.log("Shops", "[ShopFinalizeHandler] Synced all data to " .. username)
 end
 
 -- Register server-side event hooks for item loading

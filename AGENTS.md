@@ -21,3 +21,23 @@ use ./docs/B42.13_MP_Project_Zomboid_ API_for_Inventory_Items.md and ./docs/B42.
 - **Comments**: Use `--` for single-line comments
 - **Lua version**: Target Project Zomboid's Lua API (B42.13+)
 - **File structure**: All shared code must be in `shared/`, separated by client/server when needed
+- **Logging**: Always use `SharedLogger.log()` for centralized logging. Never use `writeLog()` or other logging functions
+  - `SharedLogger` is defined in `shared/nshopsb42/utils/SharedLogger.lua` and extends the SHOPSB42 namespace
+  - Access via `SHOPSB42.SharedLogger.log()` or local reference: `local SharedLogger = SHOPSB42.SharedLogger`
+  - Requires local require in files that don't have SHOPSB42 available: `local SharedLogger = require("nshopsb42/utils/SharedLogger")`
+  - Usage: `SharedLogger.log(modName, message)` where modName is typically "Shops"
+  - SharedLogger automatically adds `[SERVER]` or `[CLIENT]` context to all messages
+  - Only SharedLogger.lua is permitted to call the global `writeLog()` function internally
+
+## Checking Game Logs
+
+When debugging, check the Shops mod logs in the `Logs/` directory:
+
+**Server logs:** `Logs/Server/*_Shops.txt` - Find the most recent file with `_Shops.txt` suffix
+**Client logs:** `Logs/Client/*_Shops.txt` - Find the most recent file with `_Shops.txt` suffix
+
+Example:
+- `Logs/Server/2026-01-02_17-23_Shops.txt`
+- `Logs/Client/2026-01-02_17-29_Shops.txt`
+
+These files contain SharedLogger output for the Shops mod only (clean, structured logs).

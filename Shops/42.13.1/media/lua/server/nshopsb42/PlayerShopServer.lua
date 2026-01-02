@@ -1,6 +1,7 @@
 local Nfunction = require("nshopsb42/utils/Nfunction")
 local PlayerShop = require("nshopsb42/core/PlayerShop")
 local Utilities = require("nshopsb42/utils/Utilities")
+local SharedLogger = SHOPSB42.SharedLogger
 local PSServer = {}
 local PlayerShopStatus = {}
 
@@ -58,11 +59,11 @@ function PSServer.SetItemPrice(player, args)
 	-- Store price on the item itself (persists with item when moved)
 	local modData = item:getModData()
 	if price == nil then
-		modData.nshopsb42_price = nil
-		modData.nshopsb42_specialCoin = nil
+		modData.price = nil
+		modData.specialCoin = nil
 	else
-		modData.nshopsb42_price = price
-		modData.nshopsb42_specialCoin = specialCoin
+		modData.price = price
+		modData.specialCoin = specialCoin
 	end
 
 	-- Sync item ModData to all clients
@@ -80,7 +81,7 @@ function PSServer.RemoveItemFromInventory(player, args)
 		local container = item:getContainer()
 		container:Remove(item)
 		sendRemoveItemFromContainer(container, item)
-		writeLog("Shops", "[SERVER] PlayerShop inventory item removed - ID: " .. tostring(itemID))
+		SharedLogger.log("Shops", "[SERVER] PlayerShop inventory item removed - ID: " .. tostring(itemID))
 	end
 end
 
@@ -98,7 +99,7 @@ function PSServer.PickupShop(player, args)
 		return
 	end
 
-	local income = shop:getModData().nshopsb42_income
+	local income = shop:getModData().income
 	if income and #income > 0 then
 		return
 	end
@@ -118,15 +119,11 @@ function PSServer.PickupShop(player, args)
 	sendAddItemToContainer(player:getInventory(), newItem)
 end
 
-local function PS_OnClientCommand(module, command, player, args)
-	if module == "PS" and PSServer[command] then
-		PSServer[command](player, args)
-	end
-end
+-- Event listeners consolidated into ShopCommandDispatcherServer
+-- Keep Initialize() for compatibility but it's now a no-op
 
--- Register event handler (called by Init.lua)
 function PSServer.Initialize()
-	Events.OnClientCommand.Add(PS_OnClientCommand)
+	SharedLogger.log("Shops", "[PlayerShopServer] Initialize() called (listener registered in dispatcher)")
 end
 
 return PSServer

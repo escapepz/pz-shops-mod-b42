@@ -14,12 +14,12 @@ local function injectTooltip(self)
 	end
 
 	local item = self.item
-	local belongsTo = item:getModData().nshopsb42_belongsTo
-	local price = item:getModData().nshopsb42_price
+	local belongsTo = item:getModData().belongsTo
+	local price = item:getModData().price
 	if not (price or belongsTo) then
 		return
 	end
-	local isSpecialCoin = item:getModData().nshopsb42_specialCoin
+	local isSpecialCoin = item:getModData().specialCoin
 	local fontSize = getCore():getOptionTooltipFont()
 	local th = self.tooltip:getHeight()
 	local height = fontConfig[fontSize].y
@@ -85,7 +85,7 @@ local function injectTooltip(self)
 	if not SHOPSB42.Currency.UseSpecialCoin then
 		rows = 2
 	end
-	if not (account.linkedTo == item:getModData().nshopsb42_linkedTo) then
+	if not (account.linkedTo == item:getModData().linkedTo) then
 		rows = 1
 		renderBalance = false
 	end

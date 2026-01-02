@@ -7,6 +7,23 @@ local Utilities = require("nshopsb42/utils/Utilities")
 
 local Commands = {}
 
+--- Handle RequestShopData from client
+function Commands.RequestShopData(player, args)
+	local username = player and player:getUsername() or "unknown"
+	SharedLogger.log("Shops", "[ShopCommandHandlerServer] RequestShopData from " .. username)
+
+	local ShopFinalizeHandler = require("nshopsb42/transactions/ShopFinalizeHandlerServer")
+	local success, err = pcall(function()
+		ShopFinalizeHandler.sendShopDataToPlayer(player)
+	end)
+
+	if not success then
+		SharedLogger.log("Shops", "[ShopCommandHandlerServer] ERROR in sendShopDataToPlayer: " .. tostring(err))
+	else
+		SharedLogger.log("Shops", "[ShopCommandHandlerServer] sendShopDataToPlayer completed successfully")
+	end
+end
+
 --- Clear the sprite drag cursor on client (when no more items available)
 function Commands.ClearShopSpriteDrag(player, args)
 	SharedLogger.log(
@@ -68,20 +85,6 @@ function Commands.RemoveShop(player, args)
 	player:setHaloNote("Shop removed", 0, 255, 0, 300)
 end
 
---- Register command handler
-Events.OnClientCommand.Add(function(module, command, player, args)
-	if module ~= "nshopsb42" then
-		return
-	end
-	if not Commands[command] then
-		return
-	end
-
-	SharedLogger.log(
-		"Shops",
-		"[ShopCommandHandlerServer] Processing command: " .. command .. " for " .. player:getUsername()
-	)
-	Commands[command](player, args)
-end)
-
-SharedLogger.log("Shops", "[ShopCommandHandlerServer] Initialized")
+-- Event listeners consolidated into ShopCommandDispatcherServer
+-- This module now only exports Commands for reference if needed
+SharedLogger.log("Shops", "[ShopCommandHandlerServer] Loaded (dispatcher registered separately)")

@@ -1,0 +1,195 @@
+-- ShopCommandDispatcherClient.lua
+-- Unified client-side command dispatcher for all OnServerCommand handlers
+-- Consolidates commands from: ShopSyncClient, ShopSpriteCursorUI, PlayerShopClient, BalanceClient
+-- Follows EVENTS_RULE.md: Single listener per event, dispatch to command table
+
+if not isClient() then
+	return
+end
+
+local SharedLogger = require("nshopsb42/utils/SharedLogger")
+
+local Dispatcher = {}
+local Commands = {}
+
+-- =============================================================================
+-- SHOP SYNC COMMANDS (from ShopSyncClient)
+-- =============================================================================
+
+function Commands.SyncShopData(data)
+	SharedLogger.log("Shops", "[ShopCommandDispatcher:SyncShopData] Received")
+
+	local Shop = SHOPSB42.Shop
+	Shop.Items = data.Items or {}
+	Shop.PlayerBuy = data.PlayerBuy or {}
+	Shop.PlayerSell = data.PlayerSell or {}
+	Shop.BuyIsWhitelist = data.BuyIsWhitelist or false
+	Shop.SellIsWhitelist = data.SellIsWhitelist or false
+
+	local itemCount = 0
+	local buyCount = 0
+	local sellCount = 0
+	for _ in pairs(Shop.Items) do
+		itemCount = itemCount + 1
+	end
+	for _ in pairs(Shop.PlayerBuy) do
+		buyCount = buyCount + 1
+	end
+	for _ in pairs(Shop.PlayerSell) do
+		sellCount = sellCount + 1
+	end
+
+	SharedLogger.log(
+		"Shops",
+		"[ShopCommandDispatcher:SyncShopData] Stored "
+			.. itemCount
+			.. " total, "
+			.. buyCount
+			.. " buy, "
+			.. sellCount
+			.. " sell"
+	)
+
+	-- DEBUG: Log if Base.Apple is in the data
+	if Shop.PlayerBuy["Base.Apple"] then
+		local price = Shop.PlayerBuy["Base.Apple"].price or "unknown"
+		SharedLogger.log("Shops", "[ShopCommandDispatcher:SyncShopData] Base.Apple found (price=" .. price .. ")")
+	end
+end
+
+function Commands.SyncBuyPrices(data)
+	SharedLogger.log("Shops", "[ShopCommandDispatcher:SyncBuyPrices] Received")
+
+	local ShopSyncClient = require("nshopsb42/sync/ShopSyncClient")
+	if ShopSyncClient.handleSyncBuyPrices then
+		ShopSyncClient.handleSyncBuyPrices(data)
+	end
+end
+
+function Commands.SyncSellRules(data)
+	SharedLogger.log("Shops", "[ShopCommandDispatcher:SyncSellRules] Received")
+
+	local ShopSyncClient = require("nshopsb42/sync/ShopSyncClient")
+	if ShopSyncClient.handleSyncSellRules then
+		ShopSyncClient.handleSyncSellRules(data)
+	end
+end
+
+function Commands.SyncInitialComplete(data)
+	SharedLogger.log("Shops", "[ShopCommandDispatcher:SyncInitialComplete] Received")
+
+	local ShopSyncClient = require("nshopsb42/sync/ShopSyncClient")
+	if ShopSyncClient.handleSyncInitialComplete then
+		ShopSyncClient.handleSyncInitialComplete(data)
+	end
+end
+
+-- =============================================================================
+-- SHOP SPRITE CURSOR COMMANDS (from ShopSpriteCursorUI)
+-- =============================================================================
+
+function Commands.ClearShopSpriteDrag(args)
+	SharedLogger.log("Shops", "[ShopCommandDispatcher:ClearShopSpriteDrag] Received")
+
+	if getWorld() and getWorld():getCell() then
+		getWorld():getCell():setDrag(nil, 0)
+		SharedLogger.log("Shops", "[ShopCommandDispatcher:ClearShopSpriteDrag] Sprite drag cleared")
+	end
+end
+
+-- =============================================================================
+-- PLAYERSHOP COMMANDS (from PlayerShopClient)
+-- =============================================================================
+
+function Commands.PS_ToggleBusy(args)
+	local PlayerShop = SHOPSB42.PlayerShop
+	PlayerShop.status[args[1]] = args[2]
+	SharedLogger.log("Shops", "[ShopCommandDispatcher:PS_ToggleBusy] Status updated")
+end
+
+function Commands.PS_SyncStatusData(args)
+	local PlayerShop = SHOPSB42.PlayerShop
+	PlayerShop.status = args[1]
+	SharedLogger.log("Shops", "[ShopCommandDispatcher:PS_SyncStatusData] Status synced")
+end
+
+-- =============================================================================
+-- BALANCE COMMANDS (from BalanceClient)
+-- =============================================================================
+
+function Commands.BS_TransferReceived(noti)
+	SharedLogger.log("Shops", "[ShopCommandDispatcher:BS_TransferReceived] Received transfer notification")
+
+	local player = getPlayer()
+	if not player then
+		return
+	end
+
+	local sender = noti.sender
+	local coin = SHOPSB42.Currency.format(noti.coin)
+	local specialCoin = SHOPSB42.Currency.format(noti.specialCoin)
+	local msg = getText("IGUI_Balance_TransferReceivedSpecial", sender, coin, specialCoin)
+	if not SHOPSB42.Currency.UseSpecialCoin then
+		msg = getText("IGUI_Balance_TransferReceived", sender, coin)
+	end
+	player:playSound("Notification")
+	player:setHaloNote(msg, 255, 255, 255, 400)
+end
+
+function Commands.BS_MailboxReceived(noti)
+	SharedLogger.log("Shops", "[ShopCommandDispatcher:BS_MailboxReceived] Received mailbox notification")
+
+	local player = getPlayer()
+	if not player then
+		return
+	end
+
+	local coin = SHOPSB42.Currency.format(noti.coin)
+	local specialCoin = SHOPSB42.Currency.format(noti.specialCoin)
+	local entryCount = noti.entryCount or 0
+
+	local msg = getText("IGUI_Balance_MailboxReceivedSpecial", coin, specialCoin, entryCount)
+	if not SHOPSB42.Currency.UseSpecialCoin then
+		msg = getText("IGUI_Balance_MailboxReceived", coin, entryCount)
+	end
+	player:playSound("Notification")
+	player:setHaloNote(msg, 255, 255, 255, 400)
+end
+
+-- =============================================================================
+-- DISPATCHER FUNCTION
+-- =============================================================================
+
+function Dispatcher.onServerCommand(module, command, args)
+	if module ~= "nshopsb42" and module ~= "PS" and module ~= "BS" then
+		return
+	end
+
+	-- Normalize module names to match command table
+	if module == "PS" then
+		command = "PS_" .. command
+	elseif module == "BS" then
+		command = "BS_" .. command
+	end
+
+	SharedLogger.log("Shops", "[ShopCommandDispatcher] OnServerCommand - module=" .. module .. " command=" .. command)
+
+	local handler = Commands[command]
+	if handler then
+		handler(args)
+	else
+		SharedLogger.log("Shops", "[ShopCommandDispatcher] UNKNOWN command: " .. command)
+	end
+end
+
+-- =============================================================================
+-- IDEMPOTENT REGISTRATION
+-- =============================================================================
+
+if not Dispatcher._registered then
+	Dispatcher._registered = true
+	Events.OnServerCommand.Add(Dispatcher.onServerCommand)
+	SharedLogger.log("Shops", "[ShopCommandDispatcher] Registered single OnServerCommand listener")
+end
+
+return Dispatcher

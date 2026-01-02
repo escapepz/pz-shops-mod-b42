@@ -8,7 +8,7 @@ local Shop = SHOPSB42.Shop
 local SharedLogger = require("nshopsb42/utils/SharedLogger")
 local Utilities = require("nshopsb42/utils/Utilities")
 
-ISAddShopAction = ISBaseTimedAction:derive("nshopsb42_ISAddShopAction")
+ISAddShopAction = ISBaseTimedAction:derive("ISAddShopAction")
 SHOPSB42.ISAddShopAction = ISAddShopAction
 
 function ISAddShopAction:isValid()

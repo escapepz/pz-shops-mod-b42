@@ -34,6 +34,13 @@ function Utilities.IsSinglePlayerDebug()
 end
 
 --- [CLIENT]
+--- Return true if the game is client only (not server, not single player)
+---@return boolean
+function Utilities.IsClientOnly()
+	return isClient() and not isServer() and not Utilities.IsSinglePlayer()
+end
+
+--- [CLIENT]
 --- Return true if the game is client or single player
 function Utilities.IsClientOrSinglePlayer()
 	return isClient() or Utilities.IsSinglePlayer()

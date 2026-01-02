@@ -444,7 +444,7 @@ function ShopFinalizeHandler.sendShopDataToPlayer(player)
 		Utilities.SendServerCommandTo(player, "nshopsb42", "SyncInitialComplete", {
 			buyRevision = Shop.BuyPriceRevision,
 			sellRevision = Shop.SellRuleRevision,
-			timestamp = getGameTime(),
+			timestamp = getGameTime():getWorldAgeHours(),
 		})
 	end)
 	if not success4 then

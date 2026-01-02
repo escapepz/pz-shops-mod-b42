@@ -518,7 +518,7 @@ function ShopSyncClient.capturePricingState()
 	return {
 		buyRevision = Shop.BuyPriceRevision,
 		sellRevision = Shop.SellRuleRevision,
-		timestamp = getGameTime(),
+		timestamp = getGameTime():getWorldAgeHours(),
 		isComplete = Shop._initialSyncComplete,
 	}
 end

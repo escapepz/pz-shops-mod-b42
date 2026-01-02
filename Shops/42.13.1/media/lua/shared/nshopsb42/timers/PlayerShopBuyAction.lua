@@ -71,9 +71,9 @@ function PlayerShopBuyAction:complete()
 	end
 
 	-- Retrieve player shop from world using stored coordinates
-	local shop =
+	self.shop =
 		Utilities.FindShopAtCoords(self.shopCoords.x, self.shopCoords.y, self.shopCoords.z, PlayerShop.spritePrefix)
-	if not shop then
+	if not self.shop then
 		SharedLogger.logAction(
 			"PlayerShopBuyAction",
 			"complete",
@@ -88,14 +88,14 @@ function PlayerShopBuyAction:complete()
 	end
 
 	-- Step 1: Server-side proximity validation (enforce purchase-at-shop rule)
-	local shopSquare = shop:getSquare()
+	local shopSquare = self.shop:getSquare()
 	local distance = self.character:DistTo(shopSquare:getX(), shopSquare:getY())
 	if distance > 2 then
 		return false
 	end
 
 	-- Retrieve shop modData
-	local shopModData = shop:getModData()
+	local shopModData = self.shop:getModData()
 	if not shopModData then
 		return false
 	end
@@ -107,14 +107,14 @@ function PlayerShopBuyAction:complete()
 	end
 
 	-- Step 3: Re-locate shop from world (do not trust cached references)
-	local shopContainer = shop:getContainer()
+	local shopContainer = self.shop:getContainer()
 	if not shopContainer then
 		return false
 	end
 
 	-- Step 4: Iterate cart items and transfer
 	local playerInv = self.character:getInventory()
-	local shopModData = shop:getModData()
+	shopModData = self.shop:getModData()
 	local income = shopModData.income or {}
 	local totalCoin = 0
 	local totalSpecial = 0

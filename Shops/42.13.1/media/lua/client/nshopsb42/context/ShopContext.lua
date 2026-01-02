@@ -97,11 +97,13 @@ function Shop.shopUI(worldobjects, playerNum, viewMode, clickedSquare)
 		if adjacent then
 			local action = ISWalkToTimedAction:new(player, adjacent)
 			action:setOnComplete(function()
+				---@diagnostic disable-next-line: redundant-parameter
 				ShopUI:show(player, viewMode, shop)
 			end)
 			ISTimedActionQueue.add(action)
 		end
 	else
+		---@diagnostic disable-next-line: redundant-parameter
 		ShopUI:show(player, viewMode, shop)
 	end
 end

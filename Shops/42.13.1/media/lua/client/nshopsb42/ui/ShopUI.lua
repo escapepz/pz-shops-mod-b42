@@ -168,6 +168,7 @@ function ShopUI:show(player, viewMode, shop)
 					SharedLogger.log("Shops", "[ShopUI:show] Retrying show after sync complete")
 					local req = ShopUI._pendingShowRequest
 					ShopUI._pendingShowRequest = nil
+					---@diagnostic disable-next-line: redundant-parameter
 					ShopUI:show(req.player, req.viewMode, req.shop)
 				end
 			end)

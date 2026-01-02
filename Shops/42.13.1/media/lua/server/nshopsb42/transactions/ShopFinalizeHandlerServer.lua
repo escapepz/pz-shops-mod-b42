@@ -127,10 +127,10 @@ function ShopFinalizeHandler.onPriceHooksChanged()
 	SharedLogger.log(
 		"Shops",
 		"[ShopFinalizeHandler] Detected "
-			.. changeCount
-			.. " price changes out of "
-			.. definedItemCount
-			.. " defined items"
+		.. changeCount
+		.. " price changes out of "
+		.. definedItemCount
+		.. " defined items"
 	)
 
 	-- Store new prices for next comparison
@@ -228,15 +228,15 @@ function ShopFinalizeHandler.resyncPriceModifiers()
 	-- Broadcast to all players at once (optimized with delta)
 	Utilities.SendServerCommandToAll("Shops", "SyncPriceModifiers", {
 		revision = Shop.PriceHookRevision,
-		modifiers = modifiers, -- ← KEEP (needed for sell price hooks)
-		changed = changedPrices, -- ← OPTIMIZED: Only changed items
+		modifiers = modifiers, -- <- KEEP (needed for sell price hooks)
+		changed = changedPrices, -- <- OPTIMIZED: Only changed items
 	})
 
 	SharedLogger.log(
 		"Shops",
 		"[ShopFinalizeHandler] Price modifiers resynced to all players (revision: "
-			.. tostring(Shop.PriceHookRevision or 0)
-			.. ")"
+		.. tostring(Shop.PriceHookRevision or 0)
+		.. ")"
 	)
 end
 
@@ -285,9 +285,9 @@ function ShopFinalizeHandler.sendShopDataToPlayer(player)
 	-- Initial sync: Send full prices + modifiers
 	Utilities.SendServerCommandTo(player, "Shops", "SyncPriceModifiers", {
 		revision = Shop.PriceHookRevision,
-		modifiers = priceModifiers, -- ← KEEP (needed for sell price calculations)
+		modifiers = priceModifiers,    -- ← KEEP (needed for sell price calculations)
 		calculatedPrices = calculatedPrices, -- ← Full prices on initial sync only
-		isInitialSync = true, -- ← Flag to client
+		isInitialSync = true,          -- ← Flag to client
 	})
 	SharedLogger.log("Shops", "[ShopFinalizeHandler] SyncPriceModifiers sent")
 

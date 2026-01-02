@@ -6,7 +6,18 @@
 
 ---
 
+## Terminology
+
+- **NPC Shop** / **Kiosk**: Admin-created fixed shop tile with NPC sprite (items have fixed prices in shop inventory)
+- **Player Shop**: Player-owned shop container (items have prices stored on item ModData, purchasable by other players)
+- **Admin**: Server administrator with permission to place/delete NPC Shops
+- **Player**: Regular player who can craft/own/manage Player Shops
+
+---
+
 ## Critical Blockers (Must Fix)
+
+**Note**: Item #4 (Deleted Shop) was initially marked CRITICAL, but investigation shows **server is safe**. Downgraded to MEDIUM cosmetic fix. Only 3 items actually block early publish.
 
 ### 1. 🔴 CRITICAL: Apply Price Broadcast Fixes
 **Issue**: Price data split into two non-atomic broadcasts (buy + sell)  
@@ -61,19 +72,21 @@
 
 ---
 
-### 4. 🔴 CRITICAL: Handle Deleted Shop State
-**Issue**: Player can edit prices on deleted shop; no cleanup signal  
-**Impact**: UI freeze, server errors, orphaned state  
-**Location**: `ShopCommandDispatcherServer.lua#51` (RemoveShop) + all edit handlers  
-**Estimate**: 30 min  
-**Status**: ❌ **NOT IMPLEMENTED**
+### 4. 🟠 MEDIUM (Not CRITICAL): Handle Deleted Shop State
+**Issue**: Player can edit prices on deleted shop, but server doesn't crash  
+**Impact**: Stale UI showing deleted shop, but **server is safe**  
+**Location**: `ShopCommandDispatcherServer.lua#51` (RemoveShop) + `PlayerShopServer.lua#44` (SetItemPrice)  
+**Technical Detail**: `SetItemPrice` stores price on item's ModData, NOT on shop object. Shop deletion doesn't prevent price updates.  
+**Estimate**: 30 min (cosmetic fix only)  
+**Status**: ⚠️ **Working but inelegant**
+
+**Server Impact**: ✅ **None** — Price updates work regardless of shop deletion  
+**Client Impact**: ⚠️ Stale UI — Player sees deleted shop in UI, can still edit prices
 
 **Checklist**:
-- [ ] Add shop delete event/signal
-- [ ] Send signal to all clients
-- [ ] Clients receiving delete signal: close any open UI for that shop
-- [ ] Reject all edit commands for deleted shops (server-side)
-- [ ] Test: Delete shop while player editing prices → UI closes cleanly
+- [ ] Client-side: Close UI when player receives shop delete event
+- [ ] Optional: Send shop delete signal to all clients (low priority, ship after v1.0)
+- [ ] Test: Delete shop → player can still edit prices via stale UI (this is OK, prices persist on items)
 
 ---
 
@@ -157,16 +170,17 @@
 
 ## Medium-Priority Items (Before 1.0)
 
-### 10. 📋 Add Concurrency Check: Shop Placement
-**Issue**: Can two players place shops simultaneously at same location?  
+### 10. 📋 Add Concurrency Check: Shop Placement (NPC or Player)
+**Issue**: Can two admins place shops (NPC or Player Shop) simultaneously at same location?  
 **Impact**: Race condition; unexpected behavior  
-**Location**: `ISAddShopAction.lua` + `ISAddPlayerShopAction.lua`  
+**Location**: `ISAddShopAction.lua` (NPC Shop) + `ISAddPlayerShopAction.lua` (Player Shop)  
 **Estimate**: 1 hour  
 **Status**: ❓ **UNTESTED**
 
 **Checklist**:
-- [ ] Determine: Is placement checked server-side?
-- [ ] Test: Two admins place shop at exact same coord → only one succeeds
+- [ ] Determine: Is placement checked server-side for both shop types?
+- [ ] Test: Two admins place NPC shop at exact same coord → only one succeeds
+- [ ] Test: Two players place Player Shop at exact same coord → only one succeeds
 - [ ] If not enforced: Add check
 
 ---
@@ -204,20 +218,20 @@
 ## Validation & Testing (Required Before Publish)
 
 ### ✅ Single-Player Validation
-- [ ] Place admin shop → buy items → no crashes
-- [ ] Player shop: craft, place, set prices, lock/unlock
+- [ ] Place NPC Shop (kiosk) → buy items → no crashes
+- [ ] Player Shop: craft, place, set prices, lock/unlock
 - [ ] Currency: link wallet, transfer, loot coins
-- [ ] Sell items to kiosk → balance updates
-- [ ] Relog → all state persists
+- [ ] Sell items to NPC Shop → balance updates
+- [ ] Relog → all state persists (shops, prices, balances)
 
 ### ✅ Multiplayer Validation  
-- [ ] Two players connect → see same shop inventory
-- [ ] One buys item → other sees inventory update
-- [ ] New player joins → prices don't flicker
-- [ ] Admin modifies shop → all clients sync
-- [ ] One admin deletes shop → other clients see removal
-- [ ] Concurrent price edits don't diverge
-- [ ] Player shop: price edits sync correctly
+- [ ] Two players connect → see same NPC Shop inventory
+- [ ] One buys from NPC Shop → other sees inventory update
+- [ ] New player joins → NPC Shop prices don't flicker
+- [ ] Admin modifies NPC Shop → all clients sync
+- [ ] One admin deletes NPC Shop → other clients see removal
+- [ ] Concurrent price edits on Player Shop don't diverge (both admins editing same item)
+- [ ] Player Shop: price edits sync correctly to all observers
 - [ ] No duplication under lag (100ms+)
 - [ ] Balance consistent after network split
 
@@ -237,36 +251,39 @@
 
 ## Summary: What Blocks Early Publish?
 
-| Item | Block? | Fix Time | Impact |
-|------|--------|----------|--------|
-| 1. Price Broadcasts | 🔴 YES | 30 min | Critical: UI flicker + desync |
-| 2. txnId Persistence | 🔴 YES | 30 min | Critical: Replay on restart |
-| 3. Concurrent Shop Edits | 🔴 YES | 1 hour | Critical: Multiplayer desync |
-| 4. Deleted Shop Handling | 🔴 YES | 30 min | Critical: UI freeze risk |
-| 5. Balance Serialization | 🟠 NO* | 1.5 hours | High: Single-player OK |
-| 6. Transaction Log | 🟠 NO* | 2 hours | High: Recovery tool |
-| 7. Loot Coins | 🟠 NO* | 1 hour | High: Feature completeness |
-| 8. Wallet Placement | 🟠 NO* | 30 min | High: UX clarity |
-| 9. Pinkslip Car | 🟠 NO | Blocked | Medium: Feature parity |
-| 10. Shop Placement Race | ⚪ NO | 1 hour | Medium: Edge case |
-| 11. Extension API Docs | ⚪ NO | 30 min | Medium: Developer experience |
-| 12. Search Feature | ⚪ NO | 1.5 hours | Medium: Feature completeness |
+| Item | Block? | Fix Time | Impact | Notes |
+|------|--------|----------|--------|-------|
+| 1. Price Broadcasts | 🔴 YES | 30 min | Critical: UI flicker + desync | - |
+| 2. txnId Persistence | 🔴 YES | 30 min | Critical: Replay on restart | - |
+| 3. Concurrent Shop Edits | 🔴 YES | 1 hour | Critical: Multiplayer desync | - |
+| 4. Deleted Shop Handling | 🟡 NO | 30 min | Cosmetic: Stale UI | Server safe ✅ |
+| 5. Balance Serialization | 🟠 NO* | 1.5 hours | High: Single-player OK | Parallelism risk |
+| 6. Transaction Log | 🟠 NO* | 2 hours | High: Recovery tool | Crash scenario |
+| 7. Loot Coins | 🟠 NO* | 1 hour | High: Feature completeness | Logic unclear |
+| 8. Wallet Placement | 🟠 NO* | 30 min | High: UX clarity | Validation weak |
+| 9. Pinkslip Car | 🟠 NO | Blocked | Medium: Feature parity | External blocker |
+| 10. Shop Placement Race | ⚪ NO | 1 hour | Medium: Edge case | Untested scenario |
+| 11. Extension API Docs | ⚪ NO | 30 min | Medium: Developer experience | Non-blocking |
+| 12. Search Feature | ⚪ NO | 1.5 hours | Medium: Feature completeness | Non-blocking |
 
 **\* Blocks early release only if targeting multiplayer-only launch. Single-player can ship with these incomplete.**
+
+**REVISED**: Only **3 items block early publish** (down from 4). Total fix time: **2 hours**
 
 ---
 
 ## Phased Approach
 
-### Phase 1: Critical Fixes (Must Do) ⏱️ **3.5 hours**
+### Phase 1: Critical Fixes (Must Do) ⏱️ **2 hours** (down from 3.5)
 ```
 1. Apply price broadcast fixes     [30 min]
 2. Fix txnId persistence          [30 min]
 3. Add concurrent edit control    [1 hour]
-4. Handle deleted shops           [30 min]
-5. Test all critical paths        [1 hour]
+4. Test all critical paths        [30 min]
 ```
-**Result**: Game is MP-safe, no desync, no duplication
+**Result**: Game is MP-safe, no desync, no duplication, no replay
+
+**Note**: Item #4 (Deleted Shop) not critical — server is safe. Defer to post-launch polish.
 
 ---
 

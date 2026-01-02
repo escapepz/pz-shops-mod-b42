@@ -64,10 +64,7 @@ function ShopSyncClient.refreshUIForPriceChange()
 	end)
 
 	if not success then
-		SharedLogger.log(
-			"Shops",
-			"[CLIENT] [ShopSyncClient] Error rebuilding active tab: " .. tostring(result)
-		)
+		SharedLogger.log("Shops", "[CLIENT] [ShopSyncClient] Error rebuilding active tab: " .. tostring(result))
 	end
 
 	-- Clear the flag since UI refresh was successful

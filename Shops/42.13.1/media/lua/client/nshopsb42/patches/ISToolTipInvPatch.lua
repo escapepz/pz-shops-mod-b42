@@ -183,7 +183,7 @@ end
 -- Main injection coordinator
 -- Checks item modData and calls appropriate injection functions
 local function injectTooltip(self)
-	if not self or not self.tooltip or not self.item then
+	if not self or not self.item then
 		return
 	end
 	if not self.item.getModData then
@@ -196,6 +196,12 @@ local function injectTooltip(self)
 	if not (price or belongsTo) then
 		return -- No custom data to inject
 	end
+
+	-- Initialize tooltip if not present
+	if not self.tooltip then
+		return
+	end
+
 	local isSpecialCoin = item:getModData().specialCoin
 
 	-- Inject price line if item has price
@@ -219,18 +225,8 @@ function ISToolTipInv:render()
 		return
 	end
 
-	-- Always inject custom tooltip content if character exists
-	if self.character then
-		injectTooltip(self)
-
-		local item = self.item
-		local isFood = item ~= nil and item:getCategory() == "Food"
-
-		-- Suppress vanilla tooltip only for shop UIs and the specific item
-		if (SHOPSB42.PlayerShopUI.instance or SHOPSB42.ShopUI.instance) and isFood then
-			return
-		end
-	end
+	-- Inject custom tooltip content
+	injectTooltip(self)
 
 	-- Always call vanilla render (ensures base tooltips show)
 	pcall(function()

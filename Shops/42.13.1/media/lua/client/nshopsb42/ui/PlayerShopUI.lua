@@ -227,9 +227,11 @@ function PlayerShopUI:toggleTooltip(show, item)
 		if not currentTooltip then
 			currentTooltip = ISToolTipInv:new(item.invItem)
 			currentTooltip:initialise()
+			currentTooltip:setCharacter(getPlayer())
 		else
 			currentTooltip:addToUIManager()
 			currentTooltip:setItem(item.invItem)
+			currentTooltip:setCharacter(getPlayer())
 			currentTooltip:setVisible(true)
 			currentTooltip:setOwner(self)
 			currentTooltip:render()

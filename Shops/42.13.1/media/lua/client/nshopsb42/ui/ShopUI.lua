@@ -466,6 +466,7 @@ function ShopUI:toggleTooltip(show, item)
 		if item.invItem then
 			if not invTooltip then
 				invTooltip = ISToolTipInv:new(item.invItem)
+				invTooltip:setCharacter(getPlayer())
 			end
 			currentTooltip = invTooltip
 			item = item.invItem

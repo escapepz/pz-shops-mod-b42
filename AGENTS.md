@@ -41,6 +41,7 @@
   - Usage: `SharedLogger.log(modName, message)` where modName is typically "Shops"
   - SharedLogger automatically adds `[SERVER]` or `[CLIENT]` context to all messages
   - Only SharedLogger.lua is permitted to call the global `writeLog()` function internally
+  - **CRITICAL**: Never add logging inside `render()` functions or functions called by `render()` - they execute every frame and will cause severe performance issues. Log only in event handlers, UI updates, or initialization code.
 - **Client Events**: Use `Events.OnConnected` for server-to-client data requests (fires on every connection/reconnection). Do NOT rely solely on `Events.OnGameStart` as it only fires once per game session and will not re-trigger when client reconnects to a restarted server.
 
 ## Environment

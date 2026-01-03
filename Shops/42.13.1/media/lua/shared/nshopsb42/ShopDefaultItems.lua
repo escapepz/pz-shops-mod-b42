@@ -18,11 +18,6 @@ function ShopDefaultItems.loadDefaultBuyItems()
 		return
 	end
 
-	-- Allow external mods to suppress defaults via SHOPSB42.Config.suppressDefaults = true
-	if SHOPSB42.Config.suppressDefaults == true then
-		return
-	end
-
 	require("nshopsb42/ShopItems/Food")
 	require("nshopsb42/ShopItems/Weapons")
 	require("nshopsb42/ShopItems/FirstAid")
@@ -36,17 +31,20 @@ function ShopDefaultItems.loadDefaultSellItems()
 		return
 	end
 
-	-- Allow external mods to suppress defaults via SHOPSB42.Config.suppressDefaults = true
-	if SHOPSB42.Config.suppressDefaults == true then
-		return
-	end
-
 	require("nshopsb42/ShopItems/ForSell")
 end
 
--- Register hooks
+-- Register hooks (gates registration based on suppressDefaults flag)
 function ShopDefaultItems.registerHooks()
 	if not Utilities.IsServerOrSinglePlayer() then
+		return
+	end
+
+	-- Check suppression flag at REGISTRATION time (not execution time)
+	-- This prevents default hooks from being registered in the first place
+	if SHOPSB42.Config.suppressDefaults == true then
+		local SharedLogger = require("nshopsb42/utils/SharedLogger")
+		SharedLogger.log("Shops", "[ShopDefaultItems] Suppression flag detected - default item hooks NOT registered")
 		return
 	end
 

@@ -96,7 +96,7 @@ end
 
 ### Method 1: Suppress Defaults (if using ONLY custom items)
 
-Set the suppression flag **before** hooks are registered. Use `SHOPSB42.Config.suppressDefaults` (not `Shop._suppressDefaults`):
+Set the suppression flag **before hooks are registered**. Use `SHOPSB42.Config.suppressDefaults`:
 
 ```lua
 -- In your mod's early initialization (before ShopInitServer.Initialize is called)
@@ -105,18 +105,28 @@ if SHOPSB42 then
 end
 ```
 
-When `ShopDefaultItems.registerHooks()` is called, it checks this flag:
+When `ShopDefaultItems.registerHooks()` is called, it checks this flag **at registration time**:
 
 ```lua
-function ShopDefaultItems.loadDefaultBuyItems()
+function ShopDefaultItems.registerHooks()
+    -- Suppression check happens HERE (registration time, not execution time)
     if SHOPSB42.Config.suppressDefaults == true then
-        return  -- Skip loading default items
+        SharedLogger.log("Shops", "Suppression flag detected - default hooks NOT registered")
+        return  -- Never register the hooks in the first place
     end
-    require("nshopsb42/ShopItems/Food")
-    require("nshopsb42/ShopItems/Weapons")
-    -- ... other defaults
+    
+    -- Only register if suppression is false
+    ShopEvents.registerOnShopRegisterItems(ShopDefaultItems.loadDefaultBuyItems)
+    ShopSellEvents.registerOnShopRegisterSellItems(ShopDefaultItems.loadDefaultSellItems)
 end
 ```
+
+**Why check at registration time?**
+- ✅ Prevents ghost callbacks from being added to the registry
+- ✅ No wasted execution of unwanted hooks
+- ✅ Clear intent: "don't register this at all"
+- ✅ Matches expected mod-override semantics
+- ❌ Execution-time checks are insufficient (hook is already registered)
 
 **Why `SHOPSB42.Config` instead of `Shop`?**
 - Config is a **policy surface**, not runtime state

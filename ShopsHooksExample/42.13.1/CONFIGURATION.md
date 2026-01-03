@@ -1,97 +1,231 @@
-# ShopsHooksExample — Quick Configuration Reference
+# ShopsHooksExample — Configuration Reference
+
+This example demonstrates safe shop configuration patterns using the Shops mod API.
+
+## Shop Configuration Settings (Safe for External Mods)
+
+These settings from `SHOPSB42.Shop` can be configured by external mods:
+
+### Item Registration via Hooks
+
+**Safe hook:** `ShopEvents.registerOnShopRegisterItems(callback)`
+
+Register items that players can purchase:
+
+```lua
+local ShopEvents = SHOPSB42.ShopEvents
+ShopEvents.registerOnShopRegisterItems(function()
+    SHOPSB42.Shop.RegisterItem("base.YourItem", {
+        tab = SHOPSB42.Tab.Food,    -- Tab category (Tab.Food, Tab.Weapons, etc.)
+        price = 100,                 -- Buy price in shop
+        items = 50,                  -- Stock quantity (0/nil = unlimited)
+        brokenPrice = 25,            -- Price for damaged version (optional)
+        notes = "Item description"   -- Display notes (optional)
+    })
+end)
+```
+
+### Sell Configuration
+
+**Safe hook:** `ShopSellEvents.registerOnShopRegisterSellItems(callback)`
+
+Control which items players can sell to shop and at what price:
+
+```lua
+local ShopSellEvents = SHOPSB42.ShopSellEvents
+ShopSellEvents.registerOnShopRegisterSellItems(function()
+    SHOPSB42.Shop.RegisterSellItem("base.YourItem", {
+        price = 50,           -- What shop pays for this item
+        blacklisted = false   -- Prevent sale (blacklist mode only)
+    })
+end)
+```
+
+### Sell Mode: Whitelist vs Blacklist
+
+**Safe variable:** `SHOPSB42.Shop.SellIsWhitelist`
+
+- **`false` (default - Blacklist mode)**: All items sellable except explicitly blacklisted
+- **`true` (Whitelist mode)**: Only registered items in `Shop.PlayerSell` can be sold
+
+```lua
+-- Set before item registration
+SHOPSB42.Shop.SellIsWhitelist = true  -- Whitelist mode (restrictive)
+SHOPSB42.Shop.SellIsWhitelist = false -- Blacklist mode (permissive, default)
+```
+
+**Example in this mod:**
+
+```lua
+-- In ShopsHooksExampleItems.configureListingMode()
+if ENABLE_WHITELIST_MODE then
+    SHOPSB42.Shop.SellisWhitelist = true
+else
+    SHOPSB42.Shop.SellisWhitelist = false
+end
+```
+
+### Default Sell Prices (Blacklist Mode)
+
+**Safe variables:** `SHOPSB42.Shop.defaultPrice`, `SHOPSB42.Shop.defaultPriceBroken`
+
+When in **blacklist mode**, unregistered items use these fallback prices:
+
+```lua
+SHOPSB42.Shop.defaultPrice = 50       -- Normal item fallback price
+SHOPSB42.Shop.defaultPriceBroken = 25 -- Broken item fallback price
+```
+
+## Price Modification Hooks
+
+These hooks are called for every buy/sell transaction and are safe for external mods:
+
+### Modify Buy Price
+
+**Safe hook:** `ShopPriceEvents.registerOnShopModifyBuyPrice(callback)`
+
+Apply multipliers or flat adjustments to buy prices:
+
+```lua
+local ShopPriceEvents = SHOPSB42.ShopPriceEvents
+ShopPriceEvents.registerOnShopModifyBuyPrice(function(player, itemId, basePrice, context, modifiers)
+    if itemId == "base.Apple" then
+        modifiers:multiplyBy(0.9)  -- 10% discount
+    end
+end)
+```
+
+**Modifiers API:**
+- `modifiers:addFlat(amount)` - Add flat amount to price
+- `modifiers:multiplyBy(factor)` - Multiply price by factor (stacks with other multipliers)
+
+### Override Buy Price
+
+**Safe hook:** `ShopPriceEvents.registerOnShopOverrideBuyPrice(callback)`
+
+Completely override buy price (first non-nil return wins):
+
+```lua
+ShopPriceEvents.registerOnShopOverrideBuyPrice(function(player, itemId, calculatedPrice, context)
+    if itemId == "base.Apple" then
+        return 5  -- Force price to 5 (ignores modifiers)
+    end
+    return nil  -- Use calculated price
+end)
+```
+
+### Modify Sell Price
+
+**Safe hook:** `ShopPriceEvents.registerOnShopModifySellPrice(callback)`
+
+Adjust sell prices based on item condition, type, etc:
+
+```lua
+ShopPriceEvents.registerOnShopModifySellPrice(function(player, item, basePrice, context, modifiers)
+    if item:getCondition() > 75 then
+        modifiers:multiplyBy(1.0)  -- Excellent: full price
+    elseif item:getCondition() > 50 then
+        modifiers:multiplyBy(0.85) -- Good: 85%
+    else
+        modifiers:multiplyBy(0.5)  -- Fair/Poor: 50%
+    end
+end)
+```
+
+### Override Sell Price
+
+**Safe hook:** `ShopPriceEvents.registerOnShopOverrideSellPrice(callback)`
+
+Completely override sell price:
+
+```lua
+ShopPriceEvents.registerOnShopOverrideSellPrice(function(player, item, calculatedPrice, context)
+    if item:getType() == "Food" and calculatedPrice > 100 then
+        return math.floor(calculatedPrice * 0.75)  -- Food cap at 75%
+    end
+    return nil  -- Use calculated price
+end)
+```
+
+## Configuration in This Example
 
 All configuration is in `media/lua/server/nshopsb42/ShopsHooksExampleState.lua`.
 
-## Buy Price Configuration
+### Registered Items
 
-### Apple Buy Multiplier
+**Buy Items:**
+- `Base.CannedBolognese` (price: 8, stock: 50)
+- `Base.Apple` (price: 2, stock: 100)
+- `Base.AxeSteel` (price: 25, brokenPrice: 5, stock: 10)
+- `Base.Hammer` (price: 15, brokenPrice: 3, stock: 15)
+- `Base.FirstAidKit` (price: 45, stock: 20) — only in non-survival mode
 
-```lua
-State.appleBuyMultiplier = 0.9
-```
+**Sell Items (Blacklist Mode):**
+- `Base.CannedBolognese` (sell price: 4)
+- `Base.Apple` (sell price: 1)
+- `Base.AxeSteel` (sell price: 12)
+- `Base.Hammer` (sell price: 7)
+- `Base.Bomb`, `Base.C4`, `Base.Explosives` (blacklisted)
 
-- **Current**: `0.9` (10% discount)
-- **Range**: 0.0 - 2.0 (0% - 200% of base)
-- **Effect**: Multiplied with base price and any other modifiers
-- **Example**: 
-  - `0.5` = 50% discount (half price)
-  - `1.0` = no discount
-  - `1.5` = 50% markup
+### Price Hooks
 
-### Apple Buy Override
+**Buy Price:**
+- Apple: 10% discount via `modifyAppleBuyPrice` (multiplier: 0.9)
+- Apple: Optional fixed price override via `appleOverrideBuyPrice` (disabled by default)
 
-```lua
-State.appleOverrideBuyPrice = nil
-```
+**Sell Price:**
+- Items: Condition-based multiplier via `modifySellPriceByCondition`
+  - Excellent (75-100%): 100% of price
+  - Good (50-74%): 85% of price
+  - Fair (25-49%): 50% of price
+  - Poor (0-24%): 50% of price
 
-- **Current**: `nil` (disabled)
-- **When nil**: Use calculated price (with modifiers)
-- **When numeric**: Force apple buy price to this exact value
-- **Examples**:
-  - `nil` = disabled, use modifiers
-  - `5` = force apple buy to 5
-  - `10` = force apple buy to 10
-  - `0` = apple cannot be bought
+### Listing Mode
 
-When override is enabled, the `appleBuyMultiplier` is ignored.
+**Current:** `ENABLE_WHITELIST_MODE = false` (blacklist mode)
 
-## Sell Price Configuration
+## Suppresssing Default Items
 
-Sell price configuration is **automatic** — determined by item condition:
+**Safe variable:** `SHOPSB42.Shop._suppressDefaults`
 
-- **Excellent (75-100)**: 100% of sell price
-- **Good (50-74)**: 85% of sell price
-- **Fair (25-49)**: 50% of sell price
-- **Poor (0-24)**: 50% of sell price
-
-No manual configuration needed for sell prices. Edit `ShopsHooksExampleHooks.lua` to change multipliers.
-
-## Runtime Changes
-
-To change configuration at runtime (e.g., from admin mod):
+Prevent Shops mod from loading default items:
 
 ```lua
--- Update multiplier
-SHOPSB42.ShopsHooksExampleState.appleBuyMultiplier = 0.75
-
--- CRITICAL: Trigger resync
-SHOPSB42.ShopFinalizeHandler.onPriceHooksChanged()
+-- Must be set before hooks fire (very early in initialization)
+SHOPSB42.Shop._suppressDefaults = true
 ```
 
-Without calling `onPriceHooksChanged()`, the new value won't be used until server restart.
-
-## Items
-
-### Buy Items
-- `Base.Apple` (price: 12)
-
-### Sell Items
-- `Base.Apple` (price: 6)
-- `Base.BaseballBat` (price: ~20)
-
-To add more items, add a new hook function in `ShopsHooksExampleHooks.lua` and register it in `ShopsHooksExampleInit.lua`.
+When set to `true`, only items registered via external mod hooks will appear in the shop.
 
 ## Logging
 
-Logging is **always on** and uses `SharedLogger`. Output:
+All configuration and hook execution is logged to:
 
 **Server**: `Logs/Server/*_Shops.txt`
 **Client**: `Logs/Client/*_Shops.txt`
 
-Hook registration logged on startup. Hook execution logged per transaction.
+Hook registration logged on server startup. Price hook execution logged per transaction.
 
-## Disabling the Mod
+## Disabling the Example Mod
 
-To disable the example mod:
-1. Disable in mod manager
+To disable:
+1. Disable ShopsHooksExample in mod manager
 2. Server restart
-3. All prices revert to defaults
+3. Prices and items revert to vanilla Shops mod defaults
 
-To disable just the hooks at runtime (if extended):
+## Summary of Safe Configuration Points
 
-```lua
-SHOPSB42.ShopsHooksExampleState.enabled = false
-SHOPSB42.ShopFinalizeHandler.onPriceHooksChanged()
-```
-
-(Requires modifying hooks to check an `enabled` flag.)
+| Setting | Type | Default | Purpose |
+|---------|------|---------|---------|
+| `Shop.RegisterItem()` | Hook API | — | Register buy items |
+| `Shop.RegisterSellItem()` | Hook API | — | Register sell items |
+| `Shop.SellIsWhitelist` | Variable | `false` | Whitelist vs blacklist mode |
+| `Shop.defaultPrice` | Variable | `1` | Fallback sell price (blacklist) |
+| `Shop.defaultPriceBroken` | Variable | `1` | Fallback sell price for broken items |
+| `Shop._suppressDefaults` | Variable | `false` | Skip loading vanilla items |
+| `registerOnShopRegisterItems()` | Hook | — | Load buy items |
+| `registerOnShopRegisterSellItems()` | Hook | — | Load sell items |
+| `registerOnShopModifyBuyPrice()` | Hook | — | Adjust buy prices |
+| `registerOnShopOverrideBuyPrice()` | Hook | — | Override buy prices |
+| `registerOnShopModifySellPrice()` | Hook | — | Adjust sell prices |
+| `registerOnShopOverrideSellPrice()` | Hook | — | Override sell prices |

@@ -22,6 +22,31 @@ This example is **NOT**:
 
 ## Features Demonstrated
 
+### 0. Item Registration (NEW)
+
+**Hook**: `registerOnShopRegisterItems` and `registerOnShopRegisterSellItems`  
+**Items**: Base.CannedBolognese, Base.Apple, Base.AxeSteel, Base.Hammer  
+**Effect**: Register shop buy/sell items with whitelist/blacklist control
+
+```lua
+-- Buy items players can purchase
+Shop.RegisterItem("Base.Apple", {
+    tab = Tab.Food,
+    price = 2,
+    items = 100
+})
+
+-- Sell items and blacklist dangerous ones
+Shop.RegisterSellItem("Base.Apple", { price = 1 })
+Shop.RegisterSellItem("Base.Bomb", { blacklisted = true })
+```
+
+**Key Points**:
+- `registerBuyItems()`: Items for sale in shop
+- `registerSellItems()`: Items shop will buy (with optional blacklist)
+- `SellisWhitelist`: Toggle between whitelist/blacklist mode
+- See **ITEM_REGISTRATION_EXAMPLES.md** for comprehensive examples
+
 ### 1. Modifier Hook (Buy Price)
 
 **Hook**: `registerOnShopModifyBuyPrice`  
@@ -102,16 +127,19 @@ end
 ShopsHooksExample/
 ├── 42.13.1/
 │   ├── mod.info
-│   ├── README.md                      (this file)
-│   ├── CONFIGURATION.md               (quick reference)
+│   ├── README.md                              (this file - overview)
+│   ├── CONFIGURATION.md                       (price hook configuration)
+│   ├── ITEM_REGISTRATION_QUICK_REFERENCE.md   (NEW - item registration cheat sheet)
+│   ├── ITEM_REGISTRATION_EXAMPLES.md          (NEW - comprehensive item examples)
 │   └── media/
 │       └── lua/
 │           └── server/
-│               ├── ShopsHooksExample_init.lua      (entry point)
+│               ├── ShopsHooksExample_init.lua         (entry point)
 │               └── nshopsb42/
-│                   ├── ShopsHooksExampleInit.lua       (registration)
-│                   ├── ShopsHooksExampleHooks.lua      (implementations)
-│                   └── ShopsHooksExampleState.lua      (configuration)
+│                   ├── ShopsHooksExampleInit.lua      (registration & initialization)
+│                   ├── ShopsHooksExampleHooks.lua     (price hook implementations)
+│                   ├── ShopsHooksExampleItems.lua     (NEW - item registration)
+│                   └── ShopsHooksExampleState.lua     (configuration)
 └── common/
 ```
 
@@ -142,25 +170,49 @@ State.appleOverrideBuyPrice = 5  -- Force apple buy price to 5
 
 ## Customization Guide
 
+### Item Registration Examples
+
+Comprehensive examples available in **ITEM_REGISTRATION_EXAMPLES.md**:
+
+- Basic buy/sell item registration
+- Conditional item registration
+- Whitelist mode (curated items only)
+- Blacklist mode (all items except blacklisted)
+- Complex multi-category registration
+- Combining items with price hooks
+- Dynamic item additions at runtime
+
+All examples show proper use of hooks and listing configuration.
+
 ### Add a New Item
 
-Edit `ShopsHooksExampleInit.lua` and `ShopsHooksExampleHooks.lua`:
+Edit `ShopsHooksExampleInit.lua` and `ShopsHooksExampleItems.lua`:
 
 ```lua
--- In ShopsHooksExampleHooks.lua, add new hook function:
+-- In ShopsHooksExampleItems.lua, add item registration:
+function Items.registerBananaItems()
+    local Shop = SHOPSB42.Shop
+    Shop.RegisterItem("Base.Banana", {
+        tab = SHOPSB42.Tab.Food,
+        price = 3,
+        items = 75,
+    })
+    Shop.RegisterSellItem("Base.Banana", { price = 1 })
+end
+
+-- In ShopsHooksExampleInit.lua, register the hook:
+if ShopEvents and ShopEvents.registerOnShopRegisterItems then
+    ShopEvents.registerOnShopRegisterItems(Items.registerBananaItems)
+end
+
+-- And add price hooks in ShopsHooksExampleHooks.lua:
 function Hooks.modifyBananaPrice(player, itemId, basePrice, context, modifiers)
     if itemId ~= "Base.Banana" then return end
-    
     table.insert(modifiers, {
         multiplier = 0.95,
         label = "bananaDiscount"
     })
 end
-
--- In ShopsHooksExampleInit.lua, register it:
-ShopPriceEvents.registerOnShopModifyBuyPrice(
-    ShopsHooksExampleHooks.modifyBananaPrice
-)
 ```
 
 ### Change Multiplier at Runtime
@@ -195,6 +247,56 @@ ShopPriceEvents.registerOnShopOverrideSellPrice(
     ShopsHooksExampleHooks.overrideSellPrice
 )
 ```
+
+## Item Registration Hooks Reference
+
+### registerOnShopRegisterItems
+
+Called during initialization to register buy items (items players can purchase).
+
+```lua
+function registerBuyItems()
+    Shop.RegisterItem("Base.Apple", {
+        tab = Tab.Food,
+        price = 2,
+        items = 100
+    })
+end
+
+ShopEvents.registerOnShopRegisterItems(registerBuyItems)
+```
+
+### registerOnShopRegisterSellItems
+
+Called during initialization to register sell items and configure blacklist/whitelist.
+
+```lua
+function registerSellItems()
+    -- In blacklist mode: register items shop ACCEPTS
+    Shop.RegisterSellItem("Base.Apple", { price = 1 })
+    
+    -- Blacklist items (won't buy these in blacklist mode)
+    Shop.RegisterSellItem("Base.Bomb", { blacklisted = true })
+end
+
+ShopSellEvents.registerOnShopRegisterSellItems(registerSellItems)
+```
+
+### Whitelist/Blacklist Control
+
+Toggle sell listing mode globally:
+
+```lua
+-- Whitelist mode: Only registered items can be sold
+SHOPSB42.Shop.SellisWhitelist = true
+
+-- Blacklist mode (default): All items can be sold except blacklisted
+SHOPSB42.Shop.SellisWhitelist = false
+```
+
+See **ITEM_REGISTRATION_EXAMPLES.md** for detailed examples.
+
+---
 
 ## Hook Semantics Reference
 

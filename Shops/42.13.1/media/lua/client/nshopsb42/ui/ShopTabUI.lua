@@ -18,9 +18,28 @@ local previewBtn = Shop.textures.PreviewButton
 local browseBtn = Shop.textures.Browse
 
 -- Get game's accessibility colors (respects user settings)
-local goodColor = getCore():getGoodHighlitedColor()
+-- Convert Java Color objects to Lua tables with r, g, b fields
+local function javaColorToTable(javaColor, fallback)
+	if not javaColor then
+		return fallback
+	end
+	-- Java Color has getRed(), getGreen(), getBlue() methods that return 0-1 range
+	return {
+		r = javaColor:getRed(),
+		g = javaColor:getGreen(),
+		b = javaColor:getBlue(),
+		a = javaColor:getAlpha()
+	}
+end
+
+local goodColor = javaColorToTable(
+	getCore():getGoodHighlitedColor(),
+	{ r = 0.0, g = 1.0, b = 0.0, a = 1 } -- Fallback: green
+)
+
 -- Neutral color: use a standard light gray (B42.13.1 doesn't have getNeutralHighlitedColor)
 local neutralColor = { r = 0.85, g = 0.85, b = 0.85, a = 1 }
+
 -- Use darker gray for base price reference
 local grayColor = { r = 0.3, g = 0.3, b = 0.3, a = 1 }
 

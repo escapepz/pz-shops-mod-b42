@@ -463,13 +463,13 @@ function ShopTabUI:addToCart(selectedRow)
 		return
 	end
 	self.ShopUI:toggleTooltip(false)
-	
+
 	-- Ensure basePrice is set before adding to cart
 	-- This is critical for cart display logic which needs both finalPrice and basePrice
 	if item.item and item.item.price and not item.item.basePrice then
 		item.item.basePrice = item.item.price
 	end
-	
+
 	self.ShopUI.cartItems:addItem(item.text, item.item)
 	if self.tabType == Tab.Sell then
 		self.shopItems:removeItemByIndex(selectedRow)

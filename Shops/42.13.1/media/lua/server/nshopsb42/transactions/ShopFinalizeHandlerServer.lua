@@ -347,13 +347,16 @@ function ShopFinalizeHandler.sendShopDataToPlayer(player)
 	)
 	SharedLogger.log("Shops", "[ShopFinalizeHandler] Preparing SyncShopData with " .. itemCount .. " items")
 
-	-- Send shop items and config
+	-- Send shop items and config (including default prices for unregistered items)
 	local shopData = {
 		Items = Shop.Items,
 		PlayerBuy = Shop.PlayerBuy,
 		PlayerSell = Shop.PlayerSell,
 		BuyIsWhitelist = Shop.BuyIsWhitelist,
 		SellIsWhitelist = Shop.SellIsWhitelist,
+		-- Phase 4 Fix: Sync default prices for fallback calculations on client
+		defaultPrice = Shop.defaultPrice,
+		defaultPriceBroken = Shop.defaultPriceBroken,
 	}
 
 	SharedLogger.log("Shops", "[ShopFinalizeHandler.sendShopDataToPlayer] SENDING SyncShopData...")

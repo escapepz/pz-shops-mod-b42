@@ -48,7 +48,9 @@ local function calcBuyPrice(itemId, player, basePrice)
 	-- Check if server calculated this price (server-only hooks)
 	local calculatedPrices = Shop.CalculatedPrices or {}
 	if calculatedPrices.buyPrices and calculatedPrices.buyPrices[itemId] then
-		local price = calculatedPrices.buyPrices[itemId]
+		local priceData = calculatedPrices.buyPrices[itemId]
+		-- Phase 4 Fix: Handle both table and scalar formats (backward compatibility)
+		local price = type(priceData) == "table" and priceData.price or priceData
 
 		-- DEBUG: Log price calculations for Base.Apple
 		if itemId == "Base.Apple" then
@@ -309,7 +311,7 @@ end
 function ShopUI:doDrawCartItem(y, item, alt)
 	-- basePrice is guaranteed to be set when item is added to cart (ShopTabUI.addToCart)
 	-- Both finalPrice (item.price) and basePrice should always be present here
-	
+
 	local baseItemDY = 0
 	if item.item.name then
 		baseItemDY = self.SMALL_FONT_HGT
@@ -1361,7 +1363,13 @@ function ShopUI:recalculateRowPrice(row)
 		local calc = Shop.CalculatedPrices
 		if calc and calc.buyPrices and calc.buyPrices[row.type] then
 			-- Server-authoritative price (e.g., from price hooks)
-			price = calc.buyPrices[row.type]
+			-- Phase 4 Fix: Handle both table and scalar formats (backward compatibility)
+			local priceData = calc.buyPrices[row.type]
+			price = type(priceData) == "table" and priceData.price or priceData
+			-- Phase 4 Fix: Extract basePrice from priceData if available
+			if type(priceData) == "table" and priceData.basePrice then
+				row.basePrice = priceData.basePrice
+			end
 			row.priceIsApproximate = false
 		else
 			-- Fallback to preview calculator if no server price

@@ -29,6 +29,19 @@ function Commands.SyncShopData(data)
 	Shop.BuyIsWhitelist = data.BuyIsWhitelist or false
 	Shop.SellIsWhitelist = data.SellIsWhitelist or false
 
+	-- Phase 4 Fix: Receive default prices from server (for unregistered items)
+	if data.defaultPrice then
+		Shop.defaultPrice = data.defaultPrice
+		SharedLogger.log("Shops", "[ShopCommandDispatcher:SyncShopData] Synced defaultPrice=" .. data.defaultPrice)
+	end
+	if data.defaultPriceBroken then
+		Shop.defaultPriceBroken = data.defaultPriceBroken
+		SharedLogger.log(
+			"Shops",
+			"[ShopCommandDispatcher:SyncShopData] Synced defaultPriceBroken=" .. data.defaultPriceBroken
+		)
+	end
+
 	local itemCount = 0
 	local buyCount = 0
 	local sellCount = 0

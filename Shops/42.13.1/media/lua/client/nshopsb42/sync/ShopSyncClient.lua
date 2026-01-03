@@ -228,9 +228,18 @@ function ShopSyncClient.handleSyncBuyPrices(data)
 	SharedLogger.log("Shops", "[ShopSyncClient] Received SyncBuyPrices from server")
 
 	local Shop = SHOPSB42.Shop
-	local oldBuyRevision = Shop.BuyPriceRevision
+	local oldBuyRevision = Shop.BuyPriceRevision or 0
 	local newBuyRevision = data.buyRevision or 0
 	local newSellRevision = data.sellRevision or 0
+
+	-- Phase 4: Reject stale updates (regression guard for network reorder)
+	if newBuyRevision < oldBuyRevision then
+		SharedLogger.log(
+			"Shops",
+			"[ShopSyncClient] Rejected stale SyncBuyPrices (rev " .. newBuyRevision .. " < " .. oldBuyRevision .. ")"
+		)
+		return false
+	end
 
 	-- NOTE: Do NOT update revisions yet! We need oldBuyRevision to remain unchanged for the comparison below
 	-- Revisions will be stored AFTER the change detection logic
@@ -243,12 +252,15 @@ function ShopSyncClient.handleSyncBuyPrices(data)
 	if data.isInitialSync then
 		-- Initial sync: store all prices
 		Shop.CalculatedPrices.buyPrices = {}
+		-- Clear old modifier metadata on initial sync (Phase 4: lifecycle management)
+		Shop._buyModifierMetadata = {}
 
 		-- Extract and store modifier metadata (Phase 2: transparency)
 		for itemId, priceData in pairs(data.buyPrices or {}) do
 			if type(priceData) == "table" then
-				-- Extract price for UI (backward compatibility)
-				Shop.CalculatedPrices.buyPrices[itemId] = priceData.price
+				-- Store full price data object (includes price, basePrice, modifiers)
+				-- Phase 4 Fix: Store entire priceData, not just .price
+				Shop.CalculatedPrices.buyPrices[itemId] = priceData
 				-- Store full price data with modifiers for external consumers
 				if priceData.modifiers then
 					Shop._buyModifierMetadata[itemId] = priceData.modifiers
@@ -279,8 +291,9 @@ function ShopSyncClient.handleSyncBuyPrices(data)
 		-- Delta update: merge changed prices
 		for itemId, priceData in pairs(data.buyPrices) do
 			if type(priceData) == "table" then
-				-- Extract price for UI (backward compatibility)
-				Shop.CalculatedPrices.buyPrices[itemId] = priceData.price
+				-- Store full price data object (includes price, basePrice, modifiers)
+				-- Phase 4 Fix: Store entire priceData, not just .price
+				Shop.CalculatedPrices.buyPrices[itemId] = priceData
 				-- Store full price data with modifiers for external consumers (Phase 2)
 				if priceData.modifiers then
 					Shop._buyModifierMetadata[itemId] = priceData.modifiers
@@ -349,9 +362,18 @@ function ShopSyncClient.handleSyncSellRules(data)
 	SharedLogger.log("Shops", "[ShopSyncClient] Received SyncSellRules from server")
 
 	local Shop = SHOPSB42.Shop
-	local oldSellRevision = Shop.SellRuleRevision
+	local oldSellRevision = Shop.SellRuleRevision or 0
 	local newBuyRevision = data.buyRevision or 0
 	local newSellRevision = data.sellRevision or 0
+
+	-- Phase 4: Reject stale updates (regression guard for network reorder)
+	if newSellRevision < oldSellRevision then
+		SharedLogger.log(
+			"Shops",
+			"[ShopSyncClient] Rejected stale SyncSellRules (rev " .. newSellRevision .. " < " .. oldSellRevision .. ")"
+		)
+		return false
+	end
 
 	-- NOTE: Do NOT update revisions yet! We need oldSellRevision to remain unchanged for the comparison below
 	-- Revisions will be stored AFTER the change detection logic

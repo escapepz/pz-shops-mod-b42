@@ -1132,7 +1132,7 @@ function ShopUI:buildBuyTicket()
 			end
 
 			-- Handle compound items (packs)
-			if item.items then
+			if item.items and type(item.items) == "table" then
 				-- This is a pack item, store with items array
 				local packEntry = {
 					type = item.type,

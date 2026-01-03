@@ -18,26 +18,39 @@ local previewBtn = Shop.textures.PreviewButton
 local browseBtn = Shop.textures.Browse
 
 -- UI colors for price display
--- Convert Java Color objects to Lua tables using float methods
-local function colorToTable(javaColor, fallback)
-	if not javaColor then
-		return fallback
+-- Try to use game's accessibility colors, fall back to hardcoded if unavailable
+local function tryGetAccessibilityColor()
+	local ok, color = pcall(function()
+		local javaColor = getCore():getGoodHighlitedColor()
+		if not javaColor then
+			return nil
+		end
+		-- Try different method names for getting RGB floats
+		local r, g, b, a
+		if javaColor.getR then
+			r = javaColor:getR()
+			g = javaColor:getG()
+			b = javaColor:getB()
+			a = javaColor:getAlphaFloat()
+		elseif javaColor.getRedFloat then
+			r = javaColor:getRedFloat()
+			g = javaColor:getGreenFloat()
+			b = javaColor:getBlueFloat()
+			a = javaColor:getAlphaFloat()
+		else
+			return nil
+		end
+		return { r = r, g = g, b = b, a = a }
+	end)
+	if ok and color then
+		return color
 	end
-	-- Use getR(), getG(), getB() methods which return floats 0-1, and getAlphaFloat() for alpha
-	return {
-		r = javaColor:getR(),
-		g = javaColor:getG(),
-		b = javaColor:getB(),
-		a = javaColor:getAlphaFloat()
-	}
+	return nil
 end
 
-local goodColor = colorToTable(
-	getCore():getGoodHighlitedColor(),
-	{ r = 0.0, g = 1.0, b = 0.0, a = 1 } -- Fallback: green
-)
+local goodColor = tryGetAccessibilityColor() or { r = 0.0, g = 1.0, b = 0.0, a = 1 }
 local neutralColor = { r = 0.85, g = 0.85, b = 0.85, a = 1 } -- Light gray for neutral
-local grayColor = { r = 0.3, g = 0.3, b = 0.3, a = 1 } -- Dark gray for base price reference
+local grayColor = { r = 0.3, g = 0.3, b = 0.3, a = 1 }       -- Dark gray for base price reference
 
 function ShopTabUI:initialise()
 	ISPanelJoypad.initialise(self)

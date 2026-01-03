@@ -11,6 +11,7 @@
 ### Quick Start (5-15 minutes)
 
 1. **GETTING_STARTED.md** (this directory)
+
    - 5-minute overview
    - Common tasks
    - Testing tips
@@ -26,6 +27,7 @@
 ### Comprehensive Guides (30-60 minutes)
 
 3. **42.13.1/README.md**
+
    - Complete overview of all features
    - Detailed hook explanations
    - Price hook semantics
@@ -44,6 +46,7 @@
 ### Reference (lookups)
 
 5. **ITEM_REGISTRATION_ADDITIONS.md** (this directory)
+
    - Summary of what was added
    - Hook system overview
    - Design patterns
@@ -60,6 +63,7 @@
 ### Working Code
 
 7. **42.13.1/media/lua/server/nshopsb42/ShopsHooksExampleItems.lua**
+
    - Buy item registration function
    - Sell item registration function
    - Listing mode configuration
@@ -67,6 +71,7 @@
    - Proper error handling
 
 8. **42.13.1/media/lua/server/nshopsb42/ShopsHooksExampleHooks.lua**
+
    - Price modification hooks
    - Buy price modifiers
    - Buy price overrides
@@ -84,19 +89,23 @@
 ## What's Covered
 
 ### Shop Listing Items
+
 - **Buy items**: `Shop.RegisterItem()` - Items players purchase
 - **Sell items**: `Shop.RegisterSellItem()` - Items shop buys from players
 
 ### Hook Types
+
 - `registerOnShopRegisterItems()` - Register buy items
 - `registerOnShopRegisterSellItems()` - Register sell items
 
 ### Listing Configuration
+
 - **Whitelist mode**: Only registered items sellable
 - **Blacklist mode**: All items sellable except blacklisted
 - Toggle: `SHOPSB42.Shop.SellisWhitelist`
 
 ### Price Integration
+
 - Combine items with buy/sell price hooks
 - Dynamic pricing based on conditions
 - Price modifiers and overrides
@@ -169,6 +178,7 @@ ShopsHooksExample/
 ```
 
 **Legend**:
+
 - `(new)` = File created for item registration
 - `(updated)` = File modified to add item registration support
 
@@ -177,21 +187,25 @@ ShopsHooksExample/
 ## Learning Paths
 
 ### 5-Minute Path
+
 1. GETTING_STARTED.md (5 min)
 2. Run mod, check logs
 
 ### 15-Minute Path
+
 1. GETTING_STARTED.md (5 min)
 2. ITEM_REGISTRATION_QUICK_REFERENCE.md (5 min)
 3. Skim ShopsHooksExampleItems.lua (5 min)
 
 ### 30-Minute Path
+
 1. GETTING_STARTED.md (5 min)
 2. ITEM_REGISTRATION_QUICK_REFERENCE.md (5 min)
 3. Read ShopsHooksExampleItems.lua (10 min)
 4. Review 2-3 examples from ITEM_REGISTRATION_EXAMPLES.md (10 min)
 
 ### 60-Minute Path (Complete Understanding)
+
 1. GETTING_STARTED.md (5 min)
 2. ITEM_REGISTRATION_QUICK_REFERENCE.md (5 min)
 3. ITEM_REGISTRATION_EXAMPLES.md (20 min - all 7 examples)
@@ -237,30 +251,31 @@ Ready for gameplay
 
 ### Documentation Files
 
-| File | Purpose | Read Time |
-|---|---|---|
-| INDEX.md | This file - Navigation guide | 5 min |
-| GETTING_STARTED.md | Quick start and common tasks | 5 min |
-| ITEM_REGISTRATION_QUICK_REFERENCE.md | Syntax cheat sheet | 5 min |
-| ITEM_REGISTRATION_EXAMPLES.md | 7 working examples | 15 min |
-| README.md | Complete feature overview | 20 min |
-| DELIVERY_SUMMARY.md | What was delivered | 10 min |
-| ITEM_REGISTRATION_ADDITIONS.md | Summary of additions | 10 min |
+| File                                 | Purpose                      | Read Time |
+| ------------------------------------ | ---------------------------- | --------- |
+| INDEX.md                             | This file - Navigation guide | 5 min     |
+| GETTING_STARTED.md                   | Quick start and common tasks | 5 min     |
+| ITEM_REGISTRATION_QUICK_REFERENCE.md | Syntax cheat sheet           | 5 min     |
+| ITEM_REGISTRATION_EXAMPLES.md        | 7 working examples           | 15 min    |
+| README.md                            | Complete feature overview    | 20 min    |
+| DELIVERY_SUMMARY.md                  | What was delivered           | 10 min    |
+| ITEM_REGISTRATION_ADDITIONS.md       | Summary of additions         | 10 min    |
 
 ### Code Files
 
-| File | Purpose | Lines |
-|---|---|---|
-| ShopsHooksExampleInit.lua | Initialization & hook registration | ~175 |
-| ShopsHooksExampleItems.lua | Buy/sell item registration | ~200 |
-| ShopsHooksExampleHooks.lua | Price modification hooks | ~130 |
-| ShopsHooksExampleState.lua | Configuration values | ~20 |
+| File                       | Purpose                            | Lines |
+| -------------------------- | ---------------------------------- | ----- |
+| ShopsHooksExampleInit.lua  | Initialization & hook registration | ~175  |
+| ShopsHooksExampleItems.lua | Buy/sell item registration         | ~200  |
+| ShopsHooksExampleHooks.lua | Price modification hooks           | ~130  |
+| ShopsHooksExampleState.lua | Configuration values               | ~20   |
 
 ---
 
 ## Key Concepts
 
 ### Buy Items
+
 Items **players can purchase** from the shop.
 
 ```lua
@@ -272,6 +287,7 @@ Shop.RegisterItem("Base.Apple", {
 ```
 
 ### Sell Items
+
 Items **shop can buy** from players.
 
 ```lua
@@ -280,6 +296,7 @@ Shop.RegisterSellItem("Base.Bomb", { blacklisted = true })
 ```
 
 ### Whitelist Mode
+
 Only **explicitly registered items** can be sold.
 
 ```lua
@@ -287,6 +304,7 @@ SHOPSB42.Shop.SellisWhitelist = true
 ```
 
 ### Blacklist Mode
+
 **All items** can be sold except those marked blacklisted.
 
 ```lua
@@ -297,14 +315,14 @@ SHOPSB42.Shop.SellisWhitelist = false
 
 ## Common Tasks
 
-| Task | File | Section |
-|---|---|---|
-| Add buy item | ShopsHooksExampleItems.lua | registerBuyItems() |
-| Add sell item | ShopsHooksExampleItems.lua | registerSellItems() |
-| Enable whitelist | ShopsHooksExampleItems.lua | configureListingMode() |
-| Modify buy price | ShopsHooksExampleHooks.lua | modifyAppleBuyPrice() |
-| Fix sell price | ShopsHooksExampleHooks.lua | modifySellPriceByCondition() |
-| Change price at runtime | ShopsHooksExampleState.lua | appleBuyMultiplier |
+| Task                    | File                       | Section                      |
+| ----------------------- | -------------------------- | ---------------------------- |
+| Add buy item            | ShopsHooksExampleItems.lua | registerBuyItems()           |
+| Add sell item           | ShopsHooksExampleItems.lua | registerSellItems()          |
+| Enable whitelist        | ShopsHooksExampleItems.lua | configureListingMode()       |
+| Modify buy price        | ShopsHooksExampleHooks.lua | modifyAppleBuyPrice()        |
+| Fix sell price          | ShopsHooksExampleHooks.lua | modifySellPriceByCondition() |
+| Change price at runtime | ShopsHooksExampleState.lua | appleBuyMultiplier           |
 
 ---
 
@@ -320,13 +338,13 @@ SHOPSB42.Shop.SellisWhitelist = false
 
 ### Common Problems
 
-| Problem | Solution |
-|---|---|
-| Items don't appear | Check registerBuyItems() hook is registered |
-| Can't sell items | Verify registerSellItems() hook and whitelist/blacklist mode |
-| Wrong prices | Check price hook is registered and applied |
-| Logs not showing | Verify SharedLogger is being used |
-| Mod doesn't load | Check Shops mod is installed and enabled |
+| Problem            | Solution                                                     |
+| ------------------ | ------------------------------------------------------------ |
+| Items don't appear | Check registerBuyItems() hook is registered                  |
+| Can't sell items   | Verify registerSellItems() hook and whitelist/blacklist mode |
+| Wrong prices       | Check price hook is registered and applied                   |
+| Logs not showing   | Verify SharedLogger is being used                            |
+| Mod doesn't load   | Check Shops mod is installed and enabled                     |
 
 ---
 
@@ -345,24 +363,27 @@ SHOPSB42.Shop.SellisWhitelist = false
 - **Main README**: 42.13.1/README.md
 - **Quick Start**: 42.13.1/GETTING_STARTED.md
 - **Code**: 42.13.1/media/lua/server/nshopsb42/
-- **Logs**: Logs/Server/*_Shops.txt
+- **Logs**: Logs/Server/\*\_Shops.txt
 
 ---
 
 ## Recommended Reading Order
 
 **For beginners**:
+
 1. This index (what you're reading)
 2. GETTING_STARTED.md
 3. ITEM_REGISTRATION_QUICK_REFERENCE.md
 4. ShopsHooksExampleItems.lua (working code)
 
 **For intermediate**:
+
 1. Above, plus:
 2. ITEM_REGISTRATION_EXAMPLES.md (all 7 examples)
 3. README.md sections on hooks
 
 **For advanced**:
+
 1. All above, plus:
 2. ShopsHooksExampleInit.lua (initialization flow)
 3. ShopsHooksExampleHooks.lua (price hooks)

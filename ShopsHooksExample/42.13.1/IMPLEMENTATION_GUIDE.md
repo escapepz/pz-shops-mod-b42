@@ -27,11 +27,11 @@ ShopsHooksExample/42.13.1/media/lua/server/
 
 ### Module Responsibilities
 
-| File | Lines | Purpose |
-|------|-------|---------|
-| ShopsHooksExampleInit.lua | 94 | Hook registration via ShopPriceEvents |
-| ShopsHooksExampleHooks.lua | 180 | 3 hook implementations |
-| ShopsHooksExampleState.lua | 25 | Configuration (multipliers, overrides) |
+| File                       | Lines | Purpose                                |
+| -------------------------- | ----- | -------------------------------------- |
+| ShopsHooksExampleInit.lua  | 94    | Hook registration via ShopPriceEvents  |
+| ShopsHooksExampleHooks.lua | 180   | 3 hook implementations                 |
+| ShopsHooksExampleState.lua | 25    | Configuration (multipliers, overrides) |
 
 ---
 
@@ -53,12 +53,12 @@ function Hooks.modifyAppleBuyPrice(player, itemId, basePrice, context, modifiers
     if itemId ~= "Base.Apple" then
         return
     end
-    
+
     -- Guard: Ensure modifiers exists
     if not modifiers then
         return
     end
-    
+
     -- Append multiplier
     table.insert(modifiers, {
         multiplier = 0.9,
@@ -76,7 +76,7 @@ function(player, itemId, basePrice, context, modifiers)
     -- basePrice: Numeric price before modifications
     -- context: Table with shopId, quantity, etc.
     -- modifiers: Array to append to
-    
+
     table.insert(modifiers, { multiplier = X })
 end
 ```
@@ -92,6 +92,7 @@ end
 ### Common Modifications
 
 **Category Markup:**
+
 ```lua
 if string.find(itemId, "Weapon") then
     table.insert(modifiers, { multiplier = 1.3 })
@@ -99,6 +100,7 @@ end
 ```
 
 **Quantity Bonus:**
+
 ```lua
 if context.quantity >= 10 then
     table.insert(modifiers, { multiplier = 0.85 })
@@ -106,6 +108,7 @@ end
 ```
 
 **Reputation Discount (if you extend):**
+
 ```lua
 if player and player:getProperty("reputation") > 100 then
     table.insert(modifiers, { multiplier = 0.9 })
@@ -128,13 +131,13 @@ function Hooks.overrideAppleBuyPrice(player, itemId, price, context)
     if itemId ~= "Base.Apple" then
         return nil
     end
-    
+
     -- Check if override is enabled
     local overridePrice = ShopsHooksExampleState.appleOverrideBuyPrice
     if overridePrice == nil then
         return nil  -- Skip override, use modifiers
     end
-    
+
     -- Return override (short-circuits modifiers)
     return overridePrice
 end
@@ -148,7 +151,7 @@ function(player, itemId, price, context)
     -- itemId: Item ID string
     -- price: Current calculated price
     -- context: Table with shopId, quantity, etc.
-    
+
     return finalPrice or nil  -- MUST return something
 end
 ```
@@ -178,6 +181,7 @@ end
 ### Common Overrides
 
 **Fixed Prices:**
+
 ```lua
 local specialPrices = {
     ["Base.Water"] = 10,
@@ -192,6 +196,7 @@ return nil
 ```
 
 **Admin Free Items:**
+
 ```lua
 if player and player:isAdmin() then
     return 0  -- Free
@@ -201,6 +206,7 @@ return nil
 ```
 
 **Condition-based Pricing (sell):**
+
 ```lua
 if item:getCondition() < 30 then
     return 0  -- Won't buy damaged
@@ -216,10 +222,12 @@ return nil
 ### Why Different?
 
 **Buy hooks** decide price for player purchasing from shop:
+
 - Item ID only (string)
 - Simple: category, time, reputation, bulk
 
 **Sell hooks** decide price for player selling to shop:
+
 - Full item object (with condition, wear, etc.)
 - Complex: condition-based, item-specific logic
 
@@ -229,7 +237,7 @@ return nil
 function(player, itemId, basePrice, context, modifiers)
     -- Receives: itemId STRING
     -- Example: "Base.Apple"
-    
+
     if itemId ~= "Base.Apple" then return end
 end
 ```
@@ -240,10 +248,10 @@ end
 function(player, item, basePrice, context, modifiers)
     -- Receives: item OBJECT
     -- Must use: item:getFullType(), item:getCondition()
-    
+
     local itemId = item:getFullType()  -- Get ID from object
     if itemId ~= "Base.Apple" then return end
-    
+
     local condition = item:getCondition()  -- Get quality (0-100)
     if condition < 50 then
         table.insert(modifiers, { multiplier = 0.5 })
@@ -253,17 +261,18 @@ end
 
 ### Key Differences
 
-| Aspect | Buy | Sell |
-|--------|-----|------|
-| Item param | String ID (`itemId`) | Object (`item`) |
-| Signature | `(player, itemId, ...)` | `(player, item, ...)` |
-| Get ID | Use directly | `item:getFullType()` |
-| Extra data | Limited | `item:getCondition()` |
-| Typical logic | Category, time | Condition, quality |
+| Aspect        | Buy                     | Sell                  |
+| ------------- | ----------------------- | --------------------- |
+| Item param    | String ID (`itemId`)    | Object (`item`)       |
+| Signature     | `(player, itemId, ...)` | `(player, item, ...)` |
+| Get ID        | Use directly            | `item:getFullType()`  |
+| Extra data    | Limited                 | `item:getCondition()` |
+| Typical logic | Category, time          | Condition, quality    |
 
 ### When to Use Each
 
 **Modify hooks** (shared approach):
+
 ```lua
 -- Buy: Easy, just filter by itemId
 if itemId == "Base.Apple" then
@@ -279,6 +288,7 @@ end
 ```
 
 **Override hooks**:
+
 ```lua
 -- Buy: Check itemId string
 function overrideBuyPrice(player, itemId, price, context)
@@ -331,12 +341,13 @@ Without calling `onPriceHooksChanged()`, the new value won't take effect until s
 **Step 1:** Update configuration to add new item
 
 In `ShopsHooksExampleHooks.lua`, add check:
+
 ```lua
 function Hooks.modifyAppleBuyPrice(player, itemId, basePrice, context, modifiers)
     if itemId ~= "Base.Apple" and itemId ~= "Base.Banana" then
         return
     end
-    
+
     table.insert(modifiers, {
         multiplier = 0.9,
         label = "fruitDiscount"
@@ -345,6 +356,7 @@ end
 ```
 
 **Step 2:** Test in-game
+
 - Buy the new item
 - Check server logs for hook execution
 
@@ -358,6 +370,7 @@ State.appleBuyMultiplier = 0.5  -- New: 50% discount
 ```
 
 Then restart server, or call:
+
 ```lua
 SHOPSB42.ShopFinalizeHandler.onPriceHooksChanged()
 ```
@@ -370,9 +383,9 @@ Create new hook in `ShopsHooksExampleHooks.lua`:
 function Hooks.modifyAppleBuyPriceByTime(player, itemId, basePrice, context, modifiers)
     if itemId ~= "Base.Apple" then return end
     if not modifiers then return end
-    
+
     local hour = getGameTime():getHour()
-    
+
     -- Night premium (11 PM - 6 AM): +15%
     if hour >= 23 or hour < 6 then
         table.insert(modifiers, {
@@ -384,6 +397,7 @@ end
 ```
 
 Register in `ShopsHooksExampleInit.lua`:
+
 ```lua
 ShopPriceEvents.registerOnShopModifyBuyPrice(
     ShopsHooksExampleHooks.modifyAppleBuyPriceByTime
@@ -398,9 +412,9 @@ Create new hook:
 function Hooks.modifyAppleBuyPriceByReputation(player, itemId, basePrice, context, modifiers)
     if itemId ~= "Base.Apple" then return end
     if not player or not modifiers then return end
-    
+
     local reputation = player:getProperty("mymod_reputation") or 0
-    
+
     if reputation > 100 then
         table.insert(modifiers, {
             multiplier = 0.9,
@@ -417,6 +431,7 @@ end
 ### Check Hook Registration
 
 Server logs should show:
+
 ```
 [ShopsHooksExample] Registered: modifyAppleBuyPrice
 [ShopsHooksExample] Registered: overrideAppleBuyPrice
@@ -429,6 +444,7 @@ Server logs should show:
 ### Check Hook Execution
 
 When you buy/sell, you should see:
+
 ```
 [ShopsHooksExample] Applied buy modifier to Base.Apple: multiplier=0.9
 [ShopsHooksExample] Applied condition modifier to Base.Apple: condition=85, multiplier=1.0
@@ -456,6 +472,7 @@ print("Final price: " .. finalPrice)
 Called **per transaction** when player buys item. Minimize work:
 
 ✅ **Good:**
+
 ```lua
 if itemId ~= "Base.Apple" then return end  -- Early exit
 local mult = ShopsHooksExampleState.appleBuyMultiplier
@@ -463,6 +480,7 @@ table.insert(modifiers, { multiplier = mult })
 ```
 
 ❌ **Bad:**
+
 ```lua
 for i = 1, 1000 do  -- Expensive loop
     -- Do something
@@ -475,12 +493,14 @@ table.insert(modifiers, {...})
 Called **per transaction**, check conditions first:
 
 ✅ **Good:**
+
 ```lua
 if itemId ~= "Base.Apple" then return nil end  -- Fast exit
 -- Expensive operation only if needed
 ```
 
 ❌ **Bad:**
+
 ```lua
 -- Expensive operation first
 local expensiveValue = expensiveFunction()
@@ -500,21 +520,21 @@ function Hooks.modifyAppleBuyPrice(player, itemId, basePrice, context, modifiers
     if itemId ~= "Base.Apple" then
         return
     end
-    
+
     -- Guard: Nil check
     if not modifiers then
         return
     end
-    
+
     -- Get current multiplier from state
     local multiplier = ShopsHooksExampleState.appleBuyMultiplier
-    
+
     -- Append to modifiers (stacks with others)
     table.insert(modifiers, {
         multiplier = multiplier,
         label = "appleFruitDiscount"
     })
-    
+
     -- Log for debugging
     SharedLogger.log(
         "Shops",
@@ -531,21 +551,21 @@ function Hooks.overrideAppleBuyPrice(player, itemId, price, context)
     if itemId ~= "Base.Apple" then
         return nil
     end
-    
+
     -- Get override state
     local overridePrice = ShopsHooksExampleState.appleOverrideBuyPrice
-    
+
     -- If not set, use calculated price
     if overridePrice == nil then
         return nil
     end
-    
+
     -- Log when override applies
     SharedLogger.log(
         "Shops",
         "[ShopsHooksExample] Overriding Apple buy price: " .. price .. " -> " .. overridePrice
     )
-    
+
     -- Return override (short-circuits)
     return overridePrice
 end
@@ -559,18 +579,18 @@ function Hooks.modifySellPriceByCondition(player, item, basePrice, context, modi
     if not item or not modifiers then
         return
     end
-    
+
     -- Get item ID from object
     local itemId = item:getFullType()
-    
+
     -- Guard: Only apply to specific items
     if itemId ~= "Base.Apple" and itemId ~= "Base.BaseballBat" then
         return
     end
-    
+
     -- Get item condition (0-100)
     local condition = item:getCondition()
-    
+
     -- Calculate multiplier based on condition
     local multiplier = 1.0
     if condition < 50 then
@@ -578,14 +598,14 @@ function Hooks.modifySellPriceByCondition(player, item, basePrice, context, modi
     elseif condition < 75 then
         multiplier = 0.85  -- Fair condition: 85% of price
     end
-    
+
     -- Only add modifier if it changes price
     if multiplier ~= 1.0 then
         table.insert(modifiers, {
             multiplier = multiplier,
             label = "conditionFactor"
         })
-        
+
         SharedLogger.log(
             "Shops",
             "[ShopsHooksExample] Applied condition modifier to " .. itemId ..

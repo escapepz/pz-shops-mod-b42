@@ -56,10 +56,7 @@ function Items.registerBuyItems()
 		items = 100, -- High stock (common item)
 	})
 
-	SharedLogger.log(
-		"Shops",
-		"[ShopsHooksExample] Registered BUY items: Food (CannedBolognese=8, Apple=2)"
-	)
+	SharedLogger.log("Shops", "[ShopsHooksExample] Registered BUY items: Food (CannedBolognese=8, Apple=2)")
 
 	-- =========================================================================
 	-- EXAMPLE 2: Register Weapons with Broken Price
@@ -171,10 +168,7 @@ function Items.registerSellItems()
 		price = 1, -- Roughly half the buy price (2)
 	})
 
-	SharedLogger.log(
-		"Shops",
-		"[ShopsHooksExample] Registered SELL items: Food (CannedBolognese=4, Apple=1)"
-	)
+	SharedLogger.log("Shops", "[ShopsHooksExample] Registered SELL items: Food (CannedBolognese=4, Apple=1)")
 
 	-- =========================================================================
 	-- EXAMPLE 2: Register Weapon Items Sell Price
@@ -188,10 +182,7 @@ function Items.registerSellItems()
 		price = 7, -- Roughly half the buy price (15)
 	})
 
-	SharedLogger.log(
-		"Shops",
-		"[ShopsHooksExample] Registered SELL items: Weapons (AxeSteel=12, Hammer=7)"
-	)
+	SharedLogger.log("Shops", "[ShopsHooksExample] Registered SELL items: Weapons (AxeSteel=12, Hammer=7)")
 
 	-- =========================================================================
 	-- EXAMPLE 3: Blacklist Dangerous Items
@@ -211,10 +202,7 @@ function Items.registerSellItems()
 		blacklisted = true,
 	})
 
-	SharedLogger.log(
-		"Shops",
-		"[ShopsHooksExample] Blacklisted items: Bomb, C4, Explosives (players cannot sell these)"
-	)
+	SharedLogger.log("Shops", "[ShopsHooksExample] Blacklisted items: Bomb, C4, Explosives (players cannot sell these)")
 
 	SharedLogger.log("Shops", "[ShopsHooksExample] Sell item registration complete (blacklist mode)")
 end
@@ -273,8 +261,10 @@ function Items.printListingModeInfo()
 		local mode = Shop.SellisWhitelist and "WHITELIST (restrictive)" or "BLACKLIST (permissive)"
 		SharedLogger.log(
 			"Shops",
-			"[ShopsHooksExample] Sell listing mode: " .. mode ..
-				" | Can sell unregistered items: " .. tostring(not Shop.SellisWhitelist)
+			"[ShopsHooksExample] Sell listing mode: "
+				.. mode
+				.. " | Can sell unregistered items: "
+				.. tostring(not Shop.SellisWhitelist)
 		)
 	end
 end

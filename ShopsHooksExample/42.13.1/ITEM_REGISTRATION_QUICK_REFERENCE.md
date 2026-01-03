@@ -17,6 +17,7 @@ Shop.RegisterItem("Base.Apple", {
 ```
 
 **Register via hook**:
+
 ```lua
 local ShopEvents = SHOPSB42.ShopEvents
 ShopEvents.registerOnShopRegisterItems(function()
@@ -39,6 +40,7 @@ Shop.RegisterSellItem("Base.Apple", {
 ```
 
 **Register via hook**:
+
 ```lua
 local ShopSellEvents = SHOPSB42.ShopSellEvents
 ShopSellEvents.registerOnShopRegisterSellItems(function()
@@ -82,15 +84,15 @@ Shop.RegisterSellItem("Base.Hammer", { price = 8 })
 
 Available item categories:
 
-| Tab | Display Name |
-|---|---|
-| `SHOPSB42.Tab.Favorite` | Favorites |
-| `SHOPSB42.Tab.Food` | Food |
-| `SHOPSB42.Tab.Weapons` | Weapons |
-| `SHOPSB42.Tab.Vehicles` | Vehicles |
-| `SHOPSB42.Tab.FirstAid` | First Aid |
-| `SHOPSB42.Tab.Event` | Events |
-| `SHOPSB42.Tab.All` | All |
+| Tab                     | Display Name |
+| ----------------------- | ------------ |
+| `SHOPSB42.Tab.Favorite` | Favorites    |
+| `SHOPSB42.Tab.Food`     | Food         |
+| `SHOPSB42.Tab.Weapons`  | Weapons      |
+| `SHOPSB42.Tab.Vehicles` | Vehicles     |
+| `SHOPSB42.Tab.FirstAid` | First Aid    |
+| `SHOPSB42.Tab.Event`    | Events       |
+| `SHOPSB42.Tab.All`      | All          |
 
 ---
 
@@ -120,7 +122,7 @@ end
 function registerConditionalItems()
     local Shop = SHOPSB42.Shop
     if not Shop then return end
-    
+
     -- Only add in non-survival mode
     if not SandboxVars.SurvivalMode then
         Shop.RegisterItem("Base.FirstAidKit", {
@@ -139,11 +141,11 @@ ShopEvents.registerOnShopRegisterItems(registerConditionalItems)
 ```lua
 function registerSellItems()
     local Shop = SHOPSB42.Shop
-    
+
     -- Accept normal items
     Shop.RegisterSellItem("Base.Apple", { price = 1 })
     Shop.RegisterSellItem("Base.Hammer", { price = 8 })
-    
+
     -- Reject dangerous items
     Shop.RegisterSellItem("Base.Bomb", { blacklisted = true })
     Shop.RegisterSellItem("Base.C4", { blacklisted = true })
@@ -159,7 +161,7 @@ ShopSellEvents.registerOnShopRegisterSellItems(registerSellItems)
 function registerWhitelistItems()
     SHOPSB42.Shop.SellisWhitelist = true
     local Shop = SHOPSB42.Shop
-    
+
     -- Only these items can be sold
     Shop.RegisterSellItem("Base.Apple", { price = 1 })
     Shop.RegisterSellItem("Base.Banana", { price = 2 })
@@ -198,16 +200,19 @@ ShopPriceEvents.registerOnShopModifyBuyPrice(modifyApplePrice)
 ## Errors & Debugging
 
 **Items don't appear?**
+
 - Check `Shop.RegisterItem` is called within `registerOnShopRegisterItems()` hook
 - Verify item ID exists in game (e.g., "Base.Apple")
 - Check server logs for registration errors
 
 **Can't sell items in whitelist mode?**
+
 - Verify `SHOPSB42.Shop.SellisWhitelist = true` is set
 - Ensure item is registered with `Shop.RegisterSellItem()`
 - Check shop logs
 
 **Wrong sell price?**
+
 - Verify `Shop.RegisterSellItem()` price parameter
 - Check if price hooks are modifying the price
 - Look for conflicting mods

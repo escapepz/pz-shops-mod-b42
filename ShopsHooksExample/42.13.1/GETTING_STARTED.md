@@ -9,6 +9,7 @@ Quick start guide for using item registration and price hooks in ShopsHooksExamp
 ShopsHooksExample demonstrates three main hook types:
 
 ### 1. Buy Item Registration
+
 Items players can **purchase** from the shop.
 
 ```lua
@@ -20,6 +21,7 @@ Shop.RegisterItem("Base.Apple", {
 ```
 
 ### 2. Sell Item Registration
+
 Items the shop will **buy** from players.
 
 ```lua
@@ -31,6 +33,7 @@ Shop.RegisterSellItem("Base.Bomb", { blacklisted = true })
 ```
 
 ### 3. Price Hooks
+
 Modify prices dynamically.
 
 ```lua
@@ -69,20 +72,24 @@ Open these files in order:
 ### Step 2: Review Documentation
 
 **For item registration**:
+
 - Start: ITEM_REGISTRATION_QUICK_REFERENCE.md (2 min)
 - Deep dive: ITEM_REGISTRATION_EXAMPLES.md (15 min)
 
 **For price hooks**:
+
 - See: README.md sections on "Modifier Hooks" and "Override Hooks"
 
 ### Step 3: Test Current Example
 
 Check server logs:
+
 ```bash
 tail -f Logs/Server/*_Shops.txt | grep ShopsHooksExample
 ```
 
 You should see:
+
 ```
 [ShopsHooksExample] Registered buy items
 [ShopsHooksExample] Registered sell items
@@ -92,11 +99,13 @@ You should see:
 ### Step 4: Customize
 
 Edit `ShopsHooksExampleItems.lua`:
+
 - Change item IDs to your items
 - Adjust prices
 - Modify conditions (whitelist/blacklist)
 
 Or edit `ShopsHooksExampleHooks.lua`:
+
 - Adjust price multipliers
 - Add new price conditions
 
@@ -183,6 +192,7 @@ end
 ```
 
 Then register in `ShopsHooksExampleInit.lua`:
+
 ```lua
 ShopPriceEvents.registerOnShopModifyBuyPrice(
     ShopsHooksExampleHooks.modifyBananaPrice
@@ -209,6 +219,7 @@ This ensures items exist before prices are calculated.
 ### See What Items Are Registered
 
 Check server logs:
+
 ```
 [ShopsHooksExample] Registered buy items (CannedBolognese, Apple)
 [ShopsHooksExample] Registered weapon items (AxeSteel, Hammer)
@@ -217,11 +228,13 @@ Check server logs:
 ### Check Listing Mode
 
 Logs show the mode:
+
 ```
 [ShopsHooksExample] Listing mode: BLACKLIST
 ```
 
 Or query at runtime:
+
 ```lua
 print(SHOPSB42.Shop.SellisWhitelist)  -- false = blacklist, true = whitelist
 ```
@@ -274,6 +287,7 @@ Shop.RegisterSellItem("Base.Apple", { price = 1 })  -- Sellable
 ### Items Don't Show in Shop
 
 **Check**:
+
 1. Is `registerOnShopRegisterItems` hook registered?
 2. Is `Shop.RegisterItem()` being called?
 3. Do item IDs exist in the game?
@@ -283,6 +297,7 @@ Shop.RegisterSellItem("Base.Apple", { price = 1 })  -- Sellable
 ### Can't Sell Items
 
 **Check**:
+
 1. Are sell items registered via `registerOnShopRegisterSellItems`?
 2. In whitelist mode, is the item registered?
 3. In blacklist mode, is the item blacklisted?
@@ -292,6 +307,7 @@ Shop.RegisterSellItem("Base.Apple", { price = 1 })  -- Sellable
 ### Price Hooks Don't Work
 
 **Check**:
+
 1. Are price hooks registered?
 2. Are item IDs in hooks correct?
 3. Are modifiers/overrides correct?
@@ -302,15 +318,15 @@ Shop.RegisterSellItem("Base.Apple", { price = 1 })  -- Sellable
 
 ## File Locations
 
-| File | Purpose |
-|---|---|
-| `ShopsHooksExampleInit.lua` | Registration entry point |
-| `ShopsHooksExampleItems.lua` | Buy/sell item registration |
-| `ShopsHooksExampleHooks.lua` | Price modification hooks |
-| `ShopsHooksExampleState.lua` | Configuration values |
-| `README.md` | Full feature overview |
-| `ITEM_REGISTRATION_QUICK_REFERENCE.md` | Quick lookup |
-| `ITEM_REGISTRATION_EXAMPLES.md` | 7 detailed examples |
+| File                                   | Purpose                    |
+| -------------------------------------- | -------------------------- |
+| `ShopsHooksExampleInit.lua`            | Registration entry point   |
+| `ShopsHooksExampleItems.lua`           | Buy/sell item registration |
+| `ShopsHooksExampleHooks.lua`           | Price modification hooks   |
+| `ShopsHooksExampleState.lua`           | Configuration values       |
+| `README.md`                            | Full feature overview      |
+| `ITEM_REGISTRATION_QUICK_REFERENCE.md` | Quick lookup               |
+| `ITEM_REGISTRATION_EXAMPLES.md`        | 7 detailed examples        |
 
 ---
 
@@ -330,7 +346,7 @@ Once comfortable with basics:
 - **How do I...?** → Check ITEM_REGISTRATION_QUICK_REFERENCE.md
 - **Can you show an example?** → See ITEM_REGISTRATION_EXAMPLES.md
 - **Why does this work?** → Read README.md sections
-- **How do I debug?** → Check server logs in Logs/Server/*_Shops.txt
+- **How do I debug?** → Check server logs in Logs/Server/\*\_Shops.txt
 
 ---
 

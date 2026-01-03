@@ -54,8 +54,8 @@ function Hooks.modifyAppleBuyPrice(player, itemId, basePrice, context, modifiers
 
 	SharedLogger.log(
 		"Shops",
-		"[ShopsHooksExample] Applied buy modifier to Base.Apple: multiplier=" ..
-			ShopsHooksExampleState.appleBuyMultiplier
+		"[ShopsHooksExample] Applied buy modifier to Base.Apple: multiplier="
+			.. ShopsHooksExampleState.appleBuyMultiplier
 	)
 end
 
@@ -91,11 +91,7 @@ function Hooks.overrideAppleBuyPrice(player, itemId, price, context)
 
 	-- Return override price (short-circuits all modifiers)
 	-- This completely replaces the calculated price
-	SharedLogger.log(
-		"Shops",
-		"[ShopsHooksExample] Overriding Apple buy price: " ..
-			price .. " -> " .. overridePrice
-	)
+	SharedLogger.log("Shops", "[ShopsHooksExample] Overriding Apple buy price: " .. price .. " -> " .. overridePrice)
 	return overridePrice
 end
 
@@ -159,9 +155,12 @@ function Hooks.modifySellPriceByCondition(player, item, basePrice, context, modi
 
 		SharedLogger.log(
 			"Shops",
-			"[ShopsHooksExample] Applied condition modifier to " ..
-				itemId ..
-				": condition=" .. condition .. ", multiplier=" .. multiplier
+			"[ShopsHooksExample] Applied condition modifier to "
+				.. itemId
+				.. ": condition="
+				.. condition
+				.. ", multiplier="
+				.. multiplier
 		)
 	end
 end

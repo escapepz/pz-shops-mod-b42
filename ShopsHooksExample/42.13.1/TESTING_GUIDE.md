@@ -24,6 +24,7 @@ The example demonstrates these safe shop configurations:
 #### 1. Item Registration via Hooks
 
 **Tested Items:**
+
 - `Base.CannedBolognese` (buy: 8)
 - `Base.Apple` (buy: 2)
 - `Base.AxeSteel` (buy: 25, broken: 5)
@@ -31,6 +32,7 @@ The example demonstrates these safe shop configurations:
 - `Base.FirstAidKit` (buy: 45, non-survival mode only)
 
 **How to Test:**
+
 1. Open shop UI
 2. Navigate to Food tab → should see Canned Bolognese and Apple
 3. Navigate to Weapons tab → should see AxeSteel and Hammer
@@ -51,6 +53,7 @@ The example demonstrates these safe shop configurations:
 **How to Test:**
 
 1. **Buy Base.Apple from shop**
+
    - Base price: 2
    - Multiplier: 0.9
    - Expected cost: ~2 (2 × 0.9 = 1.8, rounds to 2)
@@ -58,6 +61,7 @@ The example demonstrates these safe shop configurations:
    - Should see: `[ShopsHooksExample] Applied buy modifier to Base.Apple: multiplier=0.9`
 
 2. **Test multiplier modification at runtime**
+
    - Edit `ShopsHooksExampleState.lua`
    - Change: `State.appleBuyMultiplier = 0.5`
    - Restart server
@@ -82,11 +86,13 @@ The example demonstrates these safe shop configurations:
 **How to Test:**
 
 1. **Default behavior (override disabled)**
+
    - Leave `appleOverrideBuyPrice = nil`
    - Buy Apple → costs ~2 (modifier applies)
    - Check log: No override message (only modifier message)
 
 2. **Enable fixed price override**
+
    - Edit `ShopsHooksExampleState.lua`
    - Change: `State.appleOverrideBuyPrice = 5`
    - Restart server
@@ -107,6 +113,7 @@ The example demonstrates these safe shop configurations:
 **Configuration:** In `ShopsHooksExampleHooks.modifySellPriceByCondition()`
 
 **Condition Bands:**
+
 - Perfect (75-100%): 1.0x multiplier (full price)
 - Good (50-74%): 0.85x multiplier (15% penalty)
 - Fair/Poor (0-49%): 0.5x multiplier (50% penalty)
@@ -114,6 +121,7 @@ The example demonstrates these safe shop configurations:
 **How to Test:**
 
 1. **Sell items in different conditions**
+
    - Acquire Apple or BaseballBat in various conditions
    - Sell to shop
    - Check prices:
@@ -122,6 +130,7 @@ The example demonstrates these safe shop configurations:
      - Damaged condition: 50% of sell price
 
 2. **Check logs**
+
    - `Logs/Server/*_Shops.txt`
    - Should see: `Applied condition modifier to Base.Apple: condition=XX, multiplier=Y`
 
@@ -141,23 +150,27 @@ The example demonstrates these safe shop configurations:
 **Blacklist Mode (Default):**
 
 **How to Test:**
+
 1. Leave `ENABLE_WHITELIST_MODE = false`
 2. Try to sell unregistered items (items not in `registerSellItems()`)
 3. Expected: Shop accepts unregistered items at default price
 4. Check log: `Enabled BLACKLIST mode (all items sellable except blacklisted)`
 
 **Whitelisted Items in Blacklist Mode:**
+
 - CannedBolognese (price: 4)
 - Apple (price: 1)
 - AxeSteel (price: 12)
 - Hammer (price: 7)
 
 **Blacklisted Items (Cannot Sell):**
+
 - Bomb
 - C4
 - Explosives
 
 **How to Test Blacklist:**
+
 1. Try to sell Bomb to shop → shop refuses (blacklisted)
 2. Try to sell random unregistered item → shop accepts at default price
 3. Check log: `Enabled BLACKLIST mode`
@@ -167,6 +180,7 @@ The example demonstrates these safe shop configurations:
 **Whitelist Mode (Restricted):**
 
 **How to Test:**
+
 1. Edit ShopsHooksExampleItems.lua
 2. Change: `local ENABLE_WHITELIST_MODE = true`
 3. Restart server
@@ -178,7 +192,8 @@ The example demonstrates these safe shop configurations:
    - Hammer (price: 7)
 6. Check log: `Enabled WHITELIST mode (only registered items sellable)`
 
-**Expected Result:** 
+**Expected Result:**
+
 - Blacklist: All except blacklisted items can be sold
 - Whitelist: Only registered items can be sold
 
@@ -187,16 +202,20 @@ The example demonstrates these safe shop configurations:
 ## Log File Locations
 
 ### Server Logs
+
 ```
 Logs/Server/*_Shops.txt
 ```
+
 Contains:
+
 - Hook registration messages
 - Price modification logs
 - Item registration logs
 - Mode configuration logs
 
 Example:
+
 ```
 [ShopsHooksExample] Initialized server-only reference example
 [ShopsHooksExample] Configured listing mode
@@ -206,10 +225,13 @@ Example:
 ```
 
 ### Client Logs
+
 ```
 Logs/Client/*_Shops.txt
 ```
+
 Contains:
+
 - Client-side price display updates
 - UI rendering logs
 
@@ -238,6 +260,7 @@ Contains:
 **Problem:** Items registered in hooks don't show up in shop UI
 
 **Solution:**
+
 1. Check server logs for registration errors
 2. Verify item IDs are correct (e.g., `Base.Apple` not `apple`)
 3. Check tab constants: `SHOPSB42.Tab.Food`, `SHOPSB42.Tab.Weapons`, etc.
@@ -248,6 +271,7 @@ Contains:
 **Problem:** Buy/sell prices don't match expected values
 
 **Solution:**
+
 1. Check server logs for modifier application messages
 2. Verify state variables in `ShopsHooksExampleState.lua`
 3. If changed state file, restart server (changes don't apply at runtime without calling `onPriceHooksChanged()`)
@@ -258,6 +282,7 @@ Contains:
 **Problem:** `appleOverrideBuyPrice` set but price doesn't change
 
 **Solution:**
+
 1. Ensure value is not `nil` (nil disables override)
 2. Check server log for "Overriding" message
 3. Remember: override requires server restart to take effect
@@ -268,6 +293,7 @@ Contains:
 **Problem:** Can't sell items to shop
 
 **Solution:**
+
 1. Check listing mode: blacklist vs whitelist
 2. Verify item is registered in `registerSellItems()` or `registerWhitelistSellItems()`
 3. Check if item is blacklisted
@@ -293,6 +319,7 @@ For API reference, see: `CONFIGURATION.md` and `SHOPS_HOOKS_REFERENCE.md`
 ## Support
 
 For issues or questions:
+
 1. Check the logs (`Logs/Server/*_Shops.txt`)
 2. Review CONFIGURATION.md for settings reference
 3. Review code comments in ShopsHooksExample Lua files

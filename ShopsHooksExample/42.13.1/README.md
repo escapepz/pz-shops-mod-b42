@@ -15,6 +15,7 @@ This mod is a **drop-in template** for mod authors who want to create custom pri
 - ✅ Price hook lifecycle and resync
 
 This example is **NOT**:
+
 - ❌ A testing harness (see Shops/TestPriceHooks.lua for that)
 - ❌ A debug console mod
 - ❌ A UI-driven mod
@@ -42,6 +43,7 @@ Shop.RegisterSellItem("Base.Bomb", { blacklisted = true })
 ```
 
 **Key Points**:
+
 - `registerBuyItems()`: Items for sale in shop
 - `registerSellItems()`: Items shop will buy (with optional blacklist)
 - `SellisWhitelist`: Toggle between whitelist/blacklist mode
@@ -56,7 +58,7 @@ Shop.RegisterSellItem("Base.Bomb", { blacklisted = true })
 ```lua
 function modifyAppleBuyPrice(player, itemId, basePrice, context, modifiers)
     if itemId ~= "Base.Apple" then return end
-    
+
     table.insert(modifiers, {
         multiplier = 0.9,
         label = "appleFruitDiscount"
@@ -65,6 +67,7 @@ end
 ```
 
 **Key Points**:
+
 - Receives `itemId` as string (not item object)
 - Appends to `modifiers` table for stacking
 - Multipliers chain: 100 → 100 × 0.9 = 90
@@ -78,14 +81,15 @@ end
 ```lua
 function overrideAppleBuyPrice(player, itemId, price, context)
     if itemId ~= "Base.Apple" then return nil end
-    
+
     if appleOverrideBuyPrice == nil then return nil end
-    
+
     return appleOverrideBuyPrice  -- Short-circuits modifiers
 end
 ```
 
 **Key Points**:
+
 - Returns final price OR `nil` (skip override)
 - Non-nil return short-circuits modifier stacking
 - Disabled by default (appleOverrideBuyPrice = nil)
@@ -102,10 +106,10 @@ function modifySellPriceByCondition(player, item, basePrice, context, modifiers)
        item:getFullType() ~= "Base.BaseballBat" then
         return
     end
-    
+
     local condition = item:getCondition()
     local multiplier = condition < 50 and 0.5 or (condition < 75 and 0.85 or 1.0)
-    
+
     if multiplier ~= 1.0 then
         table.insert(modifiers, {
             multiplier = multiplier,
@@ -116,6 +120,7 @@ end
 ```
 
 **Key Points**:
+
 - Receives `item` object (not itemId string)
 - Use `item:getFullType()` to get ID
 - Use `item:getCondition()` for quality (0-100)
@@ -164,6 +169,7 @@ State.appleOverrideBuyPrice = nil
 ```
 
 To enable apple buy override:
+
 ```lua
 State.appleOverrideBuyPrice = 5  -- Force apple buy price to 5
 ```
@@ -232,10 +238,10 @@ Similar to buy override, in `ShopsHooksExampleHooks.lua`:
 ```lua
 function Hooks.overrideSellPrice(player, item, price, context)
     if item:getFullType() ~= "Base.BaseballBat" then return nil end
-    
+
     -- Don't buy damaged bats
     if item:getCondition() < 30 then return 0 end
-    
+
     return nil  -- Use calculated price
 end
 ```
@@ -274,7 +280,7 @@ Called during initialization to register sell items and configure blacklist/whit
 function registerSellItems()
     -- In blacklist mode: register items shop ACCEPTS
     Shop.RegisterSellItem("Base.Apple", { price = 1 })
-    
+
     -- Blacklist items (won't buy these in blacklist mode)
     Shop.RegisterSellItem("Base.Bomb", { blacklisted = true })
 end
@@ -301,12 +307,14 @@ See **ITEM_REGISTRATION_EXAMPLES.md** for detailed examples.
 ## Hook Semantics Reference
 
 ### Modify Hooks
+
 - **Function**: Appends multiplier to `modifiers` table
 - **Returns**: `nil` (side-effect on modifiers)
 - **Stacking**: All modify hooks execute, multipliers chain
 - **Example**: `table.insert(modifiers, { multiplier = 0.9 })`
 
 ### Override Hooks
+
 - **Function**: Returns final price or `nil`
 - **Returns**: Numeric price (override) or `nil` (skip)
 - **Short-circuit**: First non-nil return wins, stops modifier stacking
@@ -314,13 +322,13 @@ See **ITEM_REGISTRATION_EXAMPLES.md** for detailed examples.
 
 ### Buy vs Sell Signatures
 
-| Aspect | Buy | Sell |
-|--------|-----|------|
-| Modify | `(player, itemId, basePrice, context, modifiers)` | `(player, item, basePrice, context, modifiers)` |
-| Override | `(player, itemId, price, context)` | `(player, item, price, context)` |
-| Item param | String ID | Object |
-| Item access | `itemId` | `item:getFullType()` |
-| Extra methods | — | `item:getCondition()` |
+| Aspect        | Buy                                               | Sell                                            |
+| ------------- | ------------------------------------------------- | ----------------------------------------------- |
+| Modify        | `(player, itemId, basePrice, context, modifiers)` | `(player, item, basePrice, context, modifiers)` |
+| Override      | `(player, itemId, price, context)`                | `(player, item, price, context)`                |
+| Item param    | String ID                                         | Object                                          |
+| Item access   | `itemId`                                          | `item:getFullType()`                            |
+| Extra methods | —                                                 | `item:getCondition()`                           |
 
 ## Price Calculation Example
 
@@ -358,6 +366,7 @@ Final: 5.1 (rounded)
 ### Modifier Stacking
 
 Multipliers chain together:
+
 ```
 Price = Base × Multiplier1 × Multiplier2 × Multiplier3 × ...
 ```
@@ -367,6 +376,7 @@ All modifier hooks execute (no short-circuit).
 ### Override Short-Circuit
 
 First non-nil override wins:
+
 ```
 If Override1 returns 50 → use 50 (stop)
 Else if Override2 returns 75 → use 75 (stop)
@@ -377,12 +387,14 @@ Else use calculated price from modifiers
 ### Buy vs Sell Asymmetry
 
 **Buy hooks receive itemId** (string):
+
 ```lua
 function(player, itemId, basePrice, context, modifiers)
     if itemId == "Base.Apple" then ...
 ```
 
 **Sell hooks receive item object**:
+
 ```lua
 function(player, item, basePrice, context, modifiers)
     if item:getFullType() == "Base.Apple" then
@@ -394,11 +406,13 @@ This is intentional: sell pricing often depends on item quality.
 ### Resync Lifecycle
 
 **Initial registration** (on mod load):
+
 - No resync needed
 - Shops collects hooks during startup
 - Prices cached after finalization
 
 **Runtime changes** (if state modified):
+
 ```lua
 SHOPSB42.ShopsHooksExampleState.appleBuyMultiplier = 0.5
 SHOPSB42.ShopFinalizeHandler.onPriceHooksChanged()  -- Trigger resync
@@ -415,6 +429,7 @@ SharedLogger.log("Shops", "[ShopsHooksExample] Message here")
 ```
 
 Output appears in:
+
 - **Server logs**: `Logs/Server/*_Shops.txt`
 - **Client logs**: `Logs/Client/*_Shops.txt`
 
@@ -438,6 +453,7 @@ tail -f Logs/Server/*_Shops.txt
 ```
 
 You should see:
+
 ```
 [ShopsHooksExample] Initializing server-only reference example
 [ShopsHooksExample] Registered: modifyAppleBuyPrice
@@ -447,6 +463,7 @@ You should see:
 ```
 
 When buying/selling:
+
 ```
 [ShopsHooksExample] Applied buy modifier to Base.Apple: multiplier=0.9
 [ShopsHooksExample] Applied condition modifier to Base.Apple: condition=85, multiplier=1.0
@@ -496,7 +513,7 @@ When buying/selling:
 function Hooks.modifyApplePriceByReputation(player, itemId, basePrice, context, modifiers)
     if itemId ~= "Base.Apple" then return end
     if not player then return end
-    
+
     local reputation = player:getProperty("mymod_reputation") or 0
     if reputation > 100 then
         table.insert(modifiers, { multiplier = 0.9, label = "reputationDiscount" })
@@ -509,7 +526,7 @@ end
 ```lua
 function Hooks.modifyApplePriceByTime(player, itemId, basePrice, context, modifiers)
     if itemId ~= "Base.Apple" then return end
-    
+
     local hour = getGameTime():getHour()
     if hour >= 22 or hour < 6 then
         table.insert(modifiers, { multiplier = 1.15, label = "nightPremium" })

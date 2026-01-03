@@ -96,6 +96,7 @@ end)
 ```
 
 **Modifiers API:**
+
 - `modifiers:addFlat(amount)` - Add flat amount to price
 - `modifiers:multiplyBy(factor)` - Multiply price by factor (stacks with other multipliers)
 
@@ -154,6 +155,7 @@ All configuration is in `media/lua/server/nshopsb42/ShopsHooksExampleState.lua`.
 ### Registered Items
 
 **Buy Items:**
+
 - `Base.CannedBolognese` (price: 8, stock: 50)
 - `Base.Apple` (price: 2, stock: 100)
 - `Base.AxeSteel` (price: 25, brokenPrice: 5, stock: 10)
@@ -161,6 +163,7 @@ All configuration is in `media/lua/server/nshopsb42/ShopsHooksExampleState.lua`.
 - `Base.FirstAidKit` (price: 45, stock: 20) — only in non-survival mode
 
 **Sell Items (Blacklist Mode):**
+
 - `Base.CannedBolognese` (sell price: 4)
 - `Base.Apple` (sell price: 1)
 - `Base.AxeSteel` (sell price: 12)
@@ -170,10 +173,12 @@ All configuration is in `media/lua/server/nshopsb42/ShopsHooksExampleState.lua`.
 ### Price Hooks
 
 **Buy Price:**
+
 - Apple: 10% discount via `modifyAppleBuyPrice` (multiplier: 0.9)
 - Apple: Optional fixed price override via `appleOverrideBuyPrice` (disabled by default)
 
 **Sell Price:**
+
 - Items: Condition-based multiplier via `modifySellPriceByCondition`
   - Excellent (75-100%): 100% of price
   - Good (50-74%): 85% of price
@@ -184,18 +189,36 @@ All configuration is in `media/lua/server/nshopsb42/ShopsHooksExampleState.lua`.
 
 **Current:** `ENABLE_WHITELIST_MODE = false` (blacklist mode)
 
-## Suppresssing Default Items
+## Suppressing Default Items
 
 **Safe variable:** `SHOPSB42.Shop._suppressDefaults`
 
-Prevent Shops mod from loading default items:
+Prevent Shops mod from loading vanilla items:
 
 ```lua
 -- Must be set before hooks fire (very early in initialization)
 SHOPSB42.Shop._suppressDefaults = true
 ```
 
-When set to `true`, only items registered via external mod hooks will appear in the shop.
+When set to `true`, only items registered via external mod hooks will appear in the shop. Default: `false` (vanilla items load normally).
+
+**Example:** See `ShopsHooksExampleState.lua` line ~48
+
+### Default Sell Prices (Blacklist Mode Only)
+
+**Safe variables:** `SHOPSB42.Shop.defaultPrice`, `SHOPSB42.Shop.defaultPriceBroken`
+
+When in **blacklist mode**, items not explicitly registered use these fallback prices:
+
+```lua
+-- Set these in your initialization
+SHOPSB42.Shop.defaultPrice = 50       -- Normal unregistered items
+SHOPSB42.Shop.defaultPriceBroken = 25 -- Broken unregistered items
+```
+
+These only apply when `Shop.SellIsWhitelist = false` (blacklist mode).
+
+**Example:** See `ShopsHooksExampleState.lua` lines ~41-50
 
 ## Logging
 
@@ -209,23 +232,24 @@ Hook registration logged on server startup. Price hook execution logged per tran
 ## Disabling the Example Mod
 
 To disable:
+
 1. Disable ShopsHooksExample in mod manager
 2. Server restart
-3. Prices and items revert to vanilla Shops mod defaults
+3. Prices and items revert to default configured Shops mod defaults
 
 ## Summary of Safe Configuration Points
 
-| Setting | Type | Default | Purpose |
-|---------|------|---------|---------|
-| `Shop.RegisterItem()` | Hook API | — | Register buy items |
-| `Shop.RegisterSellItem()` | Hook API | — | Register sell items |
-| `Shop.SellIsWhitelist` | Variable | `false` | Whitelist vs blacklist mode |
-| `Shop.defaultPrice` | Variable | `1` | Fallback sell price (blacklist) |
-| `Shop.defaultPriceBroken` | Variable | `1` | Fallback sell price for broken items |
-| `Shop._suppressDefaults` | Variable | `false` | Skip loading vanilla items |
-| `registerOnShopRegisterItems()` | Hook | — | Load buy items |
-| `registerOnShopRegisterSellItems()` | Hook | — | Load sell items |
-| `registerOnShopModifyBuyPrice()` | Hook | — | Adjust buy prices |
-| `registerOnShopOverrideBuyPrice()` | Hook | — | Override buy prices |
-| `registerOnShopModifySellPrice()` | Hook | — | Adjust sell prices |
-| `registerOnShopOverrideSellPrice()` | Hook | — | Override sell prices |
+| Setting                             | Type     | Default | Purpose                               |
+| ----------------------------------- | -------- | ------- | ------------------------------------- |
+| `Shop.RegisterItem()`               | Hook API | —       | Register buy items                    |
+| `Shop.RegisterSellItem()`           | Hook API | —       | Register sell items                   |
+| `Shop.SellIsWhitelist`              | Variable | `false` | Whitelist vs blacklist mode           |
+| `Shop.defaultPrice`                 | Variable | `1`     | Fallback sell price (blacklist)       |
+| `Shop.defaultPriceBroken`           | Variable | `1`     | Fallback sell price for broken items  |
+| `Shop._suppressDefaults`            | Variable | `false` | Skip loading default configured items |
+| `registerOnShopRegisterItems()`     | Hook     | —       | Load buy items                        |
+| `registerOnShopRegisterSellItems()` | Hook     | —       | Load sell items                       |
+| `registerOnShopModifyBuyPrice()`    | Hook     | —       | Adjust buy prices                     |
+| `registerOnShopOverrideBuyPrice()`  | Hook     | —       | Override buy prices                   |
+| `registerOnShopModifySellPrice()`   | Hook     | —       | Adjust sell prices                    |
+| `registerOnShopOverrideSellPrice()` | Hook     | —       | Override sell prices                  |

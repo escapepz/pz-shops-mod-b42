@@ -21,6 +21,7 @@ The Shops mod supports three main extension hooks:
 Called during initialization to allow external mods to register buy items.
 
 **Function signature**:
+
 ```lua
 function registerMyBuyItems()
     -- Call Shop.RegisterItem() for each item
@@ -38,6 +39,7 @@ end
 Called during initialization to allow external mods to register sell items and configure whitelist/blacklist.
 
 **Function signature**:
+
 ```lua
 function registerMySellItems()
     -- Call Shop.RegisterSellItem() for each item
@@ -428,7 +430,7 @@ end
 
 function Hooks.modifySellPrices(player, item, basePrice, context, modifiers)
     local itemId = item:getFullType()
-    
+
     -- Pay more for items in good condition
     if itemId == "Base.AxeSteel" then
         local condition = item:getCondition()
@@ -502,16 +504,17 @@ end
 
 ## Whitelist vs Blacklist Mode Summary
 
-| Aspect | Whitelist Mode | Blacklist Mode |
-|--------|---|---|
-| **Default** | `false` | `true` |
-| **Control** | `SHOPSB42.Shop.SellisWhitelist` | Same flag |
-| **What Sells** | ONLY registered items | All items EXCEPT blacklisted |
-| **Use Case** | Curated shop (restricted inventory) | Open shop (most items allowed) |
-| **Example** | Admin shop sells only specific items | Default shop blacklists explosives/quest items |
-| **Registration** | Must register every sellable item | Only register blacklisted items |
+| Aspect           | Whitelist Mode                       | Blacklist Mode                                 |
+| ---------------- | ------------------------------------ | ---------------------------------------------- |
+| **Default**      | `false`                              | `true`                                         |
+| **Control**      | `SHOPSB42.Shop.SellisWhitelist`      | Same flag                                      |
+| **What Sells**   | ONLY registered items                | All items EXCEPT blacklisted                   |
+| **Use Case**     | Curated shop (restricted inventory)  | Open shop (most items allowed)                 |
+| **Example**      | Admin shop sells only specific items | Default shop blacklists explosives/quest items |
+| **Registration** | Must register every sellable item    | Only register blacklisted items                |
 
 **Toggle at runtime**:
+
 ```lua
 -- Enable whitelist mode
 SHOPSB42.Shop.SellisWhitelist = true
@@ -531,6 +534,7 @@ Shop.RegisterItem(itemId, definition)
 ```
 
 **Parameters**:
+
 - `itemId` (string): Full item type (e.g., "Base.Apple")
 - `definition` (table):
   - `tab` (string): Tab category (Tab.Food, Tab.Weapons, etc.)
@@ -540,6 +544,7 @@ Shop.RegisterItem(itemId, definition)
   - `notes` (string, optional): Description text
 
 **Example**:
+
 ```lua
 Shop.RegisterItem("Base.Apple", {
     tab = SHOPSB42.Tab.Food,
@@ -560,6 +565,7 @@ Shop.RegisterSellItem(itemId, definition)
 ```
 
 **Parameters**:
+
 - `itemId` (string): Full item type
 - `definition` (table):
   - `price` (number): Price shop pays for this item
@@ -567,6 +573,7 @@ Shop.RegisterSellItem(itemId, definition)
   - `specialCoin` (string, optional): Special currency type
 
 **Example**:
+
 ```lua
 -- Item can be sold (blacklist mode)
 Shop.RegisterSellItem("Base.Apple", { price = 5 })
@@ -596,7 +603,7 @@ local Items = SHOPSB42.ShopsHooksExampleItemsComplete
 -- Buy items
 function Items.registerBuyItems()
     if not Utilities.IsServerOrSinglePlayer() then return end
-    
+
     local Shop = SHOPSB42.Shop
     if not Shop or not Shop.RegisterItem then return end
 
@@ -626,7 +633,7 @@ end
 -- Sell items (with blacklist)
 function Items.registerSellItems()
     if not Utilities.IsServerOrSinglePlayer() then return end
-    
+
     local Shop = SHOPSB42.Shop
     if not Shop or not Shop.RegisterSellItem then return end
 
@@ -657,6 +664,7 @@ tail -f Logs/Server/*_Shops.txt | grep ShopsHooksExample
 ```
 
 Expected output:
+
 ```
 [ShopsHooksExample] Registered buy items
 [ShopsHooksExample] Registered sell items

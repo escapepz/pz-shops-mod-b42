@@ -44,8 +44,8 @@ function ShopsHooksExample.initialize()
 	)
 
 	-- Apply suppress defaults flag (skip vanilla items if true)
-	if ShopsHooksExampleState._suppressDefaults then
-		Shop._suppressDefaults = true
+	if ShopsHooksExampleState.suppressDefaults then
+		SHOPSB42.Config.suppressDefaults = true
 		SharedLogger.log("Shops", "[ShopsHooksExample] Suppressing vanilla default items")
 	end
 

@@ -4,9 +4,8 @@
 --   id: Base.ItemName (item type from game)
 --   tab: UI tab name (must match SHOPSB42.Tab[])
 --   price: shop buy price in currency units
---   stock: initial quantity available for purchase
---   brokenPrice: optional price for damaged/broken condition items
---   notes: optional description shown in shop UI
+--   stock: not implemented -- npc shop unlimited stock
+--   notes: optional personal notes, not affected the gameplay
 -- Sell section (optional):
 --   blacklisted: true to prevent selling this item (blacklist mode only)
 
@@ -16,35 +15,30 @@ return {
 			id = "Base.Apple",
 			tab = "Food",
 			price = 2,
-			stock = 100,
 			notes = "Fresh apple",
 		},
 		{
 			id = "Base.Banana",
 			tab = "Food",
 			price = 2,
-			stock = 80,
 			notes = "Ripe banana",
 		},
 		{
 			id = "Base.CannedBolognese",
 			tab = "Food",
 			price = 8,
-			stock = 50,
 			notes = "Canned pasta meal",
 		},
 		{
 			id = "Base.CannedBeans",
 			tab = "Food",
 			price = 6,
-			stock = 60,
 			notes = "Canned beans in sauce",
 		},
 		{
 			id = "Base.CannedChili",
 			tab = "Food",
 			price = 8,
-			stock = 40,
 			notes = "Canned chili con carne",
 		},
 	},

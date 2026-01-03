@@ -1,5 +1,6 @@
 -- listings/misc/valuables.lua
 -- Valuables: rare items, collectibles, high-value goods
+-- No tab "Valuables" defined, it will nerver showing in NPC Shop UI
 
 return {
 	buy = {
@@ -7,21 +8,18 @@ return {
 			id = "Base.Gold",
 			tab = "Valuables",
 			price = 100,
-			stock = 5,
 			notes = "Gold bar",
 		},
 		{
 			id = "Base.Necklace",
 			tab = "Valuables",
 			price = 50,
-			stock = 10,
 			notes = "Gold necklace",
 		},
 		{
 			id = "Base.Ring",
 			tab = "Valuables",
 			price = 40,
-			stock = 15,
 			notes = "Gold ring",
 		},
 	},

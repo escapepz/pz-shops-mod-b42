@@ -4,13 +4,15 @@
 -- Format: module path relative to listings/ folder
 
 -- Tab values must match SHOPSB42.Tab constants:
---   "Favorite", "Sell", "All", "Food", "Weapons", "Vehicles", "FirstAid", "Event"
+--   "Food", "Weapons", "FirstAid", "Event"
 -- To use custom tabs, extend SHOPSB42.Shop.Tab before registration
 
 return {
-	"food",
-	"weapons",
-	"medical",
+	"Food",
+	"Weapons",
+	-- "Vehicles", -- pinkslip is not ready in B42 MP yet
+	"FirstAid",
+	"Event",
 	"misc/tools",
 	"misc/valuables",
 }

@@ -23,16 +23,16 @@ Defaults.defaultPriceBroken = 25 -- WIP - still visual looking only
 -- EXAMPLE 2: Suppress Default Vanilla Items
 -- ============================================================================
 -- Prevent Shops mod from loading vanilla items
--- Demonstrates: Shop._suppressDefaults safe variable
+-- Demonstrates: SHOPSB42.Config.suppressDefaults configuration
 -- Type: boolean (true = skip vanilla items, false = load vanilla items)
 -- Default: false (vanilla items load normally)
 -- Safe: Yes, set before initialization
 -- Usage:
---   _suppressDefaults = true   -- Only custom mod items appear
---   _suppressDefaults = false  -- Vanilla + custom items
+--   SHOPSB42.Config.suppressDefaults = true   -- Only custom mod items appear
+--   SHOPSB42.Config.suppressDefaults = false  -- Vanilla + custom items
 -- Impact: Must be set BEFORE item registration hooks fire
 -- Warning: Setting true means only items registered by external mods will appear
-Defaults._suppressDefaults = true
+Defaults.suppressDefaults = true
 
 -- ============================================================================
 -- EXAMPLE 3: Sell Listing Mode (Whitelist vs Blacklist)

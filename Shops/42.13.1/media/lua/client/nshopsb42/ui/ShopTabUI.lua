@@ -17,31 +17,27 @@ local addBtn = Shop.textures.AddButton
 local previewBtn = Shop.textures.PreviewButton
 local browseBtn = Shop.textures.Browse
 
--- Get game's accessibility colors (respects user settings)
--- Convert Java Color objects to Lua tables with r, g, b fields
-local function javaColorToTable(javaColor, fallback)
+-- UI colors for price display
+-- Convert Java Color objects to Lua tables using float methods
+local function colorToTable(javaColor, fallback)
 	if not javaColor then
 		return fallback
 	end
-	-- Java Color has getRed(), getGreen(), getBlue() methods that return 0-1 range
+	-- Use getR(), getG(), getB() methods which return floats 0-1, and getAlphaFloat() for alpha
 	return {
-		r = javaColor:getRed(),
-		g = javaColor:getGreen(),
-		b = javaColor:getBlue(),
-		a = javaColor:getAlpha()
+		r = javaColor:getR(),
+		g = javaColor:getG(),
+		b = javaColor:getB(),
+		a = javaColor:getAlphaFloat()
 	}
 end
 
-local goodColor = javaColorToTable(
+local goodColor = colorToTable(
 	getCore():getGoodHighlitedColor(),
 	{ r = 0.0, g = 1.0, b = 0.0, a = 1 } -- Fallback: green
 )
-
--- Neutral color: use a standard light gray (B42.13.1 doesn't have getNeutralHighlitedColor)
-local neutralColor = { r = 0.85, g = 0.85, b = 0.85, a = 1 }
-
--- Use darker gray for base price reference
-local grayColor = { r = 0.3, g = 0.3, b = 0.3, a = 1 }
+local neutralColor = { r = 0.85, g = 0.85, b = 0.85, a = 1 } -- Light gray for neutral
+local grayColor = { r = 0.3, g = 0.3, b = 0.3, a = 1 } -- Dark gray for base price reference
 
 function ShopTabUI:initialise()
 	ISPanelJoypad.initialise(self)

@@ -337,7 +337,10 @@ function ShopSyncClient.handleSyncBuyPrices(data)
 				"[ShopSyncClient] Price change detected while UI closed - pricesChangedWhileClosed set to TRUE"
 			)
 		else
-			SharedLogger.log("Shops", "[ShopSyncClient] Price change detected with UI open - notifying and invalidating")
+			SharedLogger.log(
+				"Shops",
+				"[ShopSyncClient] Price change detected with UI open - notifying and invalidating"
+			)
 			-- Notify player of buy price change if UI is open (Phase 4.2)
 			ShopSyncClient._notifyPriceChange()
 		end
@@ -416,7 +419,10 @@ function ShopSyncClient.handleSyncSellRules(data)
 				"[ShopSyncClient] Sell rule change detected while UI closed - pricesChangedWhileClosed set to TRUE"
 			)
 		else
-			SharedLogger.log("Shops", "[ShopSyncClient] Sell rule change detected with UI open - notifying and invalidating")
+			SharedLogger.log(
+				"Shops",
+				"[ShopSyncClient] Sell rule change detected with UI open - notifying and invalidating"
+			)
 			-- Notify player of sell rule change if UI is open (Phase 4.2)
 			ShopSyncClient._notifyPriceChange()
 		end

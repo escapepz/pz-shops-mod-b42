@@ -179,13 +179,13 @@ function ShopUI:show(player, viewMode, shop)
 	local ShopSyncClient = SHOPSB42.ShopSyncClient
 	if ShopSyncClient and not ShopSyncClient.isShopReady() then
 		SharedLogger.log("Shops", "[ShopUI:show] Shop not yet synced from server. Waiting...")
-		
+
 		-- Notify player that shop data is syncing (Phase 4.2: user feedback when UI not ready)
 		if player then
 			player:setHaloNote(getText("IGUI_Shop_DataSyncing") or "Shop data is syncing with server", 200, 200, 0, 500)
 			SharedLogger.log("Shops", "[ShopUI:show] Showed 'syncing' halo note")
 		end
-		
+
 		-- Queue the open request to retry when sync completes
 		ShopUI._pendingShowRequest = {
 			player = player,
@@ -525,16 +525,7 @@ function ShopUI:doDrawCartItem(y, item, alt)
 			-- No difference: show final price in neutral color at X=280
 			-- If price is approximate, dim it (0.7, 0.7, 0.7 instead of neutralColor)
 			local priceColor = item.priceIsApproximate and 0.7 or neutralColor.r
-			self:drawText(
-				finalPriceFormatted,
-				priceX,
-				y + 8,
-				priceColor,
-				priceColor,
-				priceColor,
-				a,
-				UIFont.Small
-			)
+			self:drawText(finalPriceFormatted, priceX, y + 8, priceColor, priceColor, priceColor, a, UIFont.Small)
 		end
 	end
 

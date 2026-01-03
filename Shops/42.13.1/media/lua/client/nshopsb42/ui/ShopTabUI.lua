@@ -18,9 +18,9 @@ local previewBtn = Shop.textures.PreviewButton
 local browseBtn = Shop.textures.Browse
 
 -- Color definitions for price display
-local goodColor = { r = 0, g = 1, b = 0, a = 1 }           -- Bright green for good prices
+local goodColor = { r = 0, g = 1, b = 0, a = 1 } -- Bright green for good prices
 local neutralColor = { r = 0.85, g = 0.85, b = 0.85, a = 1 } -- Light gray for neutral prices
-local grayColor = { r = 0.3, g = 0.3, b = 0.3, a = 1 }      -- Dark gray for base price reference
+local grayColor = { r = 0.3, g = 0.3, b = 0.3, a = 1 } -- Dark gray for base price reference
 
 function ShopTabUI:initialise()
 	ISPanelJoypad.initialise(self)
@@ -120,12 +120,22 @@ function ShopTabUI:doDrawShopItem(y, item, alt)
 		-- Ensure both prices are valid numbers
 		local finalPrice = item.item.price or 0
 		local basePrice = item.item.basePrice or item.item.price or 0
-		
+
 		-- Additional safety: ensure prices are numbers, not NaN or infinity
-		if type(finalPrice) ~= "number" or finalPrice ~= finalPrice or finalPrice == math.huge or finalPrice == -math.huge then
+		if
+			type(finalPrice) ~= "number"
+			or finalPrice ~= finalPrice
+			or finalPrice == math.huge
+			or finalPrice == -math.huge
+		then
 			finalPrice = 0
 		end
-		if type(basePrice) ~= "number" or basePrice ~= basePrice or basePrice == math.huge or basePrice == -math.huge then
+		if
+			type(basePrice) ~= "number"
+			or basePrice ~= basePrice
+			or basePrice == math.huge
+			or basePrice == -math.huge
+		then
 			basePrice = 0
 		end
 
@@ -140,7 +150,7 @@ function ShopTabUI:doDrawShopItem(y, item, alt)
 		if not finalPrice or finalPrice == 0 then
 			finalPrice = basePrice
 		end
-		
+
 		-- Final safety check: both must be valid positive numbers or exit
 		if not finalPrice or not basePrice or finalPrice <= 0 or basePrice <= 0 then
 			return y + item.height

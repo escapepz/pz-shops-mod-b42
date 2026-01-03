@@ -60,6 +60,12 @@ function ShopSyncClient.invalidateUI(reason)
 		if ui.shopItemsCache then
 			ui.shopItemsCache = {}
 		end
+		-- Clear cart when prices change (Phase 3.8)
+		-- Users must re-add items after price changes to ensure they see current prices
+		if ui.clearCartOnPriceChange then
+			ui:clearCartOnPriceChange()
+			SharedLogger.log("Shops", "[ShopSyncClient] Cleared cart due to buy price change")
+		end
 		-- Rebuild the active tab to reflect new prices
 		if ui.rebuildActiveTab then
 			ui:rebuildActiveTab()
@@ -69,6 +75,11 @@ function ShopSyncClient.invalidateUI(reason)
 	elseif reason == ShopSyncClient.InvalidateReason.STRUCTURAL_CHANGE then
 		-- Registry/membership changed: rebuild all tabs (items added/removed or mode changed)
 		SharedLogger.log("Shops", "[ShopSyncClient] Invalidating due to STRUCTURAL_CHANGE")
+		-- Clear cart when structural changes occur (items may no longer be available)
+		if ui.clearCartOnPriceChange then
+			ui:clearCartOnPriceChange()
+			SharedLogger.log("Shops", "[ShopSyncClient] Cleared cart due to structural change")
+		end
 		ui:rebuildActiveTab()
 		if ui.shopItemsCache then
 			ui.shopItemsCache = {}

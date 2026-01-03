@@ -44,6 +44,9 @@
   - Only SharedLogger.lua is permitted to call the global `writeLog()` function internally
   - **CRITICAL**: Never add logging inside `render()` functions or functions called by `render()` - they execute every frame and will cause severe performance issues. Log only in event handlers, UI updates, or initialization code.
 - **Client Events**: Use `Events.OnConnected` for server-to-client data requests (fires on every connection/reconnection). Do NOT rely solely on `Events.OnGameStart` as it only fires once per game session and will not re-trigger when client reconnects to a restarted server.
+- **Kahlua Lua Limitations**: Project Zomboid uses Kahlua (a Java-based Lua implementation) with some quirks:
+  - **Avoid `next()` function**: The `next()` function can crash unpredictably in Kahlua. Replace with explicit iteration: `for _ in pairs(table) do break end` instead of `next(table)` to safely check if empty.
+  - Always check table existence before iteration: defensive nil checks prevent crashes
 
 ## Environment
 

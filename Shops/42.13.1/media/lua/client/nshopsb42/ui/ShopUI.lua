@@ -307,6 +307,9 @@ function ShopUI:update()
 end
 
 function ShopUI:doDrawCartItem(y, item, alt)
+	-- basePrice is guaranteed to be set when item is added to cart (ShopTabUI.addToCart)
+	-- Both finalPrice (item.price) and basePrice should always be present here
+	
 	local baseItemDY = 0
 	if item.item.name then
 		baseItemDY = self.SMALL_FONT_HGT
@@ -357,20 +360,32 @@ function ShopUI:doDrawCartItem(y, item, alt)
 		-- Price section starts at 280, constrained to not overlap buttons
 		local priceX = 280
 
-		if discount > 0 then
-			-- Show base price (gray strikethrough) at X=280
-			local basePriceFormatted = Currency.format(basePrice)
-			self:drawText(basePriceFormatted, priceX, y + 8, 0.5, 0.5, 0.5, a, UIFont.Small)
-
-			-- Show final price (green) at X=315 (35px spacing)
+		if discount ~= 0 then
+			-- Show final price on first line at X=280 (matching listing view)
 			local finalPriceFormatted = Currency.format(finalPrice)
-			self:drawText(finalPriceFormatted, priceX + 35, y + 8, 0.2, 1, 0.2, a, UIFont.Small)
+			local isSellTab = self.parent and self.parent.tabType == Tab.Sell
 
-			-- Show discount percentage at X=345 (75px spacing) - compact format
-			local discountPct = math.floor((discount / basePrice) * 100)
-			self:drawText("-" .. discountPct .. "%", priceX + 75, y + 8, 0.2, 1, 0.2, a, UIFont.Small)
+			-- Determine if this is a good deal for the player
+			-- Buy tab: discount > 0 (finalPrice < basePrice) = good for buyer
+			-- Sell tab: discount < 0 (finalPrice > basePrice) = good for seller
+			local isGoodDeal = (isSellTab and discount < 0) or (not isSellTab and discount > 0)
+
+			if isGoodDeal then
+				-- Good deal: show finalPrice in white with green percentage
+				self:drawText(finalPriceFormatted, priceX, y + 8, 1, 1, 1, a, UIFont.Small)
+				local percentValue = math.floor((math.abs(discount) / basePrice) * 100)
+				local percentSign = discount > 0 and "-" or "+"
+				self:drawText(percentSign .. percentValue .. "%", priceX + 48, y + 8, 0.2, 1, 0.2, a, UIFont.Small)
+			else
+				-- Bad deal: show finalPrice in white/neutral, no percentage
+				self:drawText(finalPriceFormatted, priceX, y + 8, 1, 1, 1, a, UIFont.Small)
+			end
+
+			-- Show base price on second line below finalPrice (grayed out)
+			local basePriceFormatted = Currency.format(basePrice)
+			self:drawText(basePriceFormatted, priceX, y + 8 + self.SMALL_FONT_HGT, 0.5, 0.5, 0.5, a, UIFont.Small)
 		else
-			-- No discount: show final price in white at X=280
+			-- No difference: show final price in white at X=280
 			-- If price is approximate, dim it (0.7, 0.7, 0.7 instead of 1, 1, 1)
 			local finalPriceFormatted = Currency.format(finalPrice)
 			local priceColor = item.priceIsApproximate and 0.7 or 1
@@ -623,6 +638,7 @@ function ShopUI:onActivateView()
 			local itemType = item:getFullType()
 			local itemSell = Shop.PlayerSell[itemType]
 			local isBroken = item:isBroken()
+			-- WIP: Item filtering for Sell tab (conditions, drainage, item state refinements needed)
 			if not (item:isEquipped() or item:isFavorite() or Currency.Coins[itemType]) then
 				local canSell = false
 
@@ -650,6 +666,7 @@ function ShopUI:onActivateView()
 						end
 					end
 					v.priceFull = price
+					-- WIP: Drainable price adjustment for containers (may need refinement)
 					price = Nfunction.drainablePrice(item, price)
 					-- Store base price for discount display
 					v.basePrice = price
@@ -1383,6 +1400,17 @@ function ShopUI:setPriceApproximate(row, isApproximate)
 	if row then
 		row.priceIsApproximate = isApproximate
 	end
+end
+
+-- Clear cart when prices change (Phase 3.8)
+-- Users must re-add items after price changes to ensure they see current prices
+function ShopUI:clearCartOnPriceChange()
+	if not self.cartItems then
+		return
+	end
+
+	self.cartItems:clear()
+	self:updateTotal()
 end
 
 -- Helper: Get visible rows from current tab (computed from scroll position)

@@ -106,9 +106,11 @@ function ShopTabUI:doDrawShopItem(y, item, alt)
 		self:drawTexture(favTexture, 240, y + 10, favAlpha, 1, 1, 1)
 	end
 
-	if item.item.price and item.item.price > 0 then
-		local finalPrice = item.item.price
-		local basePrice = item.item.basePrice or finalPrice
+	-- Draw prices if either finalPrice or basePrice exist (not both nil/zero)
+	-- This allows display even when prices are being calculated or are very small
+	if (item.item.price and item.item.price > 0) or (item.item.basePrice and item.item.basePrice > 0) then
+		local finalPrice = item.item.price or 0
+		local basePrice = item.item.basePrice or finalPrice or 0
 
 		-- Defensive nil/zero checks to prevent NullPointerException in drawText
 		-- This handles cases where:
@@ -117,6 +119,9 @@ function ShopTabUI:doDrawShopItem(y, item, alt)
 		-- 3. Prices are nil or 0 due to sync timing issues
 		if not basePrice or basePrice == 0 then
 			basePrice = finalPrice
+		end
+		if not finalPrice or finalPrice == 0 then
+			finalPrice = basePrice
 		end
 
 		local coinImg = Currency.CoinsTexture.Coin
@@ -458,6 +463,13 @@ function ShopTabUI:addToCart(selectedRow)
 		return
 	end
 	self.ShopUI:toggleTooltip(false)
+	
+	-- Ensure basePrice is set before adding to cart
+	-- This is critical for cart display logic which needs both finalPrice and basePrice
+	if item.item and item.item.price and not item.item.basePrice then
+		item.item.basePrice = item.item.price
+	end
+	
 	self.ShopUI.cartItems:addItem(item.text, item.item)
 	if self.tabType == Tab.Sell then
 		self.shopItems:removeItemByIndex(selectedRow)

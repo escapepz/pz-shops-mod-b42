@@ -9,7 +9,20 @@ local ShopPriceEvents = SHOPSB42.ShopPriceEvents
 
 function Shop.canPlayerSell(fullType)
 	local cfg = Shop.PlayerSell[fullType]
-	return cfg and cfg.enabled and not cfg.blacklisted
+
+	-- If item is registered
+	if cfg then
+		return cfg.enabled and not cfg.blacklisted
+	end
+
+	-- Item not registered - check mode
+	-- In whitelist mode: only registered items can be sold (default NO)
+	-- In blacklist mode: all items can be sold except those explicitly blacklisted (default YES)
+	if Shop.SellIsWhitelist then
+		return false -- Whitelist mode: unregistered items not allowed
+	else
+		return true -- Blacklist mode: unregistered items allowed (will use defaultPrice)
+	end
 end
 
 function Shop.getPlayerSellPayout(fullType)
@@ -29,7 +42,16 @@ function Shop.resolvePlayerSellPrice(player, item, context)
 	end
 
 	local rule = Shop.PlayerSell[id]
-	local base = rule.basePrice or rule.price
+	local base
+
+	if rule then
+		-- Item is registered - use registered price
+		base = rule.basePrice or rule.price
+	else
+		-- Item not registered - in blacklist mode, use defaultPrice
+		-- (canPlayerSell already validated we're in blacklist mode)
+		base = context.isBroken and Shop.defaultPriceBroken or Shop.defaultPrice
+	end
 
 	local modifiers = {}
 

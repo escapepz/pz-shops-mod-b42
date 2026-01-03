@@ -42,6 +42,12 @@ function ShopTabUI:setCategoryType(tabType)
 end
 
 function ShopTabUI:doDrawShopItem(y, item, alt)
+	-- Ensure item has basePrice to prevent nil errors
+	-- This guards against price updates arriving before UI rebuild
+	if item and item.item and item.item.price and not item.item.basePrice then
+		item.item.basePrice = item.item.price
+	end
+
 	local baseItemDY = 0
 	if item.item.name then
 		baseItemDY = self.SMALL_FONT_HGT
@@ -100,9 +106,18 @@ function ShopTabUI:doDrawShopItem(y, item, alt)
 		self:drawTexture(favTexture, 240, y + 10, favAlpha, 1, 1, 1)
 	end
 
-	if item.item.price then
-		local basePrice = item.item.basePrice or item.item.price
+	if item.item.price and item.item.price > 0 then
 		local finalPrice = item.item.price
+		local basePrice = item.item.basePrice or finalPrice
+
+		-- Defensive nil/zero checks to prevent NullPointerException in drawText
+		-- This handles cases where:
+		-- 1. Price updates arrive before UI is fully rebuilt
+		-- 2. New clients join and items are constructed without basePrice
+		-- 3. Prices are nil or 0 due to sync timing issues
+		if not basePrice or basePrice == 0 then
+			basePrice = finalPrice
+		end
 
 		local coinImg = Currency.CoinsTexture.Coin
 		if item.item.specialCoin then

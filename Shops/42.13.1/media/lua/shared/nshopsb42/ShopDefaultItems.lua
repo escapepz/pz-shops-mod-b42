@@ -18,8 +18,8 @@ function ShopDefaultItems.loadDefaultBuyItems()
 		return
 	end
 
-	-- Allow external mods to suppress defaults by setting Shop._suppressDefaults = true
-	if Shop._suppressDefaults then
+	-- Allow external mods to suppress defaults via SHOPSB42.Config.suppressDefaults = true
+	if SHOPSB42.Config.suppressDefaults == true then
 		return
 	end
 
@@ -36,8 +36,8 @@ function ShopDefaultItems.loadDefaultSellItems()
 		return
 	end
 
-	-- Allow external mods to suppress defaults by setting Shop._suppressDefaults = true
-	if Shop._suppressDefaults then
+	-- Allow external mods to suppress defaults via SHOPSB42.Config.suppressDefaults = true
+	if SHOPSB42.Config.suppressDefaults == true then
 		return
 	end
 

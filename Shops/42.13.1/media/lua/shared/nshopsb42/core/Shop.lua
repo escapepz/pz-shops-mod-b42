@@ -4,9 +4,11 @@
 
 SHOPSB42.Shop = SHOPSB42.Shop or {}
 SHOPSB42.Tab = SHOPSB42.Tab or {}
+SHOPSB42.Config = SHOPSB42.Config or {}
 
 local Shop = SHOPSB42.Shop
 local Tab = SHOPSB42.Tab
+local Config = SHOPSB42.Config
 
 -- Initialize Shop subtables
 Shop.Items = Shop.Items or {}
@@ -17,6 +19,9 @@ Shop.PlayerSell = Shop.PlayerSell or {}
 -- Finalization and price hook state
 Shop._finalized = false -- Set to true when initialization complete; enables live price broadcasting
 Shop.PriceHookRevision = 0 -- Tracks mutations post-finalization
+
+-- Configuration: Item loading policy
+Config.suppressDefaults = Config.suppressDefaults == true -- Persist if true, else reset to false
 
 -- Define Tab constants needed by all code
 Tab.Favorite = "Favorite"

@@ -126,6 +126,76 @@ end
 - Use `item:getCondition()` for quality (0-100)
 - Asymmetry from buy hooks: different signatures
 
+## Declarative Item Listings (NEW)
+
+ShopsHooksExample now includes a **JSON-like Lua listing system** for registering items without code logic.
+
+### Directory Structure
+
+```
+ShopsHooksExample/42.13.1/media/lua/server/nshopsb42/
+├── ShopsHooksExampleMain.lua        (centralized loader + registration)
+├── ShopsHooksExampleInit.lua        (hook wiring)
+└── listings/
+    ├── _index.lua                   (folder registry)
+    ├── food.lua                     (food items)
+    ├── weapons.lua                  (weapons)
+    ├── medical.lua                  (medical supplies)
+    └── misc/
+        ├── tools.lua
+        └── valuables.lua
+```
+
+### Adding Items
+
+Edit any file in `listings/` folder. No code knowledge required:
+
+```lua
+-- listings/food.lua
+return {
+    buy = {
+        {
+            id = "Base.Apple",
+            tab = "Food",
+            price = 2,
+            stock = 100,
+            notes = "Fresh apple"
+        }
+    },
+    
+    sell = {
+        {
+            id = "Base.Apple",
+            price = 1
+        }
+    }
+}
+```
+
+### Whitelist / Blacklist Toggle
+
+Edit `ShopsHooksExampleInit.lua`:
+
+```lua
+ShopsHooksExample.Settings = {
+    whitelistMode = false  -- Change to true for whitelist mode
+}
+```
+
+### Load Order
+
+Control which files load in `listings/_index.lua`:
+
+```lua
+return {
+    "food",
+    "weapons",
+    "medical",
+    "misc.tools",
+    "misc.valuables",
+}
+```
+
 ## File Structure
 
 ```
@@ -134,17 +204,25 @@ ShopsHooksExample/
 │   ├── mod.info
 │   ├── README.md                              (this file - overview)
 │   ├── CONFIGURATION.md                       (price hook configuration)
-│   ├── ITEM_REGISTRATION_QUICK_REFERENCE.md   (NEW - item registration cheat sheet)
-│   ├── ITEM_REGISTRATION_EXAMPLES.md          (NEW - comprehensive item examples)
+│   ├── ITEM_REGISTRATION_QUICK_REFERENCE.md   (item registration cheat sheet)
+│   ├── ITEM_REGISTRATION_EXAMPLES.md          (comprehensive item examples)
 │   └── media/
 │       └── lua/
 │           └── server/
 │               ├── ShopsHooksExample_init.lua         (entry point)
 │               └── nshopsb42/
-│                   ├── ShopsHooksExampleInit.lua      (registration & initialization)
+│                   ├── ShopsHooksExampleInit.lua      (registration & hook wiring)
+│                   ├── ShopsHooksExampleMain.lua      (declarative loader + serializer)
 │                   ├── ShopsHooksExampleHooks.lua     (price hook implementations)
-│                   ├── ShopsHooksExampleItems.lua     (NEW - item registration)
-│                   └── ShopsHooksExampleState.lua     (configuration)
+│                   ├── ShopsHooksExampleState.lua     (configuration)
+│                   └── listings/                      (JSON-like item definitions)
+│                       ├── _index.lua
+│                       ├── food.lua
+│                       ├── weapons.lua
+│                       ├── medical.lua
+│                       └── misc/
+│                           ├── tools.lua
+│                           └── valuables.lua
 └── common/
 ```
 
@@ -190,34 +268,48 @@ Comprehensive examples available in **ITEM_REGISTRATION_EXAMPLES.md**:
 
 All examples show proper use of hooks and listing configuration.
 
-### Add a New Item
+### Add a New Item (Declarative)
 
-Edit `ShopsHooksExampleInit.lua` and `ShopsHooksExampleItems.lua`:
+Edit a file in `listings/` folder (or create a new one):
 
 ```lua
--- In ShopsHooksExampleItems.lua, add item registration:
-function Items.registerBananaItems()
-    local Shop = SHOPSB42.Shop
-    Shop.RegisterItem("Base.Banana", {
-        tab = SHOPSB42.Tab.Food,
-        price = 3,
-        items = 75,
-    })
-    Shop.RegisterSellItem("Base.Banana", { price = 1 })
-end
+-- listings/food.lua - add to buy section:
+{
+    id = "Base.Banana",
+    tab = "Food",
+    price = 3,
+    stock = 75,
+    notes = "Ripe banana"
+}
 
--- In ShopsHooksExampleInit.lua, register the hook:
-if ShopEvents and ShopEvents.registerOnShopRegisterItems then
-    ShopEvents.registerOnShopRegisterItems(Items.registerBananaItems)
-end
+-- And to sell section:
+{
+    id = "Base.Banana",
+    price = 1
+}
+```
 
--- And add price hooks in ShopsHooksExampleHooks.lua:
+That's it. No code needed. Items load automatically on server start.
+
+### Add Dynamic Price Hooks (Code)
+
+If you need condition-based pricing, edit `ShopsHooksExampleHooks.lua`:
+
+```lua
 function Hooks.modifyBananaPrice(player, itemId, basePrice, context, modifiers)
     if itemId ~= "Base.Banana" then return end
     table.insert(modifiers, {
         multiplier = 0.95,
         label = "bananaDiscount"
     })
+end
+```
+
+Then register in `ShopsHooksExampleInit.lua`:
+
+```lua
+if ShopPriceEvents.registerOnShopModifyBuyPrice then
+    ShopPriceEvents.registerOnShopModifyBuyPrice(ShopsHooksExampleHooks.modifyBananaPrice)
 end
 ```
 

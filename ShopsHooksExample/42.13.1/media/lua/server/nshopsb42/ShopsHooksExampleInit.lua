@@ -1,15 +1,21 @@
 -- ShopsHooksExampleInit.lua
 -- Entry point for ShopsHooksExample mod (server-only reference example)
--- Registers price hooks, item registration hooks, and listing config
+-- Registers price hooks, item registration hooks, and declarative item listings
 -- Extends SHOPSB42 namespace
 
 local SharedLogger = require("nshopsb42/utils/SharedLogger")
 local ShopsHooksExampleHooks = require("nshopsb42/ShopsHooksExampleHooks")
-local ShopsHooksExampleItems = require("nshopsb42/ShopsHooksExampleItems")
+local ShopsHooksExampleMain = require("nshopsb42/ShopsHooksExampleMain")
 local ShopsHooksExampleState = require("nshopsb42/ShopsHooksExampleState")
 
 SHOPSB42.ShopsHooksExample = SHOPSB42.ShopsHooksExample or {}
 local ShopsHooksExample = SHOPSB42.ShopsHooksExample
+
+-- Settings for item listing system
+ShopsHooksExample.Settings = ShopsHooksExample.Settings
+	or {
+		whitelistMode = false, -- Set to true for whitelist mode, false for blacklist
+	}
 
 -- Initialize and register all hooks
 function ShopsHooksExample.initialize()
@@ -53,38 +59,32 @@ function ShopsHooksExample.initialize()
 	-- Step 2: Configure listing mode (whitelist vs blacklist)
 	-- ========================================================================
 	-- This must be done before item registration
-	ShopsHooksExampleItems.configureListingMode()
-	SharedLogger.log("Shops", "[ShopsHooksExample] Configured listing mode")
+	ShopsHooksExampleMain.configureListingMode()
 
 	-- ========================================================================
-	-- Step 3: Register item registration hooks
+	-- Step 3: Register item registration hooks (Declarative Listings)
 	-- ========================================================================
-	-- These hooks allow our mod to add items to the shop during initialization
+	-- These hooks load and register items from listings/ folder
+	-- All item definitions are in plain Lua tables (like JSON)
 
 	-- Register buy items hook
 	if ShopEvents and ShopEvents.registerOnShopRegisterItems then
-		ShopEvents.registerOnShopRegisterItems(ShopsHooksExampleItems.registerBuyItems)
-		SharedLogger.log("Shops", "[ShopsHooksExample] Registered: registerBuyItems hook")
+		ShopEvents.registerOnShopRegisterItems(ShopsHooksExampleMain.registerBuyItems)
+		SharedLogger.log("Shops", "[ShopsHooksExample] Registered: registerBuyItems hook (from listings/)")
 	else
 		SharedLogger.log("Shops", "[ShopsHooksExample] ERROR: registerOnShopRegisterItems not found")
 	end
 
 	-- Register sell items hook
 	if ShopSellEvents and ShopSellEvents.registerOnShopRegisterSellItems then
-		ShopSellEvents.registerOnShopRegisterSellItems(ShopsHooksExampleItems.registerSellItems)
-		SharedLogger.log("Shops", "[ShopsHooksExample] Registered: registerSellItems hook (blacklist mode)")
+		ShopSellEvents.registerOnShopRegisterSellItems(ShopsHooksExampleMain.registerSellItems)
+		SharedLogger.log("Shops", "[ShopsHooksExample] Registered: registerSellItems hook (from listings/)")
 	else
 		SharedLogger.log("Shops", "[ShopsHooksExample] ERROR: registerOnShopRegisterSellItems not found")
 	end
 
-	-- Register whitelist sell items hook (if whitelist mode enabled)
-	if ShopSellEvents and ShopSellEvents.registerOnShopRegisterSellItems then
-		ShopSellEvents.registerOnShopRegisterSellItems(ShopsHooksExampleItems.registerWhitelistSellItems)
-		SharedLogger.log("Shops", "[ShopsHooksExample] Registered: registerWhitelistSellItems hook")
-	end
-
 	-- ========================================================================
-	-- Step 4: Register price hooks
+	-- Step 4: Register price hooks (Dynamic Price Modification)
 	-- ========================================================================
 	-- These hooks modify prices dynamically based on conditions
 
@@ -119,7 +119,6 @@ function ShopsHooksExample.initialize()
 	end
 
 	-- Log summary
-	ShopsHooksExampleItems.printListingModeInfo()
 	SharedLogger.log("Shops", "[ShopsHooksExample] All hooks registered successfully")
 end
 

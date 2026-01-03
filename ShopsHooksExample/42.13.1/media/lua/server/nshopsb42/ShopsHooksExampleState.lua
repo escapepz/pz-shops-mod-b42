@@ -48,7 +48,7 @@ State.appleOverrideBuyPrice = nil
 -- Impact: Only applies in blacklist mode (Shop.SellIsWhitelist = false)
 -- Note: Set these before item registration or use runtime update with onPriceHooksChanged()
 State.defaultPrice = 50
-State.defaultPriceBroken = 25
+State.defaultPriceBroken = 25 -- WIP - still visual looking only
 
 -- ============================================================================
 -- EXAMPLE 4: Suppress Default Vanilla Items
@@ -63,7 +63,7 @@ State.defaultPriceBroken = 25
 --   _suppressDefaults = false  -- Vanilla + custom items
 -- Impact: Must be set BEFORE item registration hooks fire
 -- Warning: Setting true means only items registered by external mods will appear
-State._suppressDefaults = false
+State._suppressDefaults = true
 
 -- ============================================================================
 -- EXAMPLE 5: Sell Listing Mode (Whitelist vs Blacklist)

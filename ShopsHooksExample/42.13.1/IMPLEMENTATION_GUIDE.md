@@ -1,735 +1,640 @@
-# Example Shop Mod - Implementation Guide
+# ShopsHooksExample — Implementation Guide
 
-## Overview
+A **server-side-only reference implementation** demonstrating the 3 core Shops price hook patterns.
 
-This guide explains how the Example Shop mod uses the Shop hook system. Use this as a reference and template when building your own Shop mods.
+## Quick Overview
 
-## Architecture
+This mod is intentionally **minimal and focused**. It demonstrates:
 
-The mod is split into three modules for clear separation of concerns:
+1. **Modifier Hook Pattern** — Append multipliers to stack with other mods
+2. **Override Hook Pattern** — Return final price or nil for short-circuit behavior
+3. **Buy vs Sell Asymmetry** — ItemId string vs item object, different signatures
 
-```
-ExampleShop (Shared, 532 lines)
-├── Configuration (lines 14-19)
-├── Utility Functions (lines 23-45)
-├── Item Registration (lines 50-140)
-├── Buy Price Modifications (lines 145-244)
-├── Buy Price Overrides (lines 249-271)
-├── Sell Price Modifications (lines 276-327)
-├── Sell Price Overrides (lines 412-445)
-├── Hook Registration (lines 449-518)
-└── Initialization (lines 522-531)
-
-ExampleShopServer (Server-only, 139 lines)
-├── Transaction Logging (lines 12-33)
-├── Reputation System (lines 35-97)
-└── Registry Finalization (lines 100-137)
-
-ExampleShopClient (Client-only, 143 lines)
-├── UI Display Helpers (lines 12-88)
-├── Time Display (lines 94-106)
-├── Item Browser (lines 111-137)
-└── Initialization (line 141)
-```
-
-## Module Separation
-
-### Shared Module: ExampleShop.lua
-
-**What it contains:**
-- Core configuration (CONFIG table)
-- Utility functions (logging, reputation getters)
-- All item registration (buy and sell)
-- All price modification functions
-- All price override functions
-- Hook registration logic
-- Test function
-
-**Why shared?**
-- Price hooks must run on both client and server
-- Items need to be available to both sides
-- Shared allows single source of truth for prices
-- Loaded automatically by both client and server
-
-**Loaded by:** Both client and server
-
-### Server Module: ExampleShopServer.lua
-
-**What it contains:**
-- Transaction logging (onPlayerBuyFromShop, onPlayerSellToShop)
-- Reputation functions (getVIPTierName, getPlayerShopStats, etc.)
-- Registry finalization (Shop.FinalizeRegistry, Shop.FinalizeSellRegistry)
-- Delayed price hook testing
-
-**Why server-only?**
-- Reputation must be authoritative (prevent cheating)
-- Transaction logging is server record
-- Registry finalization ensures items loaded correctly
-- Player properties used for reputation storage
-
-**Key functions:**
-- `onPlayerBuyFromShop(player, itemId, quantity, price)` - Award 1 rep per item
-- `onPlayerSellToShop(player, itemId, quantity, totalPrice)` - Award 2 rep per item
-- `getVIPTierName(reputation)` - Returns: "Standard", "Bronze", "Silver", "Gold"
-- `getPlayerShopStats(player)` - Returns table with reputation, tier, discounts
-
-**Loaded by:** Server only
-
-### Client Module: ExampleShopClient.lua
-
-**What it contains:**
-- VIP tier display (name and color)
-- Price formatting
-- Discount text display
-- Item tooltips
-- Time period display
-- Item browser with categories
-- Category display names
-
-**Why client-only?**
-- UI display only matters on client
-- Reduces network overhead
-- Client-specific rendering and formatting
-- No sensitive data (only read reputation from ExampleShop)
-
-**Key functions:**
-- `getVIPTierDisplay(reputation)` - Returns {tier, color}
-- `formatPrice(price)` - Returns "$100" format
-- `getDiscountText(reputation)` - Returns "15% VIP Discount" or "No discount"
-- `createItemTooltip(itemId, price)` - Returns tooltip string
-- `showVIPBenefits(player)` - Logs VIP status
-
-**Loaded by:** Client only
-
-## Implementation Patterns
-
-### Pattern 1: Simple Item Registration
-
-**Location:** `ExampleShop.registerBuyItems()` (lines 50-93)
-
-```lua
-function ExampleShop.registerBuyItems()
-    ExampleShop.log("Registering buy items...")
-    
-    Shop.RegisterItem("Base.Apple", { tab = Tab.Food, price = 12 })
-    Shop.RegisterItem("Base.Banana", { tab = Tab.Food, price = 15 })
-    -- ... more items
-end
-```
-
-**Hook call:**
-```lua
-ShopEvents.registerOnShopRegisterItems(ExampleShop.registerBuyItems)
-```
-
-**Key points:**
-- Called once during shop initialization
-- No parameters passed to hook callback
-- Register all items in single callback or multiple callbacks
-- Order doesn't matter
-- Must register before Shop.FinalizeRegistry()
-- Items have tab (category) and base price
-
-**When it runs:** Before shop becomes locked
+**Not included**: VIP system, time-based pricing, reputation, bulk discounts, client code.
 
 ---
 
-### Pattern 2: Multiple Modification Hooks on Same Event
+## File Structure
 
-**Location:** `registerHooks()` (lines 470-475)
-
-```lua
--- Register 4 different modification hooks
-ShopPriceEvents.registerOnShopModifyBuyPrice(ExampleShop.modifyBuyPriceByCategory)
-ShopPriceEvents.registerOnShopModifyBuyPrice(ExampleShop.modifyBuyPriceByTime)
-ShopPriceEvents.registerOnShopModifyBuyPrice(ExampleShop.modifyBuyPriceVIP)
-ShopPriceEvents.registerOnShopModifyBuyPrice(ExampleShop.modifyBuyPriceByBulk)
+```
+ShopsHooksExample/42.13.1/media/lua/server/
+├── ShopsHooksExample_init.lua          ← PZ server entry point
+└── nshopsb42/
+    ├── ShopsHooksExampleInit.lua       ← Hook registration
+    ├── ShopsHooksExampleHooks.lua      ← Hook implementations
+    └── ShopsHooksExampleState.lua      ← Configuration
 ```
 
-**Each hook receives:**
-- `player` - Player making purchase
-- `itemId` - Item being purchased (e.g., "Base.Apple")
-- `base` - Base price (e.g., 12)
-- `context` - Transaction context (shopId, quantity, etc.)
-- `modifiers` - Array to modify (add multipliers)
+### Module Responsibilities
 
-**Key points:**
-- All 4 hooks execute in order registered
-- Each hook modifies the `modifiers` array
-- Final price = base × multiplier1 × multiplier2 × ... × multiplierN
-- Example: 12 × 0.9 × 1.15 × 0.85 × 0.85 = 8.97
-- Order matters if hooks depend on each other
-- Modification hooks ALWAYS execute
+| File | Lines | Purpose |
+|------|-------|---------|
+| ShopsHooksExampleInit.lua | 94 | Hook registration via ShopPriceEvents |
+| ShopsHooksExampleHooks.lua | 180 | 3 hook implementations |
+| ShopsHooksExampleState.lua | 25 | Configuration (multipliers, overrides) |
 
-**Example: Category Markup**
+---
+
+## Pattern 1: Modifier Hooks
+
+### What They Do
+
+Append a multiplier to the `modifiers` array. All modifier hooks execute, and multipliers **stack**:
+
+```
+Price = Base × M1 × M2 × M3 × ...
+```
+
+### Example: Fruit Category Discount
+
 ```lua
-function ExampleShop.modifyBuyPriceByCategory(player, itemId, base, context, modifiers)
-    if string.find(itemId, "Handgun") or ... then
-        table.insert(modifiers, { multiplier = 1.3, label = "weaponMarkup" })
+function Hooks.modifyAppleBuyPrice(player, itemId, basePrice, context, modifiers)
+    -- Guard: Only apply to Apple
+    if itemId ~= "Base.Apple" then
+        return
     end
+    
+    -- Guard: Ensure modifiers exists
+    if not modifiers then
+        return
+    end
+    
+    -- Append multiplier
+    table.insert(modifiers, {
+        multiplier = 0.9,
+        label = "appleFruitDiscount"
+    })
 end
 ```
 
-**Example: Time-based Pricing**
+### Hook Signature
+
 ```lua
-function ExampleShop.modifyBuyPriceByTime(player, itemId, base, context, modifiers)
-    local currentHour = getGameTime():getHour()
+function(player, itemId, basePrice, context, modifiers)
+    -- player: Player object (may be nil)
+    -- itemId: Item ID string (e.g., "Base.Apple")
+    -- basePrice: Numeric price before modifications
+    -- context: Table with shopId, quantity, etc.
+    -- modifiers: Array to append to
     
-    if currentHour >= 6 and currentHour < 10 then
-        table.insert(modifiers, { multiplier = 0.95, label = "morningDiscount" })
-    end
+    table.insert(modifiers, { multiplier = X })
+end
+```
+
+### Key Points
+
+- ✅ **Returns**: nil (modifications happen via side-effect)
+- ✅ **Multiple hooks**: All execute in order registered
+- ✅ **Stacking**: Price multiplied by each modifier
+- ✅ **ItemId**: Buy hooks receive string, not object
+- ✅ **Guards**: Always check for nil before use
+
+### Common Modifications
+
+**Category Markup:**
+```lua
+if string.find(itemId, "Weapon") then
+    table.insert(modifiers, { multiplier = 1.3 })
+end
+```
+
+**Quantity Bonus:**
+```lua
+if context.quantity >= 10 then
+    table.insert(modifiers, { multiplier = 0.85 })
+end
+```
+
+**Reputation Discount (if you extend):**
+```lua
+if player and player:getProperty("reputation") > 100 then
+    table.insert(modifiers, { multiplier = 0.9 })
 end
 ```
 
 ---
 
-### Pattern 3: Override Hooks (Short-circuit Behavior)
+## Pattern 2: Override Hooks
 
-**Location:** `registerHooks()` (lines 481-488)
+### What They Do
+
+Return a **final price** to short-circuit modifier stacking, or **nil** to use calculated price.
+
+### Example: Optional Fixed Price
 
 ```lua
-ShopPriceEvents.registerOnShopOverrideBuyPrice(ExampleShop.overrideBuyPriceSpecialItems)
-ShopPriceEvents.registerOnShopOverrideBuyPrice(ExampleShop.overrideBuyPriceAdmin)
-```
-
-**Function signature:**
-```lua
-function ExampleShop.overrideBuyPriceSpecialItems(player, itemId, price, context)
-    -- Must return a value OR nil
-    -- First non-nil response stops the chain
+function Hooks.overrideAppleBuyPrice(player, itemId, price, context)
+    -- Guard: Only apply to Apple
+    if itemId ~= "Base.Apple" then
+        return nil
+    end
+    
+    -- Check if override is enabled
+    local overridePrice = ShopsHooksExampleState.appleOverrideBuyPrice
+    if overridePrice == nil then
+        return nil  -- Skip override, use modifiers
+    end
+    
+    -- Return override (short-circuits modifiers)
+    return overridePrice
 end
 ```
 
-**Key points:**
-- Override hooks check conditions
-- MUST return a value or nil (not nothing)
-- First non-nil return stops other overrides
-- Return the final price, or nil to use calculated price
-- Override hooks short-circuit: first match wins
+### Hook Signature
 
-**Example: Fixed Prices**
 ```lua
-function ExampleShop.overrideBuyPriceSpecialItems(player, itemId, price, context)
-    local specialPrices = {
-        ["Base.Water"] = 10,
-        ["Base.Pop"] = 15,
-    }
+function(player, itemId, price, context)
+    -- player: Player object (may be nil)
+    -- itemId: Item ID string
+    -- price: Current calculated price
+    -- context: Table with shopId, quantity, etc.
     
-    if specialPrices[itemId] then
-        return specialPrices[itemId]
+    return finalPrice or nil  -- MUST return something
+end
+```
+
+### Key Points
+
+- ✅ **Returns**: Numeric price (apply) or nil (skip)
+- ✅ **Short-circuit**: First non-nil return stops chain
+- ✅ **Order**: First matching override wins
+- ✅ **Must return**: Always return something (nil or price)
+- ✅ **Optional**: Override disabled by default (nil)
+
+### Override Execution Order
+
+```
+1. Modifier hooks run (all of them)
+2. Price = Base × M1 × M2 × M3 × ...
+3. Override hook 1 runs:
+   - If returns price → USE IT (stop)
+   - If returns nil → CONTINUE
+4. Override hook 2 runs (if hook 1 returned nil)
+   - If returns price → USE IT (stop)
+   - If returns nil → CONTINUE
+5. If all overrides return nil → USE CALCULATED PRICE
+```
+
+### Common Overrides
+
+**Fixed Prices:**
+```lua
+local specialPrices = {
+    ["Base.Water"] = 10,
+    ["Base.Pop"] = 15,
+}
+
+if specialPrices[itemId] then
+    return specialPrices[itemId]
+end
+
+return nil
+```
+
+**Admin Free Items:**
+```lua
+if player and player:isAdmin() then
+    return 0  -- Free
+end
+
+return nil
+```
+
+**Condition-based Pricing (sell):**
+```lua
+if item:getCondition() < 30 then
+    return 0  -- Won't buy damaged
+end
+
+return nil
+```
+
+---
+
+## Pattern 3: Buy vs Sell Asymmetry
+
+### Why Different?
+
+**Buy hooks** decide price for player purchasing from shop:
+- Item ID only (string)
+- Simple: category, time, reputation, bulk
+
+**Sell hooks** decide price for player selling to shop:
+- Full item object (with condition, wear, etc.)
+- Complex: condition-based, item-specific logic
+
+### Buy Hook Signature
+
+```lua
+function(player, itemId, basePrice, context, modifiers)
+    -- Receives: itemId STRING
+    -- Example: "Base.Apple"
+    
+    if itemId ~= "Base.Apple" then return end
+end
+```
+
+### Sell Hook Signature
+
+```lua
+function(player, item, basePrice, context, modifiers)
+    -- Receives: item OBJECT
+    -- Must use: item:getFullType(), item:getCondition()
+    
+    local itemId = item:getFullType()  -- Get ID from object
+    if itemId ~= "Base.Apple" then return end
+    
+    local condition = item:getCondition()  -- Get quality (0-100)
+    if condition < 50 then
+        table.insert(modifiers, { multiplier = 0.5 })
     end
-    
+end
+```
+
+### Key Differences
+
+| Aspect | Buy | Sell |
+|--------|-----|------|
+| Item param | String ID (`itemId`) | Object (`item`) |
+| Signature | `(player, itemId, ...)` | `(player, item, ...)` |
+| Get ID | Use directly | `item:getFullType()` |
+| Extra data | Limited | `item:getCondition()` |
+| Typical logic | Category, time | Condition, quality |
+
+### When to Use Each
+
+**Modify hooks** (shared approach):
+```lua
+-- Buy: Easy, just filter by itemId
+if itemId == "Base.Apple" then
+    table.insert(modifiers, { multiplier = 0.9 })
+end
+
+-- Sell: Need item object for condition
+if item:getFullType() == "Base.Apple" then
+    local condition = item:getCondition()
+    local mult = condition < 50 and 0.5 or 1.0
+    table.insert(modifiers, { multiplier = mult })
+end
+```
+
+**Override hooks**:
+```lua
+-- Buy: Check itemId string
+function overrideBuyPrice(player, itemId, price, context)
+    if itemId ~= "Base.Apple" then return nil end
+    return 5  -- Fixed price
+end
+
+-- Sell: Check item object and condition
+function overrideSellPrice(player, item, price, context)
+    if item:getFullType() ~= "Base.Bat" then return nil end
+    if item:getCondition() < 30 then return 0 end  -- Won't buy
     return nil  -- Use calculated price
 end
 ```
 
-**Example: Admin Free Items**
-```lua
-function ExampleShop.overrideBuyPriceAdmin(player, itemId, price, context)
-    if player and player:isAdmin() then
-        return 0  -- Free
-    end
-    return nil
-end
-```
-
-**Execution order:**
-1. modifyBuyPrice hooks run (all of them)
-2. Calculate final price from modifiers
-3. overrideBuyPrice hooks run (first match stops)
-4. Use override result OR calculated price
-
 ---
 
-### Pattern 4: Sell Price Modifications
+## Configuration
 
-**Location:** `registerHooks()` (lines 491-496)
-
-```lua
-ShopPriceEvents.registerOnShopModifySellPrice(ExampleShop.modifySellPriceByCondition)
-ShopPriceEvents.registerOnShopModifySellPrice(ExampleShop.modifySellPriceByQuantity)
-ShopPriceEvents.registerOnShopModifySellPrice(ExampleShop.modifySellPriceByReputation)
-```
-
-**Function signature:**
-```lua
-function ExampleShop.modifySellPriceByCondition(player, item, base, context, modifiers)
-    -- player: selling player
-    -- item: InventoryItem being sold (actual object, not string)
-    -- base: base sell price
-    -- context: transaction context
-    -- modifiers: array to modify
-end
-```
-
-**Key difference from buy hooks:**
-- Receives `item` object (not itemId string)
-- Can inspect item properties:
-  - `item:getID()` - Item ID string
-  - `item:getCondition()` - Condition percentage (0-100)
-  - `item:getType()` - Item type
-
-**Example: Condition-based Pricing**
-```lua
-function ExampleShop.modifySellPriceByCondition(player, item, base, context, modifiers)
-    local condition = item:getCondition()
-    
-    if condition < 25 then
-        table.insert(modifiers, { multiplier = 0.2, label = "conditionBad" })
-    elseif condition < 50 then
-        table.insert(modifiers, { multiplier = 0.5, label = "conditionFair" })
-    end
-end
-```
-
----
-
-### Pattern 5: Sell Price Overrides
-
-**Location:** `registerHooks()` (lines 502-509)
+All configuration is in `ShopsHooksExampleState.lua`:
 
 ```lua
-ShopPriceEvents.registerOnShopOverrideSellPrice(ExampleShop.overrideSellPriceDamaged)
-ShopPriceEvents.registerOnShopOverrideSellPrice(ExampleShop.overrideSellPricePremium)
+-- Apple buy price multiplier (0.9 = 10% discount)
+State.appleBuyMultiplier = 0.9
+
+-- Apple buy price override (nil = disabled, or set to numeric value)
+State.appleOverrideBuyPrice = nil
 ```
 
-**Function signature:**
-```lua
-function ExampleShop.overrideSellPriceDamaged(player, item, price, context)
-    -- Inspect item and return fixed price or nil
-end
-```
+### At Runtime
 
-**Example: Reject Damaged Items**
-```lua
-function ExampleShop.overrideSellPriceDamaged(player, item, price, context)
-    local itemId = item:getID()
-    local condition = item:getCondition()
-    
-    if (string.find(itemId, "Pistol") or string.find(itemId, "Rifle")) and condition < 30 then
-        return 0  -- Won't buy
-    end
-    
-    return nil  -- Use calculated price
-end
-```
-
-**Example: Premium Prices**
-```lua
-function ExampleShop.overrideSellPricePremium(player, item, price, context)
-    local itemId = item:getID()
-    local premiumPrices = {
-        ["Base.AssaultRifle"] = 150,
-        ["Base.HuntingRifle"] = 120,
-    }
-    
-    return premiumPrices[itemId] or nil
-end
-```
-
----
-
-### Pattern 6: Reputation System
-
-**Location:** ExampleShop.lua (lines 29-45) + ExampleShopServer.lua
-
-**Shared functions:**
-```lua
-function ExampleShop.getPlayerReputation(player)
-    if not player then return 0 end
-    return player:getProperty("exampleshop_reputation") or 0
-end
-
-function ExampleShop.setPlayerReputation(player, value)
-    if player then
-        player:setProperty("exampleshop_reputation", value)
-    end
-end
-
-function ExampleShop.addPlayerReputation(player, amount)
-    local current = ExampleShop.getPlayerReputation(player)
-    ExampleShop.setPlayerReputation(player, current + amount)
-end
-```
-
-**Server-side tracking:**
-```lua
-function ExampleShopServer.onPlayerBuyFromShop(player, itemId, quantity, price)
-    ExampleShop.addPlayerReputation(player, quantity * 1)  -- 1 rep per item
-end
-
-function ExampleShopServer.onPlayerSellToShop(player, itemId, quantity, totalPrice)
-    ExampleShop.addPlayerReputation(player, quantity * 2)  -- 2 rep per item
-end
-```
-
-**Using in price hooks:**
-```lua
-function ExampleShop.modifyBuyPriceVIP(player, itemId, base, context, modifiers)
-    if not ExampleShop.CONFIG.enableVIPSystem or not player then return end
-    
-    local reputation = ExampleShop.getPlayerReputation(player)
-    
-    if reputation >= 500 then
-        table.insert(modifiers, { multiplier = 0.85, label = "vipGold" })
-    end
-end
-```
-
-**Key points:**
-- Reputation stored as player property (persistent)
-- Server is authority (server-side functions only)
-- Client can read reputation (ExampleShop.getPlayerReputation)
-- Used in buy/sell hooks for VIP discounts
-- Earned on both purchases and sales
-
----
-
-## Hook Execution Flow
-
-### Buy Price Flow
-
-```
-1. Player initiates buy transaction
-   ↓
-2. Shop.resolvePlayerBuyPrice() called with:
-   - player
-   - itemId
-   - context (quantity, shopId, etc.)
-   ↓
-3. For each modification hook (in order):
-   - Call hook(player, itemId, base, context, modifiers)
-   - Hook can add to modifiers array
-   ↓
-4. Calculate: base × multiplier1 × multiplier2 × ...
-   ↓
-5. For each override hook (in order):
-   - Call hook(player, itemId, calculatedPrice, context)
-   - If returns non-nil: STOP and use that price
-   - If returns nil: continue to next hook
-   ↓
-6. Return final price
-   ↓
-7. Player completes transaction
-```
-
-**Example calculation:**
-```
-Base price: 12 (Apple)
-Food discount 0.9x:        12.0 × 0.9 = 10.8
-Morning discount 0.95x:    10.8 × 0.95 = 10.26
-VIP Gold 0.85x:            10.26 × 0.85 = 8.721
-Bulk discount 0.85x:       8.721 × 0.85 = 7.413
-Override (none):           7.413 (no override)
-FINAL:                     7.41 (rounded)
-```
-
-### Sell Price Flow
-
-```
-1. Player initiates sell transaction with item
-   ↓
-2. Shop.resolvePlayerSellPrice() called with:
-   - player
-   - item (InventoryItem object)
-   - context
-   ↓
-3. For each modification hook (in order):
-   - Call hook(player, item, base, context, modifiers)
-   - Hook inspects item.condition, item.type, etc.
-   - Hook can add to modifiers
-   ↓
-4. Calculate: base × multiplier1 × multiplier2 × ...
-   ↓
-5. For each override hook (in order):
-   - Call hook(player, item, calculatedPrice, context)
-   - If non-nil: STOP and use that price
-   - If nil: continue
-   ↓
-6. Return final price
-   ↓
-7. Player completes transaction
-```
-
----
-
-## Error Handling Patterns
-
-### Safe Parameter Access
-
-**BAD:**
-```lua
-function unsafeHook(player, itemId, base, context, modifiers)
-    local username = player:getUsername()  -- CRASH if player is nil
-end
-```
-
-**GOOD:**
-```lua
-function safeHook(player, itemId, base, context, modifiers)
-    if not player then return end  -- Early return
-    local username = player:getUsername()
-end
-```
-
-### Safe Table Access
-
-**BAD:**
-```lua
-function badModification(player, itemId, base, context, modifiers)
-    print(context.shopId)  -- CRASH if key missing
-end
-```
-
-**GOOD:**
-```lua
-function goodModification(player, itemId, base, context, modifiers)
-    local shopId = context.shopId or "Unknown"
-    print(shopId)
-end
-```
-
-### Type Validation
-
-**BAD:**
-```lua
-function badValidation(player, itemId, base, context, modifiers)
-    local price = base * 2  -- CRASH if base not number
-end
-```
-
-**GOOD:**
-```lua
-function goodValidation(player, itemId, base, context, modifiers)
-    if type(base) ~= "number" then return end
-    local price = base * 2
-end
-```
-
-### Inventory Check
-
-**BAD:**
-```lua
-if count >= 10 then  -- CRASH if inventory nil
-end
-```
-
-**GOOD:**
-```lua
-if player:getInventory() then
-    local count = player:getInventory():getItemCount(itemId)
-    if count >= 10 then
-        -- safe to use count
-    end
-end
-```
-
----
-
-## Performance Patterns
-
-### Avoid Expensive Operations in Hooks
-
-**BAD:** File I/O in price hook
-```lua
-ShopPriceEvents.registerOnShopModifyBuyPrice(function(...)
-    local config = io.open("config.txt")  -- Slow! Called every transaction
-end)
-```
-
-**GOOD:** Load once, reuse
-```lua
-local CONFIG = loadConfigOnce()
-
-ShopPriceEvents.registerOnShopModifyBuyPrice(function(...)
-    -- Use CONFIG directly (already loaded)
-end)
-```
-
-### Cache Reputation Lookups
-
-**BAD:**
-```lua
--- Called every price calculation
-local reputation = ExampleShop.getPlayerReputation(player)
-```
-
-**GOOD:**
-```lua
--- If called multiple times, cache result
-local reputation = context.playerReputation or ExampleShop.getPlayerReputation(player)
-context.playerReputation = reputation
-```
-
-### Early Returns in Overrides
-
-**BAD:**
-```lua
-if itemId == "special_item" then
-    if player then
-        -- Expensive check
-    end
-end
-```
-
-**GOOD:** Fastest checks first
-```lua
-if itemId ~= "special_item" then
-    return nil  -- Exit immediately
-end
-
-if not player then
-    return nil
-end
-
--- Expensive check only if needed
-```
-
----
-
-## Testing Patterns
-
-### Unit Test Template
+To change configuration after initialization:
 
 ```lua
-function testVIPDiscount()
-    local mockPlayer = {
-        getProperty = function(self, key)
-            if key == "exampleshop_reputation" then
-                return 500  -- Gold VIP
-            end
-        end
-    }
-    
-    local modifiers = {}
-    ExampleShop.modifyBuyPriceVIP(mockPlayer, "Base.Apple", 12, {}, modifiers)
-    
-    assert(modifiers[1].multiplier == 0.85, "VIP Gold discount not applied")
-    print("✓ VIP discount test passed")
-end
+-- Change multiplier
+SHOPSB42.ShopsHooksExampleState.appleBuyMultiplier = 0.5
+
+-- CRITICAL: Trigger resync
+SHOPSB42.ShopFinalizeHandler.onPriceHooksChanged()
 ```
 
-### Integration Test Pattern
-
-```lua
-function testFullPriceCalculation()
-    local player = getPlayer()
-    local context = { shopId = "ExampleShop", quantity = 1 }
-    
-    local finalPrice = Shop.resolvePlayerBuyPrice(player, "Base.Apple", context)
-    
-    assert(finalPrice > 0, "Price should be positive")
-    assert(finalPrice < 20, "Price should be reasonable")
-    print("✓ Full price calculation test passed")
-end
-```
+Without calling `onPriceHooksChanged()`, the new value won't take effect until server restart.
 
 ---
 
 ## Common Implementation Tasks
 
-### Task 1: Add New Item Category
+### Task 1: Add a New Item
 
-**Step 1:** Add items in `registerBuyItems()`:
-```lua
-Shop.RegisterItem("Base.Sword", { tab = Tab.Weapons, price = 500 })
-Shop.RegisterItem("Base.Shield", { tab = Tab.Equipment, price = 300 })
-```
+**Step 1:** Update configuration to add new item
 
-**Step 2:** Add sell items in `registerSellItems()`:
+In `ShopsHooksExampleHooks.lua`, add check:
 ```lua
-Shop.RegisterSellItem("Base.Sword", { price = 250 })
-Shop.RegisterSellItem("Base.Shield", { price = 150 })
-```
-
-**Step 3:** Add pricing logic:
-```lua
-function ExampleShop.modifyBuyPriceByCategory(player, itemId, base, context, modifiers)
-    -- Existing code...
+function Hooks.modifyAppleBuyPrice(player, itemId, basePrice, context, modifiers)
+    if itemId ~= "Base.Apple" and itemId ~= "Base.Banana" then
+        return
+    end
     
-    if string.find(itemId, "Sword") or string.find(itemId, "Shield") then
-        table.insert(modifiers, { multiplier = 1.25, label = "weaponEquipmentMarkup" })
+    table.insert(modifiers, {
+        multiplier = 0.9,
+        label = "fruitDiscount"
+    })
+end
+```
+
+**Step 2:** Test in-game
+- Buy the new item
+- Check server logs for hook execution
+
+### Task 2: Change Multiplier Value
+
+Edit `ShopsHooksExampleState.lua`:
+
+```lua
+-- Old: 0.9 (10% discount)
+State.appleBuyMultiplier = 0.5  -- New: 50% discount
+```
+
+Then restart server, or call:
+```lua
+SHOPSB42.ShopFinalizeHandler.onPriceHooksChanged()
+```
+
+### Task 3: Add Time-Based Pricing
+
+Create new hook in `ShopsHooksExampleHooks.lua`:
+
+```lua
+function Hooks.modifyAppleBuyPriceByTime(player, itemId, basePrice, context, modifiers)
+    if itemId ~= "Base.Apple" then return end
+    if not modifiers then return end
+    
+    local hour = getGameTime():getHour()
+    
+    -- Night premium (11 PM - 6 AM): +15%
+    if hour >= 23 or hour < 6 then
+        table.insert(modifiers, {
+            multiplier = 1.15,
+            label = "nightPremium"
+        })
     end
 end
 ```
 
-### Task 2: Add Condition-based Buy Pricing
-
-Add new modification hook:
+Register in `ShopsHooksExampleInit.lua`:
 ```lua
-function ExampleShop.modifyBuyPriceByQuality(player, itemId, base, context, modifiers)
-    -- Check if context provides item condition
-    if context.itemCondition then
-        if context.itemCondition < 50 then
-            table.insert(modifiers, { multiplier = 0.8, label = "usedDiscount" })
-        end
-    end
-end
-
--- Register it:
-ShopPriceEvents.registerOnShopModifyBuyPrice(ExampleShop.modifyBuyPriceByQuality)
+ShopPriceEvents.registerOnShopModifyBuyPrice(
+    ShopsHooksExampleHooks.modifyAppleBuyPriceByTime
+)
 ```
 
-### Task 3: Add Holiday Pricing
+### Task 4: Add Reputation-Based Discount
 
-Add time-based variation:
+Create new hook:
+
 ```lua
-function ExampleShop.modifyBuyPriceByHoliday(player, itemId, base, context, modifiers)
-    local gameTime = getGameTime()
-    local dayOfYear = gameTime:getDaysSurvived() % 365
+function Hooks.modifyAppleBuyPriceByReputation(player, itemId, basePrice, context, modifiers)
+    if itemId ~= "Base.Apple" then return end
+    if not player or not modifiers then return end
     
-    -- Christmas pricing (around day 359)
-    if dayOfYear > 350 or dayOfYear < 10 then
-        table.insert(modifiers, { multiplier = 1.25, label = "holidayMarkup" })
+    local reputation = player:getProperty("mymod_reputation") or 0
+    
+    if reputation > 100 then
+        table.insert(modifiers, {
+            multiplier = 0.9,
+            label = "reputationDiscount"
+        })
     end
 end
 ```
 
 ---
 
-## Debugging and Logging
+## Debugging
 
-### Enable Debug Output
+### Check Hook Registration
+
+Server logs should show:
+```
+[ShopsHooksExample] Registered: modifyAppleBuyPrice
+[ShopsHooksExample] Registered: overrideAppleBuyPrice
+[ShopsHooksExample] Registered: modifySellPriceByCondition
+[ShopsHooksExample] All hooks registered successfully
+```
+
+**Location**: `Logs/Server/*_Shops.txt`
+
+### Check Hook Execution
+
+When you buy/sell, you should see:
+```
+[ShopsHooksExample] Applied buy modifier to Base.Apple: multiplier=0.9
+[ShopsHooksExample] Applied condition modifier to Base.Apple: condition=85, multiplier=1.0
+```
+
+### Enable Debug Logging
+
+Logging is enabled by default. Check server logs during transactions.
+
+### Test Prices Manually
 
 ```lua
-ExampleShop.CONFIG.debugLogging = true
+-- In server console:
+local player = getPlayer()
+local finalPrice = Shop.resolvePlayerBuyPrice(player, "Base.Apple", {shopId = "test", quantity = 1})
+print("Final price: " .. finalPrice)
 ```
 
-Check console for:
-```
-[ExampleShop] Registering hooks...
-[ExampleShop] Registered OnShopRegisterItems
-[ExampleShop] Registered OnShopModifyBuyPrice hooks (4x)
-[ExampleShop] Total buy modify hooks: 4
-```
+---
 
-### Log Price Calculations
+## Performance Considerations
 
-Already implemented in `modifyBuyPriceByCategory()`:
+### Modifier Hooks
+
+Called **per transaction** when player buys item. Minimize work:
+
+✅ **Good:**
 ```lua
-writeLog("ShopsHooksExample", "[Hook] modifyBuyPriceByCategory called: " .. itemId .. " (base: " .. base .. ")")
+if itemId ~= "Base.Apple" then return end  -- Early exit
+local mult = ShopsHooksExampleState.appleBuyMultiplier
+table.insert(modifiers, { multiplier = mult })
 ```
 
-### Print Hook Count
+❌ **Bad:**
+```lua
+for i = 1, 1000 do  -- Expensive loop
+    -- Do something
+end
+table.insert(modifiers, {...})
+```
+
+### Override Hooks
+
+Called **per transaction**, check conditions first:
+
+✅ **Good:**
+```lua
+if itemId ~= "Base.Apple" then return nil end  -- Fast exit
+-- Expensive operation only if needed
+```
+
+❌ **Bad:**
+```lua
+-- Expensive operation first
+local expensiveValue = expensiveFunction()
+
+if itemId ~= "Base.Apple" then return nil end
+```
+
+---
+
+## Examples
+
+### Complete Buy Modifier Example
 
 ```lua
-print("Buy modify hooks: " .. #ShopPriceEvents.OnShopModifyBuyPrice)
-print("Buy override hooks: " .. #ShopPriceEvents.OnShopOverrideBuyPrice)
-print("Sell modify hooks: " .. #ShopPriceEvents.OnShopModifySellPrice)
-print("Sell override hooks: " .. #ShopPriceEvents.OnShopOverrideSellPrice)
+function Hooks.modifyAppleBuyPrice(player, itemId, basePrice, context, modifiers)
+    -- Guard: Item filter
+    if itemId ~= "Base.Apple" then
+        return
+    end
+    
+    -- Guard: Nil check
+    if not modifiers then
+        return
+    end
+    
+    -- Get current multiplier from state
+    local multiplier = ShopsHooksExampleState.appleBuyMultiplier
+    
+    -- Append to modifiers (stacks with others)
+    table.insert(modifiers, {
+        multiplier = multiplier,
+        label = "appleFruitDiscount"
+    })
+    
+    -- Log for debugging
+    SharedLogger.log(
+        "Shops",
+        "[ShopsHooksExample] Applied buy modifier to Base.Apple: multiplier=" .. multiplier
+    )
+end
 ```
+
+### Complete Buy Override Example
+
+```lua
+function Hooks.overrideAppleBuyPrice(player, itemId, price, context)
+    -- Guard: Item filter
+    if itemId ~= "Base.Apple" then
+        return nil
+    end
+    
+    -- Get override state
+    local overridePrice = ShopsHooksExampleState.appleOverrideBuyPrice
+    
+    -- If not set, use calculated price
+    if overridePrice == nil then
+        return nil
+    end
+    
+    -- Log when override applies
+    SharedLogger.log(
+        "Shops",
+        "[ShopsHooksExample] Overriding Apple buy price: " .. price .. " -> " .. overridePrice
+    )
+    
+    -- Return override (short-circuits)
+    return overridePrice
+end
+```
+
+### Complete Sell Modifier Example
+
+```lua
+function Hooks.modifySellPriceByCondition(player, item, basePrice, context, modifiers)
+    -- Guard: Nil checks
+    if not item or not modifiers then
+        return
+    end
+    
+    -- Get item ID from object
+    local itemId = item:getFullType()
+    
+    -- Guard: Only apply to specific items
+    if itemId ~= "Base.Apple" and itemId ~= "Base.BaseballBat" then
+        return
+    end
+    
+    -- Get item condition (0-100)
+    local condition = item:getCondition()
+    
+    -- Calculate multiplier based on condition
+    local multiplier = 1.0
+    if condition < 50 then
+        multiplier = 0.5  -- Poor condition: 50% of price
+    elseif condition < 75 then
+        multiplier = 0.85  -- Fair condition: 85% of price
+    end
+    
+    -- Only add modifier if it changes price
+    if multiplier ~= 1.0 then
+        table.insert(modifiers, {
+            multiplier = multiplier,
+            label = "conditionFactor"
+        })
+        
+        SharedLogger.log(
+            "Shops",
+            "[ShopsHooksExample] Applied condition modifier to " .. itemId ..
+            ": condition=" .. condition .. ", multiplier=" .. multiplier
+        )
+    end
+end
+```
+
+---
+
+## Testing
+
+### Minimal Test
+
+1. Enable mod
+2. Buy Base.Apple
+3. Check server logs for "Applied buy modifier"
+4. Verify price is reduced (0.9x = 10% discount)
+
+### Override Test
+
+1. Set override: `SHOPSB42.ShopsHooksExampleState.appleOverrideBuyPrice = 5`
+2. Call resync: `SHOPSB42.ShopFinalizeHandler.onPriceHooksChanged()`
+3. Buy Base.Apple
+4. Verify price is exactly 5
+5. Check logs for "Overriding Apple buy price"
+
+### Condition Test
+
+1. Get Base.Apple from ground (condition < 100)
+2. Sell to shop
+3. Verify price reduced by condition factor
+4. Check logs for "Applied condition modifier"
 
 ---
 
 ## Next Steps
 
-1. **Review README.md** for feature overview
-2. **Review CONFIGURATION.md** for customization guide
-3. **Copy ExampleShop.lua** as template for your mod
-4. **Customize items** in registration functions
-5. **Adjust prices** in modification functions
-6. **Add features** using override hooks
-7. **Test thoroughly** with logging enabled
-8. **Debug** using patterns in this guide
+1. **Read README.md** for complete feature overview
+2. **Read ShopsHooksExampleInit.lua** to understand registration
+3. **Read ShopsHooksExampleHooks.lua** to see implementations
+4. **Read ShopsHooksExampleState.lua** for configuration
+5. **Modify** item IDs to your items
+6. **Adjust** multipliers to your preferences
+7. **Test** in-game with logging enabled
+8. **Extend** by adding more hooks following these patterns
 
-See hooks documentation for complete hook system reference.
+---
+
+**Implementation Guide — ShopsHooksExample**  
+Server-only reference for Shops B42.13.1 price hooks

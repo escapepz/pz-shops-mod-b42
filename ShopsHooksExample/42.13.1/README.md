@@ -1,355 +1,437 @@
-# Example Shop Mod
+# ShopsHooksExample — Server-Only Reference Implementation
 
-A comprehensive example mod demonstrating all Shop hook system features, including item registration, dynamic pricing, VIP reputation system, and time-based sales.
+A **minimal, focused server-side reference implementation** demonstrating correct usage of the Shops price hook system in Project Zomboid B42.13.1 Multiplayer.
 
 ## Overview
 
-This mod registers 25 buyable items and 25 sellable items, then applies complex pricing logic through the Shop hook system to demonstrate:
+This mod is a **drop-in template** for mod authors who want to create custom price hooks. It demonstrates:
 
-- **Multiple item categories** (food, medical, tools, weapons, ammunition)
-- **Dynamic pricing** via modification hooks (category, time, reputation, bulk)
-- **Price overrides** for special items and conditions
-- **Reputation/VIP system** with tiered discounts and bonuses
-- **Server/client separation** for authority and UI
-- **Whitelist sell mode** restricting what items can be sold
+- ✅ Server-side-only hook registration
+- ✅ Modifier hook pattern (multiplier stacking)
+- ✅ Override hook pattern (short-circuit behavior)
+- ✅ Buy vs Sell asymmetry (itemId string vs item object)
+- ✅ SHOPSB42 namespace usage (no globals)
+- ✅ Correct logging with SharedLogger
+- ✅ Price hook lifecycle and resync
 
-## Features
+This example is **NOT**:
+- ❌ A testing harness (see Shops/TestPriceHooks.lua for that)
+- ❌ A debug console mod
+- ❌ A UI-driven mod
+- ❌ A command-based mod
 
-### 1. Item Registration
+## Features Demonstrated
 
-**Buy Items (25 total):**
-- Food & Supplies: Apple, Banana, Orange, Bread, Pop, Water (6 items)
-- Canned Goods: Apple, Bell Peppers, Carrot, Chili (4 items)
-- First Aid: Bandage, Painkiller, Antibiotic, Disinfectant (4 items)
-- Tools & Equipment: Flashlight, Rope, Hammer, Screwdriver (4 items)
-- Weapons: Handgun, Pistol, Revolver, Assault Rifle, Hunting Rifle (5 items)
-- Ammunition: 223 Rounds, 762mm Rounds, 9mm Rounds, Shotgun Shells (4 items)
+### 1. Modifier Hook (Buy Price)
 
-**Sell Items (25 + 1 blacklisted):**
-- Same 25 items at reduced base prices (30-50% of buy price)
-- 1 blacklisted item (KeyRing) that cannot be sold
-- Whitelist mode enabled: ONLY registered items can be sold
+**Hook**: `registerOnShopModifyBuyPrice`  
+**Item**: Base.Apple  
+**Effect**: -10% fruit category discount
 
-### 2. Buy Price System
+```lua
+function modifyAppleBuyPrice(player, itemId, basePrice, context, modifiers)
+    if itemId ~= "Base.Apple" then return end
+    
+    table.insert(modifiers, {
+        multiplier = 0.9,
+        label = "appleFruitDiscount"
+    })
+end
+```
 
-**Category-based Markup:**
-- Weapons: +30% markup
-- Ammunition: +20% markup
-- Medical items: +15% markup
-- Food: -10% discount
+**Key Points**:
+- Receives `itemId` as string (not item object)
+- Appends to `modifiers` table for stacking
+- Multipliers chain: 100 → 100 × 0.9 = 90
 
-**Time-based Pricing:**
-- Morning (6 AM - 10 AM): -5% discount
-- Evening (6 PM - 11 PM): +10% premium
-- Night (11 PM - 6 AM): +15% premium
+### 2. Override Hook (Buy Price)
 
-**VIP System (Reputation-based):**
-- Bronze (100+ rep): -5% discount
-- Silver (250+ rep): -10% discount
-- Gold (500+ rep): -15% discount
+**Hook**: `registerOnShopOverrideBuyPrice`  
+**Item**: Base.Apple (optional)  
+**Effect**: Fixed price (if enabled)
 
-**Bulk Discounts:**
-- 5-9 items in inventory: -10% discount
-- 10+ items in inventory: -15% discount
+```lua
+function overrideAppleBuyPrice(player, itemId, price, context)
+    if itemId ~= "Base.Apple" then return nil end
+    
+    if appleOverrideBuyPrice == nil then return nil end
+    
+    return appleOverrideBuyPrice  -- Short-circuits modifiers
+end
+```
 
-**Price Overrides:**
-- Water: Fixed at 10 (overrides all modifiers)
-- Pop: Fixed at 15
-- Admin access can be implemented for free items
+**Key Points**:
+- Returns final price OR `nil` (skip override)
+- Non-nil return short-circuits modifier stacking
+- Disabled by default (appleOverrideBuyPrice = nil)
 
-### 3. Sell Price System
+### 3. Modifier Hook (Sell Price)
 
-**Condition-based Multipliers:**
-- Excellent (75-100): 1.0x (full price)
-- Good (50-74): 0.85x
-- Fair (25-49): 0.5x
-- Poor (0-24): 0.2x
+**Hook**: `registerOnShopModifySellPrice`  
+**Items**: Base.Apple, Base.BaseballBat  
+**Effect**: Condition-based multiplier
 
-**Bulk Seller Bonus:**
-- 10-20 items: +5% bonus
-- 20+ items: +10% bonus
+```lua
+function modifySellPriceByCondition(player, item, basePrice, context, modifiers)
+    if item:getFullType() ~= "Base.Apple" and
+       item:getFullType() ~= "Base.BaseballBat" then
+        return
+    end
+    
+    local condition = item:getCondition()
+    local multiplier = condition < 50 and 0.5 or (condition < 75 and 0.85 or 1.0)
+    
+    if multiplier ~= 1.0 then
+        table.insert(modifiers, {
+            multiplier = multiplier,
+            label = "conditionFactor"
+        })
+    end
+end
+```
 
-**Reputation Bonus:**
-- Bronze (100+ rep): +5% bonus
-- Silver (250+ rep): +10% bonus
-- Gold (500+ rep): +15% bonus
-
-**Price Overrides:**
-- Damaged weapons (condition < 30): Won't buy (return 0)
-- Premium weapons (Assault Rifle, Hunting Rifle, Pistol): Fixed buyback prices
-
-### 4. Reputation System
-
-- Earn 1 reputation per item purchased
-- Earn 2 reputation per item sold
-- Unlock VIP tiers for better prices
+**Key Points**:
+- Receives `item` object (not itemId string)
+- Use `item:getFullType()` to get ID
+- Use `item:getCondition()` for quality (0-100)
+- Asymmetry from buy hooks: different signatures
 
 ## File Structure
 
 ```
 ShopsHooksExample/
 ├── 42.13.1/
-│   ├── mod.info                          # Mod metadata
-│   ├── README.md                         # This file
-│   ├── CONFIGURATION.md                  # Config reference guide
-│   ├── IMPLEMENTATION_GUIDE.md           # Implementation patterns
+│   ├── mod.info
+│   ├── README.md                      (this file)
+│   ├── CONFIGURATION.md               (quick reference)
 │   └── media/
 │       └── lua/
-│           ├── shared/
-│           │   └── ExampleShop.lua       # Main mod (32 functions)
-│           ├── server/
-│           │   └── ExampleShopServer.lua # Server logic (reputation, stats)
-│           └── client/
-│               └── ExampleShopClient.lua # Client UI helpers
+│           └── server/
+│               ├── ShopsHooksExample_init.lua      (entry point)
+│               └── nshopsb42/
+│                   ├── ShopsHooksExampleInit.lua       (registration)
+│                   ├── ShopsHooksExampleHooks.lua      (implementations)
+│                   └── ShopsHooksExampleState.lua      (configuration)
 └── common/
 ```
 
 ## Installation
 
 1. Copy `ShopsHooksExample/` to your `Mods` directory
-2. Enable "Shops" mod (required dependency)
+2. Ensure "Shops" mod (B42.13.1+) is installed and enabled
 3. Enable "ShopsHooksExample" mod
-4. Load game
+4. Load game (server starts, hooks register automatically)
 
 ## Configuration
 
-All settings in `ExampleShop.lua`:
+Edit `ShopsHooksExampleState.lua`:
 
 ```lua
-ExampleShop.CONFIG = {
-    enableVIPSystem = true,        -- VIP tiers and reputation
-    enableTimedSales = true,       -- Time-based pricing variations
-    enableBulkDiscounts = true,    -- Bulk purchase/sale bonuses
-    debugLogging = true,           -- Console output for debugging
-}
+-- Apple buy price multiplier (default 0.9 = -10%)
+State.appleBuyMultiplier = 0.9
+
+-- Apple buy price override (default nil = disabled)
+-- Set to numeric value to fix apple buy price
+State.appleOverrideBuyPrice = nil
 ```
 
-See `CONFIGURATION.md` for detailed customization options.
-
-## Key Modules
-
-### ExampleShop.lua (Shared)
-
-**32 functions:**
-- `registerBuyItems()` - Register 25 buyable items
-- `registerSellItems()` - Register 25 sellable items (whitelist mode)
-- `modifyBuyPriceByCategory()` - Apply category-based markups
-- `modifyBuyPriceByTime()` - Apply time-of-day variations
-- `modifyBuyPriceVIP()` - Apply reputation-based discounts
-- `modifyBuyPriceByBulk()` - Apply bulk purchase discounts
-- `overrideBuyPriceSpecialItems()` - Fixed prices for specific items
-- `overrideBuyPriceAdmin()` - Free items for admins
-- `modifySellPriceByCondition()` - Adjust by item condition
-- `modifySellPriceByQuantity()` - Bulk seller bonus
-- `modifySellPriceByReputation()` - Loyalty bonus
-- `overrideSellPriceDamaged()` - Reject damaged weapons
-- `overrideSellPricePremium()` - Fixed prices for premium weapons
-- `registerHooks()` - Register all 11 hook callbacks
-- `testPriceHooks()` - Verify pricing calculations
-
-### ExampleShopServer.lua (Server-side)
-
-**Reputation & Statistics:**
-- `onPlayerBuyFromShop()` - Award 1 rep per item
-- `onPlayerSellToShop()` - Award 2 rep per item
-- `getVIPTierName()` - Get tier: Standard, Bronze, Silver, Gold
-- `getPlayerShopStats()` - Return player reputation and tier info
-- `getBuyDiscount()` - Calculate discount percentage
-- `getSellBonus()` - Calculate sell bonus percentage
-- Finalizes buy/sell registries on load
-
-### ExampleShopClient.lua (Client-side)
-
-**UI Display Helpers:**
-- `getVIPTierDisplay()` - Get tier name with RGB color
-- `formatPrice()` - Format price with currency symbol
-- `getDiscountText()` - Display discount percentage
-- `createItemTooltip()` - Generate item info tooltip
-- `showVIPBenefits()` - Display player VIP status
-- `getTimePeriod()` - Get current game time period name
-- `getBuyItems()` - Get item list organized by category
-- `getCategoryName()` - Get display name for category
-
-## Hook Usage
-
-### Item Registration Hook
-
+To enable apple buy override:
 ```lua
-ShopEvents.registerOnShopRegisterItems(function()
-    Shop.RegisterItem("Base.Apple", { tab = Tab.Food, price = 12 })
-    Shop.RegisterItem("Base.Banana", { tab = Tab.Food, price = 15 })
-end)
+State.appleOverrideBuyPrice = 5  -- Force apple buy price to 5
 ```
 
-### Buy Price Modification Hook (4 hooks registered)
+## Customization Guide
+
+### Add a New Item
+
+Edit `ShopsHooksExampleInit.lua` and `ShopsHooksExampleHooks.lua`:
 
 ```lua
-ShopPriceEvents.registerOnShopModifyBuyPrice(function(player, itemId, base, context, modifiers)
-    if string.find(itemId, "Weapon") then
-        table.insert(modifiers, { multiplier = 1.3, label = "weaponMarkup" })
-    end
-end)
+-- In ShopsHooksExampleHooks.lua, add new hook function:
+function Hooks.modifyBananaPrice(player, itemId, basePrice, context, modifiers)
+    if itemId ~= "Base.Banana" then return end
+    
+    table.insert(modifiers, {
+        multiplier = 0.95,
+        label = "bananaDiscount"
+    })
+end
+
+-- In ShopsHooksExampleInit.lua, register it:
+ShopPriceEvents.registerOnShopModifyBuyPrice(
+    ShopsHooksExampleHooks.modifyBananaPrice
+)
 ```
 
-Modifiers are multiplied sequentially:
-- Base: 100
-- Weapon markup: 100 × 1.3 = 130
-- Time-based: 130 × 0.95 (morning) = 123.5
-- VIP Gold: 123.5 × 0.85 = 105
-
-### Buy Price Override Hook (2 hooks registered)
+### Change Multiplier at Runtime
 
 ```lua
-ShopPriceEvents.registerOnShopOverrideBuyPrice(function(player, itemId, price, context)
-    if itemId == "Base.Water" then
-        return 10  -- Override with fixed price
-    end
+-- From admin mod or server console:
+SHOPSB42.ShopsHooksExampleState.appleBuyMultiplier = 0.75
+
+-- IMPORTANT: Trigger resync to apply changes
+SHOPSB42.ShopFinalizeHandler.onPriceHooksChanged()
+```
+
+### Add Sell Override
+
+Similar to buy override, in `ShopsHooksExampleHooks.lua`:
+
+```lua
+function Hooks.overrideSellPrice(player, item, price, context)
+    if item:getFullType() ~= "Base.BaseballBat" then return nil end
+    
+    -- Don't buy damaged bats
+    if item:getCondition() < 30 then return 0 end
+    
     return nil  -- Use calculated price
-end)
+end
 ```
 
-### Sell Price Hooks (3 modification + 2 override)
+Then register in `ShopsHooksExampleInit.lua`:
 
 ```lua
-ShopPriceEvents.registerOnShopModifySellPrice(function(player, item, base, context, modifiers)
-    local condition = item:getCondition()
-    if condition < 50 then
-        table.insert(modifiers, { multiplier = 0.5, label = "conditionFair" })
-    end
-end)
-
-ShopPriceEvents.registerOnShopOverrideSellPrice(function(player, item, price, context)
-    if item:getCondition() < 30 and string.find(item:getID(), "Rifle") then
-        return 0  -- Won't buy damaged weapon
-    end
-    return nil
-end)
+ShopPriceEvents.registerOnShopOverrideSellPrice(
+    ShopsHooksExampleHooks.overrideSellPrice
+)
 ```
+
+## Hook Semantics Reference
+
+### Modify Hooks
+- **Function**: Appends multiplier to `modifiers` table
+- **Returns**: `nil` (side-effect on modifiers)
+- **Stacking**: All modify hooks execute, multipliers chain
+- **Example**: `table.insert(modifiers, { multiplier = 0.9 })`
+
+### Override Hooks
+- **Function**: Returns final price or `nil`
+- **Returns**: Numeric price (override) or `nil` (skip)
+- **Short-circuit**: First non-nil return wins, stops modifier stacking
+- **Example**: `return price or nil`
+
+### Buy vs Sell Signatures
+
+| Aspect | Buy | Sell |
+|--------|-----|------|
+| Modify | `(player, itemId, basePrice, context, modifiers)` | `(player, item, basePrice, context, modifiers)` |
+| Override | `(player, itemId, price, context)` | `(player, item, price, context)` |
+| Item param | String ID | Object |
+| Item access | `itemId` | `item:getFullType()` |
+| Extra methods | — | `item:getCondition()` |
 
 ## Price Calculation Example
 
-**Buying 10x Apples as Gold VIP at night:**
+**Buying Apple (Base.Apple)**:
 
-1. Base price: 12
-2. Food discount: 12 × 0.9 = 10.8
-3. Night premium: 10.8 × 1.15 = 12.42
-4. VIP Gold: 12.42 × 0.85 = 10.557
-5. Bulk discount (10+): 10.557 × 0.85 = 8.97
-6. **Final: 8.97 (rounded)**
+```
+Base price: 12
+Modifier 1 (fruit discount): 12 × 0.9 = 10.8
+Modifier 2 (other mods): 10.8 × 1.0 = 10.8
+Override: nil (not applied)
+Final: 10.8 (rounded to 10 or 11)
+```
+
+**With override active** (override = 5):
+
+```
+Base price: 12
+[All modifiers ignored]
+Override: 5 ← Short-circuits
+Final: 5
+```
+
+**Selling Apple (condition = 60)**:
+
+```
+Base price: 6
+Modifier 1 (condition fair): 6 × 0.85 = 5.1
+Modifier 2 (other mods): 5.1 × 1.0 = 5.1
+Override: nil (not applied)
+Final: 5.1 (rounded)
+```
+
+## Key Concepts
+
+### Modifier Stacking
+
+Multipliers chain together:
+```
+Price = Base × Multiplier1 × Multiplier2 × Multiplier3 × ...
+```
+
+All modifier hooks execute (no short-circuit).
+
+### Override Short-Circuit
+
+First non-nil override wins:
+```
+If Override1 returns 50 → use 50 (stop)
+Else if Override2 returns 75 → use 75 (stop)
+Else if Override3 returns nil → continue
+Else use calculated price from modifiers
+```
+
+### Buy vs Sell Asymmetry
+
+**Buy hooks receive itemId** (string):
+```lua
+function(player, itemId, basePrice, context, modifiers)
+    if itemId == "Base.Apple" then ...
+```
+
+**Sell hooks receive item object**:
+```lua
+function(player, item, basePrice, context, modifiers)
+    if item:getFullType() == "Base.Apple" then
+        local condition = item:getCondition()
+```
+
+This is intentional: sell pricing often depends on item quality.
+
+### Resync Lifecycle
+
+**Initial registration** (on mod load):
+- No resync needed
+- Shops collects hooks during startup
+- Prices cached after finalization
+
+**Runtime changes** (if state modified):
+```lua
+SHOPSB42.ShopsHooksExampleState.appleBuyMultiplier = 0.5
+SHOPSB42.ShopFinalizeHandler.onPriceHooksChanged()  -- Trigger resync
+```
+
+This invalidates caches and broadcasts updated prices to clients.
+
+## Logging
+
+All logging uses `SharedLogger`:
+
+```lua
+SharedLogger.log("Shops", "[ShopsHooksExample] Message here")
+```
+
+Output appears in:
+- **Server logs**: `Logs/Server/*_Shops.txt`
+- **Client logs**: `Logs/Client/*_Shops.txt`
+
+Never use `writeLog()` directly (except in SharedLogger itself).
+
+## Multiplayer Safety
+
+- ✅ Server-authoritative pricing
+- ✅ All calculations server-side only
+- ✅ Prices sync to clients via Shops resync
+- ✅ No client code, no command flow
+- ✅ Thread-safe (Lua single-threaded)
+- ✅ Cache invalidation via `onPriceHooksChanged()`
 
 ## Testing
 
-To test price hooks, enable debug logging and check console output:
+Enable logging and check server logs:
 
-```lua
-ExampleShop.CONFIG.debugLogging = true
--- Game will log all hook registrations and price calculations
+```bash
+tail -f Logs/Server/*_Shops.txt
 ```
 
-Console output shows:
-- Hook registration counts
-- Each price modification applied
-- Final calculated prices for test items
-
-## Features Demonstrated
-
-✓ Item registration with Shop.RegisterItem()
-✓ Multiple modification hooks on single event
-✓ Override hooks with short-circuit behavior
-✓ Modifier table manipulation with labels
-✓ Parameter access (player, item, context)
-✓ Reputation system with player properties
-✓ Time-based game mechanics
-✓ Condition-based quality pricing
-✓ Admin special handling (template)
-✓ Server/client code separation
-✓ Whitelist sell mode configuration
-✓ Transaction logging and tracking
-
-## Performance Notes
-
-- All hooks registered once during initialization (one-time cost)
-- Price hooks called per transaction (optimized for typical server load)
-- Modification hooks always execute; override hooks short-circuit
-- Bulk discount checks inventory (slight performance cost)
-- Debug logging can be disabled for production
-
-## Common Customizations
-
-### Make weapons cheaper
-Edit `modifyBuyPriceByCategory()` line 152:
-```lua
-table.insert(modifiers, { multiplier = 1.1, label = "weaponMarkup" })  -- 1.1 instead of 1.3
+You should see:
+```
+[ShopsHooksExample] Initializing server-only reference example
+[ShopsHooksExample] Registered: modifyAppleBuyPrice
+[ShopsHooksExample] Registered: overrideAppleBuyPrice
+[ShopsHooksExample] Registered: modifySellPriceByCondition
+[ShopsHooksExample] All hooks registered successfully
 ```
 
-### Increase VIP discount
-Edit `modifyBuyPriceVIP()` line 224:
-```lua
-table.insert(modifiers, { multiplier = 0.75, label = "vipGold" })  -- 0.75 = 25% off instead of 15%
+When buying/selling:
+```
+[ShopsHooksExample] Applied buy modifier to Base.Apple: multiplier=0.9
+[ShopsHooksExample] Applied condition modifier to Base.Apple: condition=85, multiplier=1.0
 ```
 
-### Change VIP reputation thresholds
-Edit `modifyBuyPriceVIP()` lines 211-226:
+## Code Quality Notes
+
+- **SHOPSB42 namespace**: No globals, all code under SHOPSB42
+- **SharedLogger only**: No `writeLog()` calls outside SharedLogger
+- **Comment style**: "Why" not "What" — explains intent, not implementation
+- **Error handling**: Guards check for nil parameters before use
+- **Logging**: Registered on hook activation, executed with parameters
+- **Structure**: Init → Registration → Hooks → State (clear separation)
+
+## Common Issues
+
+### Hooks Don't Execute
+
+1. Check mod is enabled
+2. Check server logs for registration errors
+3. Verify items exist (Base.Apple, Base.BaseballBat)
+4. Verify Shops mod is installed and enabled
+
+### Prices Don't Change
+
+1. Check that hook state is correct
+   ```lua
+   print(SHOPSB42.ShopsHooksExampleState.appleBuyMultiplier)
+   ```
+2. If you modified state, call resync:
+   ```lua
+   SHOPSB42.ShopFinalizeHandler.onPriceHooksChanged()
+   ```
+3. Check client logs for price broadcasts
+
+### Logs Not Appearing
+
+1. Verify logging is enabled
+2. Check log file: `Logs/Server/*_Shops.txt`
+3. Verify mod loaded (check server console)
+
+## Advanced: Extending the Example
+
+### Adding Reputation-Based Pricing
+
 ```lua
-if reputation >= 75 then  -- Changed from 100
-```
-
-See `CONFIGURATION.md` for more customization examples.
-
-## Debugging
-
-Enable debug logging to see:
-- Hook registrations (how many registered)
-- Hook execution (when called, with what parameters)
-- Price modifications (each multiplier applied)
-- Reputation changes
-- Transaction logging
-
-## Compatibility
-
-- **Requires:** Shops (B42.13.1+)
-- **Works with:** Any mod respecting Shop hooks
-- **Conflicts:** None known
-
-## Advanced Examples
-
-### Conditional VIP Discount
-
-```lua
-ShopPriceEvents.registerOnShopOverrideBuyPrice(function(player, itemId, price, context)
-    if player and ExampleShop.getPlayerReputation(player) >= 500 then
-        return math.floor(price * 0.85)  -- 15% off for Gold VIP
+function Hooks.modifyApplePriceByReputation(player, itemId, basePrice, context, modifiers)
+    if itemId ~= "Base.Apple" then return end
+    if not player then return end
+    
+    local reputation = player:getProperty("mymod_reputation") or 0
+    if reputation > 100 then
+        table.insert(modifiers, { multiplier = 0.9, label = "reputationDiscount" })
     end
-    return nil
-end)
-```
-
-### Item Bundle Pricing
-
-```lua
-if context.quantity >= 10 then
-    table.insert(modifiers, { multiplier = 0.8, label = "bundleDiscount" })
 end
 ```
 
-### Dynamic Weekend Pricing
+### Adding Time-Based Pricing
 
 ```lua
--- Add to modifyBuyPriceByTime()
-local gameTime = getGameTime()
-if gameTime:getDaysSurvived() % 7 >= 5 then  -- Weekend
-    table.insert(modifiers, { multiplier = 1.2, label = "weekendPremium" })
+function Hooks.modifyApplePriceByTime(player, itemId, basePrice, context, modifiers)
+    if itemId ~= "Base.Apple" then return end
+    
+    local hour = getGameTime():getHour()
+    if hour >= 22 or hour < 6 then
+        table.insert(modifiers, { multiplier = 1.15, label = "nightPremium" })
+    end
 end
 ```
+
+## References
+
+- **Shops API**: See `.libraries/library/lua/` for PZ engine definitions
+- **TestPriceHooks**: `Shops/42.13.1/media/lua/server/nshopsb42/TestPriceHooks.lua`
+- **Vanilla game code**: `tmp/Vanilla/` for reference implementations
+- **Price resolution**: See Shops mod `ShopPriceEvents.lua`
 
 ## License
 
-Example mod for educational purposes. Modify and distribute freely.
+Reference implementation for educational purposes. Modify and distribute freely as part of your own mods.
 
 ## Next Steps
 
-1. Read `CONFIGURATION.md` to customize settings
-2. Read `IMPLEMENTATION_GUIDE.md` to understand patterns
-3. Edit ExampleShop.lua to modify items and prices
-4. Test using debug logging
-5. Use as template for your own Shop mod
+1. Copy this directory
+2. Adjust item IDs to your items
+3. Modify multipliers and conditions
+4. Test in-game
+5. Customize hooks as needed
+
+No additional setup, no undocumented dependencies, no trial-and-error.

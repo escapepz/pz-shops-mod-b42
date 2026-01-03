@@ -6,7 +6,8 @@ SHOPSB42.SharedLogger = SHOPSB42.SharedLogger or {}
 local SharedLogger = SHOPSB42.SharedLogger
 
 -- Global debug toggle - set to false to disable all logging
-SharedLogger.DEBUG = true
+local isDebugMode = getCore():getDebug()
+SharedLogger.DEBUG = isDebugMode
 
 -- Get the current execution side
 -- @return string: "[SERVER]", "[CLIENT]", or nil
@@ -49,7 +50,7 @@ function SharedLogger.log(modName, message, context, details)
 		local action = message
 		local phase = context
 		fullMessage = string.format("%s [%s:%s] %s", side, action, phase, details)
-	-- Handle 3-param signature: message with context
+		-- Handle 3-param signature: message with context
 	elseif context then
 		if type(context) == "table" then
 			-- Details table provided
@@ -62,7 +63,7 @@ function SharedLogger.log(modName, message, context, details)
 			-- Context is a string
 			fullMessage = string.format("%s %s %s", side, message, context)
 		end
-	-- Handle 2-param signature: simple message
+		-- Handle 2-param signature: simple message
 	else
 		fullMessage = string.format("%s %s", side, message)
 	end

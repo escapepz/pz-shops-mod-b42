@@ -30,7 +30,7 @@ Tab.Event = "Event"
 
 -- Shop UI Configuration (used by both client and server)
 Shop.Sell = Shop.Sell or {}
-Shop.SellisWhitelist = false -- true = whitelist mode, false = blacklist mode
+Shop.SellisWhitelist = true -- true = whitelist mode, false = blacklist mode
 Shop.defaultPrice = 1
 Shop.defaultPriceBroken = 1
 

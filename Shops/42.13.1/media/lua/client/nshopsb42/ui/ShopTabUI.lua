@@ -19,8 +19,9 @@ local browseBtn = Shop.textures.Browse
 
 -- Get game's accessibility colors (respects user settings)
 local goodColor = getCore():getGoodHighlitedColor()
-local neutralColor = getCore():getNeutralHighlitedColor()
--- Use gray for base price reference
+-- Neutral color: use a standard light gray (B42.13.1 doesn't have getNeutralHighlitedColor)
+local neutralColor = { r = 0.85, g = 0.85, b = 0.85, a = 1 }
+-- Use darker gray for base price reference
 local grayColor = { r = 0.3, g = 0.3, b = 0.3, a = 1 }
 
 function ShopTabUI:initialise()

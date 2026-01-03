@@ -1,22 +1,31 @@
--- Event items registration (SERVER ONLY)
--- Deferred to avoid errors if Shop.RegisterItem not yet defined
+-- Event items (declarative list)
+-- Returns a table of item definitions to be registered by ShopDefaultItems
 
-local Utilities = require("nshopsb42/utils/Utilities")
+local Tab = SHOPSB42.Tab
 
-if Utilities.IsServerOrSinglePlayer() then
-	local Tab = SHOPSB42.Tab
-	local Shop = SHOPSB42.Shop
-	if Shop and Shop.RegisterItem then
-		Shop.RegisterItem("Base.HairDyeBlonde", {
+return {
+	{
+		id = "Base.HairDyeBlonde",
+		config = {
 			tab = Tab.Event,
 			price = 5,
 			specialCoin = true,
-		})
-
-		Shop.RegisterItem("Base.Bag_BigHikingBag", {
+		},
+	},
+	{
+		id = "Base.Bag_BigHikingBag",
+		config = {
 			tab = Tab.Event,
 			price = 5,
 			specialCoin = true,
-		})
-	end
-end
+		},
+	},
+	{
+		id = "Base.Chocolate_HeartBox",
+		config = {
+			tab = Tab.Event,
+			price = 5,
+			specialCoin = true,
+		},
+	},
+}

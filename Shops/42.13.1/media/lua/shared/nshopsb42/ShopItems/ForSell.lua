@@ -1,35 +1,43 @@
--- ForSell.lua (SERVER ONLY)
+-- ForSell items (declarative list)
 -- Default sell items registry - loaded only if no external sell hooks register items
--- Deferred to avoid errors if Shop.RegisterSellItem not yet defined
+-- Returns a table of item definitions to be registered by ShopDefaultItems
 
-local Utilities = require("nshopsb42/utils/Utilities")
-
-if Utilities.IsServerOrSinglePlayer() then
-	local Shop = SHOPSB42.Shop
-	if Shop and Shop.RegisterSellItem then
-		-- Shop.RegisterSellItem("Base.KeyRing", {
-		-- 	blacklisted = true,
-		-- })
-
-		-- Shop.RegisterSellItem("Base.BaseballBat", {
-		-- 	price = 50,
-		-- })
-
-		-- Shop.RegisterSellItem("Base.CreditCard", {
-		-- 	price = 1,
-		-- 	specialCoin = true,
-		-- })
-
-		-- Shop.RegisterSellItem("Base.PillsBeta", {
-		-- 	price = 50,
-		-- })
-
-		Shop.RegisterSellItem("Base.Bikini_TINT", {
+return {
+	-- {
+	-- 	id = "Base.KeyRing",
+	-- 	config = {
+	-- 		blacklisted = true,
+	-- 	},
+	-- },
+	-- {
+	-- 	id = "Base.BaseballBat",
+	-- 	config = {
+	-- 		price = 50,
+	-- 	},
+	-- },
+	-- {
+	-- 	id = "Base.CreditCard",
+	-- 	config = {
+	-- 		price = 1,
+	-- 		specialCoin = true,
+	-- 	},
+	-- },
+	-- {
+	-- 	id = "Base.PillsBeta",
+	-- 	config = {
+	-- 		price = 50,
+	-- 	},
+	-- },
+	{
+		id = "Base.Bikini_TINT",
+		config = {
 			price = 15,
-		})
-
-		Shop.RegisterSellItem("Base.Bikini_Pattern01", {
+		},
+	},
+	{
+		id = "Base.Bikini_Pattern01",
+		config = {
 			price = 15,
-		})
-	end
-end
+		},
+	},
+}

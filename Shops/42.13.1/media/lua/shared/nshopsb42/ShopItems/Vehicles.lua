@@ -1,15 +1,14 @@
--- Vehicles items registration (SERVER ONLY)
--- Deferred to avoid errors if Shop.RegisterItem not yet defined
+-- Vehicles items (declarative list)
+-- Returns a table of item definitions to be registered by ShopDefaultItems
 
-local Utilities = require("nshopsb42/utils/Utilities")
+local Tab = SHOPSB42.Tab
 
-if Utilities.IsServerOrSinglePlayer() then
-	local Tab = SHOPSB42.Tab
-	local Shop = SHOPSB42.Shop
-	if Shop and Shop.RegisterItem then
-		Shop.RegisterItem("PinkSlip.CarNormal", {
+return {
+	{
+		id = "PinkSlip.CarNormal",
+		config = {
 			tab = Tab.Vehicles,
 			price = 500,
-		})
-	end
-end
+		},
+	},
+}

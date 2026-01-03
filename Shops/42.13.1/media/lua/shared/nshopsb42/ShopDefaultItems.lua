@@ -18,11 +18,25 @@ function ShopDefaultItems.loadDefaultBuyItems()
 		return
 	end
 
-	require("nshopsb42/ShopItems/Food")
-	require("nshopsb42/ShopItems/Weapons")
-	require("nshopsb42/ShopItems/FirstAid")
-	require("nshopsb42/ShopItems/Vehicles")
-	require("nshopsb42/ShopItems/Event")
+	-- Load item definitions from each category
+	local itemSources = {
+		"nshopsb42/ShopItems/Food",
+		"nshopsb42/ShopItems/Weapons",
+		"nshopsb42/ShopItems/FirstAid",
+		"nshopsb42/ShopItems/Vehicles",
+		"nshopsb42/ShopItems/Event",
+	}
+
+	for _, source in ipairs(itemSources) do
+		local items = require(source)
+		if items then
+			for _, entry in ipairs(items) do
+				if entry.id and entry.config then
+					Shop.RegisterItem(entry.id, entry.config)
+				end
+			end
+		end
+	end
 end
 
 -- Hook callback: Load default sell items
@@ -31,7 +45,15 @@ function ShopDefaultItems.loadDefaultSellItems()
 		return
 	end
 
-	require("nshopsb42/ShopItems/ForSell")
+	-- Load sell item definitions
+	local items = require("nshopsb42/ShopItems/ForSell")
+	if items then
+		for _, entry in ipairs(items) do
+			if entry.id and entry.config then
+				Shop.RegisterSellItem(entry.id, entry.config)
+			end
+		end
+	end
 end
 
 -- Register hooks (gates registration based on suppressDefaults flag)

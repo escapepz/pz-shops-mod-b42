@@ -1,15 +1,14 @@
--- Weapons items registration (SERVER ONLY)
--- Deferred to avoid errors if Shop.RegisterItem not yet defined
+-- Weapons items (declarative list)
+-- Returns a table of item definitions to be registered by ShopDefaultItems
 
-local Utilities = require("nshopsb42/utils/Utilities")
+local Tab = SHOPSB42.Tab
 
-if Utilities.IsServerOrSinglePlayer() then
-	local Tab = SHOPSB42.Tab
-	local Shop = SHOPSB42.Shop
-	if Shop and Shop.RegisterItem then
-		Shop.RegisterItem("Base.Crowbar", {
+return {
+	{
+		id = "Base.Crowbar",
+		config = {
 			tab = Tab.Weapons,
 			price = 250,
-		})
-	end
-end
+		},
+	},
+}

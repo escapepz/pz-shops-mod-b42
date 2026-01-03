@@ -1,20 +1,21 @@
--- Food items registration (SERVER ONLY)
--- Deferred to avoid errors if Shop.RegisterItem not yet defined
+-- Food items (declarative list)
+-- Returns a table of item definitions to be registered by ShopDefaultItems
 
-local Utilities = require("nshopsb42/utils/Utilities")
+local Tab = SHOPSB42.Tab
 
-if Utilities.IsServerOrSinglePlayer() then
-	local Tab = SHOPSB42.Tab
-	local Shop = SHOPSB42.Shop
-	if Shop and Shop.RegisterItem then
-		Shop.RegisterItem("Base.Apple", {
+return {
+	{
+		id = "Base.Apple",
+		config = {
 			tab = Tab.Food,
 			price = 15,
-		})
-
-		Shop.RegisterItem("Base.OatsRaw", {
+		},
+	},
+	{
+		id = "Base.OatsRaw",
+		config = {
 			tab = Tab.Food,
 			price = 20,
-		})
-	end
-end
+		},
+	},
+}

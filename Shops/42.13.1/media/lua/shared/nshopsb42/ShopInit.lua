@@ -11,7 +11,7 @@ local function validateItem(id, def)
 	assert(def.tab, "[Shop] Missing tab: " .. id)
 	assert(def.price, "[Shop] Missing price: " .. id)
 
-	if def.items then
+	if def.items and type(def.items) == "table" then
 		for _, e in ipairs(def.items) do
 			assert(e.item, "[Shop] Pack entry missing item: " .. id)
 		end

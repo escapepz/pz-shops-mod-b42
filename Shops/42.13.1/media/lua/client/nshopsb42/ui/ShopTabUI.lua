@@ -17,40 +17,12 @@ local addBtn = Shop.textures.AddButton
 local previewBtn = Shop.textures.PreviewButton
 local browseBtn = Shop.textures.Browse
 
--- UI colors for price display
--- Try to use game's accessibility colors, fall back to hardcoded if unavailable
-local function tryGetAccessibilityColor()
-	local ok, color = pcall(function()
-		local javaColor = getCore():getGoodHighlitedColor()
-		if not javaColor then
-			return nil
-		end
-		-- Try different method names for getting RGB floats
-		local r, g, b, a
-		if javaColor.getR then
-			r = javaColor:getR()
-			g = javaColor:getG()
-			b = javaColor:getB()
-			a = javaColor:getAlphaFloat()
-		elseif javaColor.getRedFloat then
-			r = javaColor:getRedFloat()
-			g = javaColor:getGreenFloat()
-			b = javaColor:getBlueFloat()
-			a = javaColor:getAlphaFloat()
-		else
-			return nil
-		end
-		return { r = r, g = g, b = b, a = a }
-	end)
-	if ok and color then
-		return color
-	end
-	return nil
-end
-
-local goodColor = tryGetAccessibilityColor() or { r = 0.0, g = 1.0, b = 0.0, a = 1 }
-local neutralColor = { r = 0.85, g = 0.85, b = 0.85, a = 1 } -- Light gray for neutral
-local grayColor = { r = 0.3, g = 0.3, b = 0.3, a = 1 }       -- Dark gray for base price reference
+-- Get game's accessibility colors (respects user settings)
+local goodColor = getCore():getGoodHighlitedColor()
+-- Neutral color: use a standard light gray (B42.13.1 doesn't have getNeutralHighlitedColor)
+local neutralColor = { r = 0.85, g = 0.85, b = 0.85, a = 1 }
+-- Use darker gray for base price reference
+local grayColor = { r = 0.3, g = 0.3, b = 0.3, a = 1 }
 
 function ShopTabUI:initialise()
 	ISPanelJoypad.initialise(self)

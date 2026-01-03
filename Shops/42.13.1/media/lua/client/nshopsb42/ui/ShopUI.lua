@@ -179,6 +179,13 @@ function ShopUI:show(player, viewMode, shop)
 	local ShopSyncClient = SHOPSB42.ShopSyncClient
 	if ShopSyncClient and not ShopSyncClient.isShopReady() then
 		SharedLogger.log("Shops", "[ShopUI:show] Shop not yet synced from server. Waiting...")
+		
+		-- Notify player that shop data is syncing (Phase 4.2: user feedback when UI not ready)
+		if player then
+			player:setHaloNote(getText("IGUI_Shop_DataSyncing") or "Shop data is syncing with server", 200, 200, 0, 500)
+			SharedLogger.log("Shops", "[ShopUI:show] Showed 'syncing' halo note")
+		end
+		
 		-- Queue the open request to retry when sync completes
 		ShopUI._pendingShowRequest = {
 			player = player,
@@ -311,6 +318,7 @@ end
 function ShopUI:doDrawCartItem(y, item, alt)
 	-- basePrice is guaranteed to be set when item is added to cart (ShopTabUI.addToCart)
 	-- Both finalPrice (item.price) and basePrice should always be present here
+	-- Cart now uses same visual logic as listing view
 
 	local baseItemDY = 0
 	if item.item.name then
@@ -349,7 +357,6 @@ function ShopUI:doDrawCartItem(y, item, alt)
 	if item.item.price then
 		local basePrice = item.item.basePrice or item.item.price
 		local finalPrice = item.item.price
-		local discount = basePrice - finalPrice
 
 		local coinImg = Currency.CoinsTexture.Coin
 		if item.item.specialCoin then
@@ -362,36 +369,172 @@ function ShopUI:doDrawCartItem(y, item, alt)
 		-- Price section starts at 280, constrained to not overlap buttons
 		local priceX = 280
 
-		if discount ~= 0 then
-			-- Show final price on first line at X=280 (matching listing view)
-			local finalPriceFormatted = Currency.format(finalPrice)
-			local isSellTab = self.parent and self.parent.tabType == Tab.Sell
+		-- Color definitions (matching ShopTabUI)
+		local goodColor = { r = 0, g = 1, b = 0, a = 1 }
+		local neutralColor = { r = 0.85, g = 0.85, b = 0.85, a = 1 }
+		local grayColor = { r = 0.3, g = 0.3, b = 0.3, a = 1 }
 
-			-- Determine if this is a good deal for the player
-			-- Buy tab: discount > 0 (finalPrice < basePrice) = good for buyer
-			-- Sell tab: discount < 0 (finalPrice > basePrice) = good for seller
-			local isGoodDeal = (isSellTab and discount < 0) or (not isSellTab and discount > 0)
-
-			if isGoodDeal then
-				-- Good deal: show finalPrice in white with green percentage
-				self:drawText(finalPriceFormatted, priceX, y + 8, 1, 1, 1, a, UIFont.Small)
-				local percentValue = math.floor((math.abs(discount) / basePrice) * 100)
-				local percentSign = discount > 0 and "-" or "+"
-				self:drawText(percentSign .. percentValue .. "%", priceX + 48, y + 8, 0.2, 1, 0.2, a, UIFont.Small)
-			else
-				-- Bad deal: show finalPrice in white/neutral, no percentage
-				self:drawText(finalPriceFormatted, priceX, y + 8, 1, 1, 1, a, UIFont.Small)
+		-- Determine if this is a Sell tab (colors are inverted for Sell)
+		-- Get active tab from ShopUI instance (self.parent is the ShopUI panel)
+		local isSellTab = false
+		if self.parent and self.parent.panel and self.parent.panel.activeView then
+			local activeTab = self.parent.panel.activeView.view
+			if activeTab then
+				isSellTab = activeTab.tabType == Tab.Sell
 			end
+		end
 
-			-- Show base price on second line below finalPrice (grayed out)
-			local basePriceFormatted = Currency.format(basePrice)
-			self:drawText(basePriceFormatted, priceX, y + 8 + self.SMALL_FONT_HGT, 0.5, 0.5, 0.5, a, UIFont.Small)
+		local finalPriceFormatted = Currency.format(finalPrice)
+		local basePriceFormatted = Currency.format(basePrice)
+
+		if finalPrice ~= basePrice then
+			-- Price changed: apply listing logic to cart
+			if finalPrice > basePrice then
+				if isSellTab then
+					-- SELL TAB: Price increased is GOOD for player - show in green with +%
+					self:drawText(
+						finalPriceFormatted,
+						priceX,
+						y + 8,
+						goodColor.r,
+						goodColor.g,
+						goodColor.b,
+						a,
+						UIFont.Small
+					)
+					self:drawText(
+						basePriceFormatted,
+						priceX,
+						y + 8 + self.SMALL_FONT_HGT,
+						grayColor.r,
+						grayColor.g,
+						grayColor.b,
+						a,
+						UIFont.Small
+					)
+
+					local gain = finalPrice - basePrice
+					local gainPct = 0
+					if basePrice and basePrice > 0 then
+						gainPct = math.floor((gain / basePrice) * 100)
+						if gainPct ~= gainPct or gainPct == math.huge or gainPct == -math.huge then
+							gainPct = 0
+						end
+					end
+					self:drawText(
+						"+" .. gainPct .. "%",
+						priceX + 48,
+						y + 8,
+						goodColor.r,
+						goodColor.g,
+						goodColor.b,
+						a,
+						UIFont.Small
+					)
+				else
+					-- BUY TAB: Price increased is BAD for player - show in neutral color, basePrice grayed below
+					self:drawText(
+						finalPriceFormatted,
+						priceX,
+						y + 8,
+						neutralColor.r,
+						neutralColor.g,
+						neutralColor.b,
+						a,
+						UIFont.Small
+					)
+					self:drawText(
+						basePriceFormatted,
+						priceX,
+						y + 8 + self.SMALL_FONT_HGT,
+						grayColor.r,
+						grayColor.g,
+						grayColor.b,
+						a,
+						UIFont.Small
+					)
+				end
+			else
+				-- finalPrice < basePrice
+				if isSellTab then
+					-- SELL TAB: Price decreased is BAD for player - show in neutral color
+					self:drawText(
+						finalPriceFormatted,
+						priceX,
+						y + 8,
+						neutralColor.r,
+						neutralColor.g,
+						neutralColor.b,
+						a,
+						UIFont.Small
+					)
+					self:drawText(
+						basePriceFormatted,
+						priceX,
+						y + 8 + self.SMALL_FONT_HGT,
+						grayColor.r,
+						grayColor.g,
+						grayColor.b,
+						a,
+						UIFont.Small
+					)
+				else
+					-- BUY TAB: Price decreased is GOOD for player - show in green with -%
+					self:drawText(
+						finalPriceFormatted,
+						priceX,
+						y + 8,
+						goodColor.r,
+						goodColor.g,
+						goodColor.b,
+						a,
+						UIFont.Small
+					)
+					self:drawText(
+						basePriceFormatted,
+						priceX,
+						y + 8 + self.SMALL_FONT_HGT,
+						grayColor.r,
+						grayColor.g,
+						grayColor.b,
+						a,
+						UIFont.Small
+					)
+
+					local discount = basePrice - finalPrice
+					local discountPct = 0
+					if basePrice and basePrice > 0 then
+						discountPct = math.floor((discount / basePrice) * 100)
+						if discountPct ~= discountPct or discountPct == math.huge or discountPct == -math.huge then
+							discountPct = 0
+						end
+					end
+					self:drawText(
+						"-" .. discountPct .. "%",
+						priceX + 48,
+						y + 8,
+						goodColor.r,
+						goodColor.g,
+						goodColor.b,
+						a,
+						UIFont.Small
+					)
+				end
+			end
 		else
-			-- No difference: show final price in white at X=280
-			-- If price is approximate, dim it (0.7, 0.7, 0.7 instead of 1, 1, 1)
-			local finalPriceFormatted = Currency.format(finalPrice)
-			local priceColor = item.priceIsApproximate and 0.7 or 1
-			self:drawText(finalPriceFormatted, priceX, y + 8, priceColor, priceColor, priceColor, a, UIFont.Small)
+			-- No difference: show final price in neutral color at X=280
+			-- If price is approximate, dim it (0.7, 0.7, 0.7 instead of neutralColor)
+			local priceColor = item.priceIsApproximate and 0.7 or neutralColor.r
+			self:drawText(
+				finalPriceFormatted,
+				priceX,
+				y + 8,
+				priceColor,
+				priceColor,
+				priceColor,
+				a,
+				UIFont.Small
+			)
 		end
 	end
 
@@ -789,7 +932,15 @@ function ShopUI:onActivateView()
 					and Shop.CalculatedPrices.buyPrices
 					and Shop.CalculatedPrices.buyPrices[k]
 				if serverPrice then
-					v.price = serverPrice
+					-- Handle both table format (price + basePrice) and scalar format for backward compatibility
+					if type(serverPrice) == "table" then
+						v.price = serverPrice.price
+						if serverPrice.basePrice then
+							v.basePrice = serverPrice.basePrice
+						end
+					else
+						v.price = serverPrice
+					end
 				else
 					-- Fall back to preview calculator if no server price yet
 					local calculatedPrice = calcBuyPrice(k, character, v.basePrice)

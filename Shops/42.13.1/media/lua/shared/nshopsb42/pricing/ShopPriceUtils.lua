@@ -18,7 +18,8 @@ function ShopPriceUtils.applyModifiers(base, modifiers)
 	end
 
 	price = math.floor(price)
-	return math.max(0, price)
+	-- Ensure minimum price of 1 to avoid UI display issues and prevent "free" items
+	return math.max(1, price)
 end
 
 return ShopPriceUtils

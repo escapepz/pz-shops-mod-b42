@@ -337,7 +337,9 @@ function ShopSyncClient.handleSyncBuyPrices(data)
 				"[ShopSyncClient] Price change detected while UI closed - pricesChangedWhileClosed set to TRUE"
 			)
 		else
-			SharedLogger.log("Shops", "[ShopSyncClient] Price change detected with UI open - invalidating directly")
+			SharedLogger.log("Shops", "[ShopSyncClient] Price change detected with UI open - notifying and invalidating")
+			-- Notify player of buy price change if UI is open (Phase 4.2)
+			ShopSyncClient._notifyPriceChange()
 		end
 		ShopSyncClient.invalidateUI(ShopSyncClient.InvalidateReason.BUY_PRICE_DELTA)
 	else
@@ -414,11 +416,11 @@ function ShopSyncClient.handleSyncSellRules(data)
 				"[ShopSyncClient] Sell rule change detected while UI closed - pricesChangedWhileClosed set to TRUE"
 			)
 		else
-			SharedLogger.log("Shops", "[ShopSyncClient] Sell rule change detected with UI open - invalidating directly")
+			SharedLogger.log("Shops", "[ShopSyncClient] Sell rule change detected with UI open - notifying and invalidating")
+			-- Notify player of sell rule change if UI is open (Phase 4.2)
+			ShopSyncClient._notifyPriceChange()
 		end
 		ShopSyncClient.invalidateUI(ShopSyncClient.InvalidateReason.SELL_RULE_CHANGE)
-		-- Notify player of price change
-		ShopSyncClient._notifyAndRefreshUI()
 	else
 		SharedLogger.log(
 			"Shops",
@@ -567,47 +569,36 @@ function ShopSyncClient.isPricingStateDifferent(capturedState)
 	return (currentBuy ~= capturedState.buyRevision) or (currentSell ~= capturedState.sellRevision)
 end
 
--- Split refresh handlers (Phase 3.5)
-function ShopSyncClient.onBuyPricesChanged()
-	SharedLogger.log("Shops", "[ShopSyncClient] Buy prices changed, refreshing UI")
-	ShopSyncClient._notifyAndRefreshUI()
-end
-
-function ShopSyncClient.onSellRulesChanged()
-	SharedLogger.log("Shops", "[ShopSyncClient] Sell rules changed, refreshing UI")
-	ShopSyncClient._notifyAndRefreshUI()
-end
-
--- Helper: Notify player and refresh UI (Phase 3.5)
-function ShopSyncClient._notifyAndRefreshUI()
-	-- 1. Notify player first
-	local player = getPlayer()
-	if player then
-		player:setHaloNote(getText("IGUI_Shop_PricesChanged") or "Shop prices have changed", 0, 255, 0, 400)
-	end
-
-	-- 2. Refresh UI (if UI is open)
-	-- - Invalidates caches for inactive tabs (will rebuild on activation)
-	-- - Recalculates visible rows in the active tab only
-	ShopSyncClient.refreshUIForPriceChange()
-end
-
 -- Handler for price hook changes (Phase 3.1 + 3.7)
 function ShopSyncClient.onPriceHooksChanged()
 	SharedLogger.log("Shops", "[CLIENT] [ShopSyncClient] onPriceHooksChanged() called")
+	ShopSyncClient._notifyAndRefreshUI()
+	SharedLogger.log("Shops", "[CLIENT] [ShopSyncClient] onPriceHooksChanged() complete")
+end
 
-	-- 1. Notify player first (Phase 4: localization)
-	local player = getPlayer()
-	if player then
-		player:setHaloNote(getText("IGUI_Shop_PricesChanged") or "Shop prices have changed", 0, 255, 0, 400)
+-- Helper: Notify player if ShopUI is open (Phase 4.2: contextual notifications)
+function ShopSyncClient._notifyPriceChange()
+	local ShopUI = SHOPSB42.ShopUI and SHOPSB42.ShopUI.instance
+	if ShopUI then
+		local player = getPlayer()
+		if player then
+			player:setHaloNote(getText("IGUI_Shop_PricesChanged") or "Shop prices have changed", 0, 255, 0, 400)
+			SharedLogger.log("Shops", "[ShopSyncClient] Showed 'prices changed' halo note (UI is open)")
+		end
+	else
+		SharedLogger.log("Shops", "[ShopSyncClient] Skipped price change notification (ShopUI not open)")
 	end
+end
+
+-- Helper: Notify player and refresh UI when price hooks change (Phase 3.1 + 3.7 + 4.2)
+function ShopSyncClient._notifyAndRefreshUI()
+	-- 1. Notify if ShopUI is open (player is actively browsing shop)
+	ShopSyncClient._notifyPriceChange()
 
 	-- 2. Refresh UI (if UI is open)
 	-- - Invalidates caches for inactive tabs (will rebuild on activation)
 	-- - Recalculates visible rows in the active tab only
 	ShopSyncClient.refreshUIForPriceChange()
-
-	SharedLogger.log("Shops", "[CLIENT] [ShopSyncClient] onPriceHooksChanged() complete")
 end
 
 -- Called by ShopUI when it opens to check if prices changed while closed

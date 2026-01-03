@@ -17,12 +17,10 @@ local addBtn = Shop.textures.AddButton
 local previewBtn = Shop.textures.PreviewButton
 local browseBtn = Shop.textures.Browse
 
--- Get game's accessibility colors (respects user settings)
-local goodColor = getCore():getGoodHighlitedColor()
--- Neutral color: use a standard light gray (B42.13.1 doesn't have getNeutralHighlitedColor)
-local neutralColor = { r = 0.85, g = 0.85, b = 0.85, a = 1 }
--- Use darker gray for base price reference
-local grayColor = { r = 0.3, g = 0.3, b = 0.3, a = 1 }
+-- Color definitions for price display
+local goodColor = { r = 0, g = 1, b = 0, a = 1 }           -- Bright green for good prices
+local neutralColor = { r = 0.85, g = 0.85, b = 0.85, a = 1 } -- Light gray for neutral prices
+local grayColor = { r = 0.3, g = 0.3, b = 0.3, a = 1 }      -- Dark gray for base price reference
 
 function ShopTabUI:initialise()
 	ISPanelJoypad.initialise(self)
@@ -42,10 +40,20 @@ function ShopTabUI:setCategoryType(tabType)
 end
 
 function ShopTabUI:doDrawShopItem(y, item, alt)
-	-- Ensure item has basePrice to prevent nil errors
-	-- This guards against price updates arriving before UI rebuild
-	if item and item.item and item.item.price and not item.item.basePrice then
-		item.item.basePrice = item.item.price
+	-- Ensure item prices are valid numbers to prevent nil/NaN errors
+	-- This guards against price updates arriving before UI rebuild, and ensures prices are never tables
+	if item and item.item then
+		-- Ensure price is a number, not a table (defensive against server data format changes)
+		if type(item.item.price) == "table" then
+			item.item.price = item.item.price.price or 0
+		end
+		if type(item.item.basePrice) == "table" then
+			item.item.basePrice = item.item.basePrice.price or item.item.basePrice.basePrice or 0
+		end
+		-- Set missing basePrice
+		if item.item.price and not item.item.basePrice then
+			item.item.basePrice = item.item.price
+		end
 	end
 
 	local baseItemDY = 0
@@ -109,8 +117,17 @@ function ShopTabUI:doDrawShopItem(y, item, alt)
 	-- Draw prices if either finalPrice or basePrice exist (not both nil/zero)
 	-- This allows display even when prices are being calculated or are very small
 	if (item.item.price and item.item.price > 0) or (item.item.basePrice and item.item.basePrice > 0) then
+		-- Ensure both prices are valid numbers
 		local finalPrice = item.item.price or 0
-		local basePrice = item.item.basePrice or finalPrice or 0
+		local basePrice = item.item.basePrice or item.item.price or 0
+		
+		-- Additional safety: ensure prices are numbers, not NaN or infinity
+		if type(finalPrice) ~= "number" or finalPrice ~= finalPrice or finalPrice == math.huge or finalPrice == -math.huge then
+			finalPrice = 0
+		end
+		if type(basePrice) ~= "number" or basePrice ~= basePrice or basePrice == math.huge or basePrice == -math.huge then
+			basePrice = 0
+		end
 
 		-- Defensive nil/zero checks to prevent NullPointerException in drawText
 		-- This handles cases where:
@@ -122,6 +139,11 @@ function ShopTabUI:doDrawShopItem(y, item, alt)
 		end
 		if not finalPrice or finalPrice == 0 then
 			finalPrice = basePrice
+		end
+		
+		-- Final safety check: both must be valid positive numbers or exit
+		if not finalPrice or not basePrice or finalPrice <= 0 or basePrice <= 0 then
+			return y + item.height
 		end
 
 		local coinImg = Currency.CoinsTexture.Coin
@@ -168,7 +190,14 @@ function ShopTabUI:doDrawShopItem(y, item, alt)
 					)
 
 					local gain = finalPrice - basePrice
-					local gainPct = math.floor((gain / basePrice) * 100)
+					local gainPct = 0
+					if basePrice and basePrice > 0 then
+						gainPct = math.floor((gain / basePrice) * 100)
+						-- Ensure gainPct is a valid number (not NaN or infinity)
+						if gainPct ~= gainPct or gainPct == math.huge or gainPct == -math.huge then
+							gainPct = 0
+						end
+					end
 					self:drawText(
 						"+" .. gainPct .. "%",
 						priceX + 48,
@@ -252,7 +281,14 @@ function ShopTabUI:doDrawShopItem(y, item, alt)
 					)
 
 					local discount = basePrice - finalPrice
-					local discountPct = math.floor((discount / basePrice) * 100)
+					local discountPct = 0
+					if basePrice and basePrice > 0 then
+						discountPct = math.floor((discount / basePrice) * 100)
+						-- Ensure discountPct is a valid number (not NaN or infinity)
+						if discountPct ~= discountPct or discountPct == math.huge or discountPct == -math.huge then
+							discountPct = 0
+						end
+					end
 					self:drawText(
 						"-" .. discountPct .. "%",
 						priceX + 48,

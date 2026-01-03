@@ -37,6 +37,7 @@ function TransactionRegistry.cleanupExpired()
 	TransactionRegistry._lastCleanupTime = now
 	local data = TransactionRegistry.get()
 	local totalCleaned = 0
+	local usersToRemove = {} -- Collect users to delete after iteration
 
 	-- Process each player's transaction history
 	for username, transactions in pairs(data) do
@@ -94,13 +95,25 @@ function TransactionRegistry.cleanupExpired()
 				totalCleaned = totalCleaned + userCleaned
 			end
 
-			-- Remove user entry if all their transactions are cleaned
-			-- Must check data[username] exists first: on first transaction or after all entries deleted,
-			-- data[username] is nil and calling next(nil) would crash
-			if data[username] and next(data[username]) == nil then
-				data[username] = nil
+			-- Mark user for deletion if all their transactions were cleaned
+			-- Must not modify data while iterating with pairs() - collect for post-iteration cleanup
+			-- Check if table is empty by counting entries (safer than next() in Kahlua)
+			local isEmpty = true
+			if data[username] then
+				for _ in pairs(data[username]) do
+					isEmpty = false
+					break
+				end
+			end
+			if isEmpty then
+				table.insert(usersToRemove, username)
 			end
 		end
+	end
+
+	-- Remove empty user entries after iteration is complete
+	for _, username in ipairs(usersToRemove) do
+		data[username] = nil
 	end
 
 	if totalCleaned > 0 then

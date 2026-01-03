@@ -31,6 +31,7 @@
 - **Table format**: Use tab indentation for nested tables and arrays
 - **Naming**: CamelCase for classes/modules, lowercase for variables
 - **Comments**: Use `--` for single-line comments
+  - Never use `->` or emoji in code text or comments
 - **Lua version**: Target Project Zomboid's Lua API (B42.13+)
 - **File structure**: All shared code must be in `shared/`, separated by client/server when needed
 - **Formatting**: Run `stylua Shops\42.13.1\media\lua` after making code changes to maintain consistent formatting

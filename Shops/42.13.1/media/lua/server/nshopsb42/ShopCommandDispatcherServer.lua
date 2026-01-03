@@ -570,7 +570,10 @@ function Commands.TestPriceHooksCommand(player, args)
 	if command == "setAppleMultiplier" then
 		if value then
 			TestPriceHooks.setAppleMultiplier(value)
-			SharedLogger.log("Shops", "[TestPriceHooksCommand] Apple multiplier set to " .. value .. " by " .. player:getUsername())
+			SharedLogger.log(
+				"Shops",
+				"[TestPriceHooksCommand] Apple multiplier set to " .. value .. " by " .. player:getUsername()
+			)
 		else
 			TestPriceHooks.disable()
 			SharedLogger.log("Shops", "[TestPriceHooksCommand] Price hooks disabled by " .. player:getUsername())
@@ -578,7 +581,10 @@ function Commands.TestPriceHooksCommand(player, args)
 	elseif command == "setBatSellMultiplier" then
 		if value then
 			TestPriceHooks.setBatSellMultiplier(value)
-			SharedLogger.log("Shops", "[TestPriceHooksCommand] Bat sell multiplier set to " .. value .. " by " .. player:getUsername())
+			SharedLogger.log(
+				"Shops",
+				"[TestPriceHooksCommand] Bat sell multiplier set to " .. value .. " by " .. player:getUsername()
+			)
 		else
 			TestPriceHooks.disable()
 			SharedLogger.log("Shops", "[TestPriceHooksCommand] Price hooks disabled by " .. player:getUsername())
@@ -586,18 +592,30 @@ function Commands.TestPriceHooksCommand(player, args)
 	elseif command == "setAppleOverrideBuyPrice" then
 		if value then
 			TestPriceHooks.setAppleOverrideBuyPrice(value)
-			SharedLogger.log("Shops", "[TestPriceHooksCommand] Apple override buy price set to " .. value .. " by " .. player:getUsername())
+			SharedLogger.log(
+				"Shops",
+				"[TestPriceHooksCommand] Apple override buy price set to " .. value .. " by " .. player:getUsername()
+			)
 		else
 			TestPriceHooks.setAppleOverrideBuyPrice(nil)
-			SharedLogger.log("Shops", "[TestPriceHooksCommand] Apple override buy price disabled by " .. player:getUsername())
+			SharedLogger.log(
+				"Shops",
+				"[TestPriceHooksCommand] Apple override buy price disabled by " .. player:getUsername()
+			)
 		end
 	elseif command == "setBatOverrideSellPrice" then
 		if value then
 			TestPriceHooks.setBatOverrideSellPrice(value)
-			SharedLogger.log("Shops", "[TestPriceHooksCommand] Bat override sell price set to " .. value .. " by " .. player:getUsername())
+			SharedLogger.log(
+				"Shops",
+				"[TestPriceHooksCommand] Bat override sell price set to " .. value .. " by " .. player:getUsername()
+			)
 		else
 			TestPriceHooks.setBatOverrideSellPrice(nil)
-			SharedLogger.log("Shops", "[TestPriceHooksCommand] Bat override sell price disabled by " .. player:getUsername())
+			SharedLogger.log(
+				"Shops",
+				"[TestPriceHooksCommand] Bat override sell price disabled by " .. player:getUsername()
+			)
 		end
 	elseif command == "disableAll" then
 		TestPriceHooks.disable()

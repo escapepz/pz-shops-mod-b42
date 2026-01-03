@@ -115,7 +115,7 @@ function ShopTabUI:doDrawShopItem(y, item, alt)
 		local priceX = 280
 
 		local finalPriceFormatted = Currency.format(finalPrice)
-		
+
 		-- Determine if this is a Sell tab (colors are inverted for Sell)
 		local isSellTab = self.parent.tabType == Tab.Sell
 
@@ -124,39 +124,138 @@ function ShopTabUI:doDrawShopItem(y, item, alt)
 			if finalPrice > basePrice then
 				if isSellTab then
 					-- SELL TAB: Price increased is GOOD for player - show in good color with +%
-					self:drawText(finalPriceFormatted, priceX, y + 8, goodColor.r, goodColor.g, goodColor.b, a, UIFont.Small)
+					self:drawText(
+						finalPriceFormatted,
+						priceX,
+						y + 8,
+						goodColor.r,
+						goodColor.g,
+						goodColor.b,
+						a,
+						UIFont.Small
+					)
 					local basePriceFormatted = Currency.format(basePrice)
-					self:drawText(basePriceFormatted, priceX, y + 8 + self.SMALL_FONT_HGT, grayColor.r, grayColor.g, grayColor.b, a, UIFont.Small)
+					self:drawText(
+						basePriceFormatted,
+						priceX,
+						y + 8 + self.SMALL_FONT_HGT,
+						grayColor.r,
+						grayColor.g,
+						grayColor.b,
+						a,
+						UIFont.Small
+					)
 
 					local gain = finalPrice - basePrice
 					local gainPct = math.floor((gain / basePrice) * 100)
-					self:drawText("+" .. gainPct .. "%", priceX + 48, y + 8, goodColor.r, goodColor.g, goodColor.b, a, UIFont.Small)
+					self:drawText(
+						"+" .. gainPct .. "%",
+						priceX + 48,
+						y + 8,
+						goodColor.r,
+						goodColor.g,
+						goodColor.b,
+						a,
+						UIFont.Small
+					)
 				else
 					-- BUY TAB: Price increased is BAD for player - show in neutral color at top, basePrice grayed below
-					self:drawText(finalPriceFormatted, priceX, y + 8, neutralColor.r, neutralColor.g, neutralColor.b, a, UIFont.Small)
+					self:drawText(
+						finalPriceFormatted,
+						priceX,
+						y + 8,
+						neutralColor.r,
+						neutralColor.g,
+						neutralColor.b,
+						a,
+						UIFont.Small
+					)
 					local basePriceFormatted = Currency.format(basePrice)
-					self:drawText(basePriceFormatted, priceX, y + 8 + self.SMALL_FONT_HGT, grayColor.r, grayColor.g, grayColor.b, a, UIFont.Small)
+					self:drawText(
+						basePriceFormatted,
+						priceX,
+						y + 8 + self.SMALL_FONT_HGT,
+						grayColor.r,
+						grayColor.g,
+						grayColor.b,
+						a,
+						UIFont.Small
+					)
 				end
 			else
 				if isSellTab then
 					-- SELL TAB: Price decreased is BAD for player - show in neutral color
-					self:drawText(finalPriceFormatted, priceX, y + 8, neutralColor.r, neutralColor.g, neutralColor.b, a, UIFont.Small)
+					self:drawText(
+						finalPriceFormatted,
+						priceX,
+						y + 8,
+						neutralColor.r,
+						neutralColor.g,
+						neutralColor.b,
+						a,
+						UIFont.Small
+					)
 					local basePriceFormatted = Currency.format(basePrice)
-					self:drawText(basePriceFormatted, priceX, y + 8 + self.SMALL_FONT_HGT, grayColor.r, grayColor.g, grayColor.b, a, UIFont.Small)
+					self:drawText(
+						basePriceFormatted,
+						priceX,
+						y + 8 + self.SMALL_FONT_HGT,
+						grayColor.r,
+						grayColor.g,
+						grayColor.b,
+						a,
+						UIFont.Small
+					)
 				else
 					-- BUY TAB: Price decreased is GOOD for player - show in good color with -%
-					self:drawText(finalPriceFormatted, priceX, y + 8, goodColor.r, goodColor.g, goodColor.b, a, UIFont.Small)
+					self:drawText(
+						finalPriceFormatted,
+						priceX,
+						y + 8,
+						goodColor.r,
+						goodColor.g,
+						goodColor.b,
+						a,
+						UIFont.Small
+					)
 					local basePriceFormatted = Currency.format(basePrice)
-					self:drawText(basePriceFormatted, priceX, y + 8 + self.SMALL_FONT_HGT, grayColor.r, grayColor.g, grayColor.b, a, UIFont.Small)
+					self:drawText(
+						basePriceFormatted,
+						priceX,
+						y + 8 + self.SMALL_FONT_HGT,
+						grayColor.r,
+						grayColor.g,
+						grayColor.b,
+						a,
+						UIFont.Small
+					)
 
 					local discount = basePrice - finalPrice
 					local discountPct = math.floor((discount / basePrice) * 100)
-					self:drawText("-" .. discountPct .. "%", priceX + 48, y + 8, goodColor.r, goodColor.g, goodColor.b, a, UIFont.Small)
+					self:drawText(
+						"-" .. discountPct .. "%",
+						priceX + 48,
+						y + 8,
+						goodColor.r,
+						goodColor.g,
+						goodColor.b,
+						a,
+						UIFont.Small
+					)
 				end
 			end
 		else
 			-- No change: show final price in neutral color at original position
-			self:drawText(finalPriceFormatted, priceX, y + 8, neutralColor.r, neutralColor.g, neutralColor.b, a, UIFont.Small)
+			self:drawText(
+				finalPriceFormatted,
+				priceX,
+				y + 8,
+				neutralColor.r,
+				neutralColor.g,
+				neutralColor.b,
+				a,
+				UIFont.Small
+			)
 		end
 	end
 

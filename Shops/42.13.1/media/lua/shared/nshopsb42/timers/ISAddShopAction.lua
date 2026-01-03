@@ -1,6 +1,6 @@
 -- ISAddShopAction.lua
 -- B42-compliant timed action for Admin Shop placement
--- Enforces proper authority split: cursor (preview) → action (permission) → complete (server mutation)
+-- Enforces proper authority split: cursor (preview) -> action (permission) -> complete (server mutation)
 
 require("TimedActions/ISBaseTimedAction")
 

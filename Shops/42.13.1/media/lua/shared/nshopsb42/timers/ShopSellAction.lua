@@ -1,5 +1,9 @@
 require("TimedActions/ISBaseTimedAction")
 
+-- SECURITY INVARIANT:
+-- Server must never consume client-provided prices under any circumstance.
+-- All pricing calculations are recomputed server-side; client price values are ignored.
+
 ShopSellAction = ISBaseTimedAction:derive("ShopSellAction")
 SHOPSB42.ShopSellAction = ShopSellAction
 local Nfunction = require("nshopsb42/utils/Nfunction")
@@ -124,13 +128,39 @@ function ShopSellAction:complete()
 				isBroken = false,
 			}
 			local finalPrice = Shop.resolvePlayerSellPrice(self.character, item, context)
-			local itemPrice = finalPrice or entry.price
+
+			-- SECURITY INVARIANT: Server must never consume client-provided prices under any circumstance
+			local itemPrice = nil
+			if finalPrice ~= nil then
+				-- Server successfully calculated price - use it
+				itemPrice = finalPrice
+			else
+				-- Server calculation failed - fallback to base price ONLY (server-authoritative)
+				local itemDef = Shop.PlayerSell[itemType]
+				if itemDef and itemDef.basePrice then
+					itemPrice = itemDef.basePrice
+					SharedLogger.logAction(
+						"ShopSellAction",
+						"complete",
+						"[SECURITY] Price fallback to base for " .. itemType
+					)
+				else
+					-- Unpriceable item - reject this entry
+					SharedLogger.logAction(
+						"ShopSellAction",
+						"complete",
+						"[SECURITY] Reject sell: unpriceable item " .. itemType
+					)
+					-- Skip this item without payment
+				end
+			end
+
 			if itemPrice ~= nil then
 				-- Remove item from inventory
 				inv:Remove(item)
 				sendRemoveItemFromContainer(inv, item)
 
-				-- Accumulate payment with recomputed price
+				-- Accumulate payment with server-authoritative price
 				if isSpecialCoin then
 					totalSpecial = totalSpecial + itemPrice
 				else
@@ -140,7 +170,7 @@ function ShopSellAction:complete()
 				-- Log sale
 				Nfunction.buildLogShop(item:getFullType())
 			end
-			-- If itemPrice is nil (blacklisted/invalid), simply skip this item
+			-- If itemPrice is nil (unpriceable or blacklisted), item is skipped without payment
 		end
 	end
 

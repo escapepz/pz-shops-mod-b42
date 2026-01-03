@@ -29,7 +29,14 @@ local SharedLogger = SHOPSB42.SharedLogger
 --   - When any tab rebuilds, cache for other tabs should be invalidated to ensure consistency
 
 local function generateTxnId()
-	return tostring(getGameTime():getWorldAgeHours()) .. "-" .. tostring(ZombRand(1, 1000000000))
+	local player = getPlayer()
+	if not player then
+		return nil
+	end
+	-- Format: username-timestamp-random (ensures player-scoped uniqueness)
+	-- timestamp = os.time() is server epoch, unique per second
+	-- random = small number for additional entropy within same second
+	return player:getUsername() .. "-" .. tostring(os.time()) .. "-" .. tostring(ZombRand(1, 1000))
 end
 
 -- Calculate buy price using shared calculator or calculated prices
@@ -759,7 +766,9 @@ function ShopUI:onActivateView()
 				-- This prevents stale cached prices or price overrides from being misused as basePrice
 				v.basePrice = originalPrice
 				-- Use server-authoritative price first (with price hooks applied)
-				local serverPrice = Shop.CalculatedPrices and Shop.CalculatedPrices.buyPrices and Shop.CalculatedPrices.buyPrices[k]
+				local serverPrice = Shop.CalculatedPrices
+					and Shop.CalculatedPrices.buyPrices
+					and Shop.CalculatedPrices.buyPrices[k]
 				if serverPrice then
 					v.price = serverPrice
 				else

@@ -1,5 +1,9 @@
 require("TimedActions/ISBaseTimedAction")
 
+-- SECURITY INVARIANT:
+-- Server must never consume client-provided prices under any circumstance.
+-- All pricing calculations are recomputed server-side; client price values are ignored.
+
 ShopBuyAction = ISBaseTimedAction:derive("ShopBuyAction")
 SHOPSB42.ShopBuyAction = ShopBuyAction
 local Nfunction = require("nshopsb42/utils/Nfunction")

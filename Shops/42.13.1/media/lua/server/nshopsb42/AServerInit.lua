@@ -25,9 +25,11 @@ require("nshopsb42/ShopCommandDispatcherServer")
 -- Server-side patches
 require("nshopsb42/patches/ISDestroyCursorPatch")
 
--- Initialize player shop and finalize (must be after all dependencies)
-PSServer.Initialize()
-ShopInitServer.Initialize()
+Events.OnServerStarted.Add(function()
+	-- Initialize player shop and finalize (must be after all dependencies)
+	PSServer.Initialize()
+	ShopInitServer.Initialize()
+end)
 
 -- Server-initiated handshake: client must request on a properly-timed event
 -- The original approach of server-initiated sends has race conditions

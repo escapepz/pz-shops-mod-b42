@@ -52,26 +52,26 @@ function ShopInitServerModule.Initialize()
 	TestPriceHooks.initialize()
 end
 
--- NEW: Trigger finalization and build modifiers on game start (server context)
-local function onGameStartServer()
-	if Utilities.IsServerOrSinglePlayer() then
-		SharedLogger.log("Shops", "[ShopInitServer] OnGameStart triggered on server")
+-- -- NEW: Trigger finalization and build modifiers on game start (server context)
+-- local function onGameStartServer()
+-- 	if Utilities.IsServerOrSinglePlayer() then
+-- 		SharedLogger.log("Shops", "[ShopInitServer] OnGameStart triggered on server")
 
-		-- Finalization already called in Initialize() via ShopDefaultItems.registerHooks()
-		-- But ensure it's finalized
-		ShopFinalizeHandler.finalizeNow()
+-- 		-- Finalization already called in Initialize() via ShopDefaultItems.registerHooks()
+-- 		-- But ensure it's finalized
+-- 		ShopFinalizeHandler.finalizeNow()
 
-		-- Modifiers are cached by finalizeNow()
-		if SHOPSB42.Shop.PriceModifiers then
-			SharedLogger.log("Shops", "[ShopInitServer] Price modifiers available for clients")
-		end
-	end
-end
+-- 		-- Modifiers are cached by finalizeNow()
+-- 		if SHOPSB42.Shop.PriceModifiers then
+-- 			SharedLogger.log("Shops", "[ShopInitServer] Price modifiers available for clients")
+-- 		end
+-- 	end
+-- end
 
-if Events and Events.OnGameStart then
-	Events.OnGameStart.Add(onGameStartServer)
-else
-	SharedLogger.log("Shops", "[ShopInitServer] WARNING: Events.OnGameStart not available")
-end
+-- if Events and Events.OnGameStart then
+-- 	Events.OnGameStart.Add(onGameStartServer)
+-- else
+-- 	SharedLogger.log("Shops", "[ShopInitServer] WARNING: Events.OnGameStart not available")
+-- end
 
 return ShopInitServerModule

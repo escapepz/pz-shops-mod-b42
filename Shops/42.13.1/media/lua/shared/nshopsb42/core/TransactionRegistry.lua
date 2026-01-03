@@ -95,7 +95,9 @@ function TransactionRegistry.cleanupExpired()
 			end
 
 			-- Remove user entry if all their transactions are cleaned
-			if next(data[username]) == nil then
+			-- Must check data[username] exists first: on first transaction or after all entries deleted,
+			-- data[username] is nil and calling next(nil) would crash
+			if data[username] and next(data[username]) == nil then
 				data[username] = nil
 			end
 		end

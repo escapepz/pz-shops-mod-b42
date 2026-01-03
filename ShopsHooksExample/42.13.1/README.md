@@ -174,12 +174,10 @@ return {
 
 ### Whitelist / Blacklist Toggle
 
-Edit `ShopsHooksExampleInit.lua`:
+Edit `config/defaults.lua`:
 
 ```lua
-ShopsHooksExample.Settings = {
-    whitelistMode = false  -- Change to true for whitelist mode
-}
+Defaults.SellIsWhitelist = false  -- Change to true for whitelist mode
 ```
 
 ### Load Order
@@ -214,7 +212,11 @@ ShopsHooksExample/
 │                   ├── ShopsHooksExampleInit.lua      (registration & hook wiring)
 │                   ├── ShopsHooksExampleMain.lua      (declarative loader + serializer)
 │                   ├── ShopsHooksExampleHooks.lua     (price hook implementations)
-│                   ├── ShopsHooksExampleState.lua     (configuration)
+│                   ├── ShopsHooksExampleState.lua     (config aggregator)
+│                   ├── config/                        (modular configuration)
+│                   │   ├── _index.lua                 (config registry)
+│                   │   ├── prices.lua                 (price config)
+│                   │   └── defaults.lua               (defaults & behavior)
 │                   └── listings/                      (JSON-like item definitions)
 │                       ├── _index.lua
 │                       ├── food.lua
@@ -235,22 +237,29 @@ ShopsHooksExample/
 
 ## Configuration
 
-Edit `ShopsHooksExampleState.lua`:
+Configuration is modular and organized in `config/` directory:
+
+- **`config/prices.lua`** — Price multipliers and overrides
+- **`config/defaults.lua`** — Default sell prices and behavior
+
+Edit `config/prices.lua`:
 
 ```lua
 -- Apple buy price multiplier (default 0.9 = -10%)
-State.appleBuyMultiplier = 0.9
+Prices.appleBuyMultiplier = 0.9
 
 -- Apple buy price override (default nil = disabled)
 -- Set to numeric value to fix apple buy price
-State.appleOverrideBuyPrice = nil
+Prices.appleOverrideBuyPrice = nil
 ```
 
 To enable apple buy override:
 
 ```lua
-State.appleOverrideBuyPrice = 5  -- Force apple buy price to 5
+Prices.appleOverrideBuyPrice = 5  -- Force apple buy price to 5
 ```
+
+Edit `config/defaults.lua` for other settings:
 
 ## Customization Guide
 

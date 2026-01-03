@@ -5,6 +5,7 @@
 
 local Utilities = require("nshopsb42/utils/Utilities")
 local SharedLogger = require("nshopsb42/utils/SharedLogger")
+local ShopsHooksExampleState = require("nshopsb42/ShopsHooksExampleState")
 
 SHOPSB42.ShopsHooksExampleMain = SHOPSB42.ShopsHooksExampleMain or {}
 local Main = SHOPSB42.ShopsHooksExampleMain
@@ -108,10 +109,11 @@ end
 function Main.configureListingMode()
 	-- true  = whitelist (only registered items sellable)
 	-- false = blacklist (all items sellable by default, except blacklisted)
-	local isWhitelist = SHOPSB42.ShopsHooksExample.Settings.whitelistMode or false
+	-- Uses config value from ShopsHooksExampleState
+	local isWhitelist = ShopsHooksExampleState.SellIsWhitelist or false
 
 	if SHOPSB42.Shop then
-		SHOPSB42.Shop.SellisWhitelist = isWhitelist
+		SHOPSB42.Shop.SellIsWhitelist = isWhitelist
 		SharedLogger.log("Shops", "[ShopsHooksExample] Listing mode: " .. (isWhitelist and "WHITELIST" or "BLACKLIST"))
 	end
 end

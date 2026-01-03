@@ -57,12 +57,11 @@ SHOPSB42.Shop.SellIsWhitelist = false -- Blacklist mode (permissive, default)
 **Example in this mod:**
 
 ```lua
--- In ShopsHooksExampleItems.configureListingMode()
-if ENABLE_WHITELIST_MODE then
-    SHOPSB42.Shop.SellisWhitelist = true
-else
-    SHOPSB42.Shop.SellisWhitelist = false
-end
+-- In config/defaults.lua
+Defaults.SellIsWhitelist = false  -- blacklist mode
+
+-- Applied in ShopsHooksExampleMain.configureListingMode()
+SHOPSB42.Shop.SellIsWhitelist = ShopsHooksExampleState.SellIsWhitelist
 ```
 
 ### Default Sell Prices (Blacklist Mode)
@@ -150,7 +149,12 @@ end)
 
 ## Configuration in This Example
 
-All configuration is in `media/lua/server/nshopsb42/ShopsHooksExampleState.lua`.
+Configuration is organized modularly in `media/lua/server/nshopsb42/`:
+
+- **`ShopsHooksExampleState.lua`** — Configuration loader (aggregates config/ modules)
+- **`config/_index.lua`** — Registry controlling config load order
+- **`config/prices.lua`** — Price multipliers and overrides
+- **`config/defaults.lua`** — Default values and behavior settings
 
 ### Registered Items
 
@@ -187,7 +191,9 @@ All configuration is in `media/lua/server/nshopsb42/ShopsHooksExampleState.lua`.
 
 ### Listing Mode
 
-**Current:** `ENABLE_WHITELIST_MODE = false` (blacklist mode)
+**Current:** `config/defaults.lua: SellIsWhitelist = false` (blacklist mode)
+
+**To change**: Edit `config/defaults.lua` and restart server
 
 ## Suppressing Default Items
 
@@ -202,7 +208,7 @@ SHOPSB42.Shop._suppressDefaults = true
 
 When set to `true`, only items registered via external mod hooks will appear in the shop. Default: `false` (vanilla items load normally).
 
-**Example:** See `ShopsHooksExampleState.lua` line ~48
+**Example:** See `config/defaults.lua` line ~28
 
 ### Default Sell Prices (Blacklist Mode Only)
 
@@ -218,7 +224,7 @@ SHOPSB42.Shop.defaultPriceBroken = 25 -- Broken unregistered items
 
 These only apply when `Shop.SellIsWhitelist = false` (blacklist mode).
 
-**Example:** See `ShopsHooksExampleState.lua` lines ~41-50
+**Example:** See `config/defaults.lua` lines ~16-25
 
 ## Logging
 

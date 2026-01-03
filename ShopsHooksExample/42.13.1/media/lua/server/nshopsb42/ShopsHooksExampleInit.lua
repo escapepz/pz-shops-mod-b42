@@ -11,12 +11,6 @@ local ShopsHooksExampleState = require("nshopsb42/ShopsHooksExampleState")
 SHOPSB42.ShopsHooksExample = SHOPSB42.ShopsHooksExample or {}
 local ShopsHooksExample = SHOPSB42.ShopsHooksExample
 
--- Settings for item listing system
-ShopsHooksExample.Settings = ShopsHooksExample.Settings
-	or {
-		whitelistMode = false, -- Set to true for whitelist mode, false for blacklist
-	}
-
 -- Initialize and register all hooks
 function ShopsHooksExample.initialize()
 	SharedLogger.log("Shops", "[ShopsHooksExample] Initializing server-only reference example")

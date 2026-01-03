@@ -64,13 +64,33 @@ function Main.registerBuyItems()
 	local listings = Main.loadAllListings()
 
 	for _, def in ipairs(listings.buy) do
-		Shop.RegisterItem(def.id, {
+		-- Build config table, passing through all optional properties
+		local config = {
 			tab = def.tab,
 			price = def.price,
-			items = def.stock,
-			brokenPrice = def.brokenPrice,
-			notes = def.notes,
-		})
+		}
+
+		-- Pass through optional properties if defined in listing
+		if def.items then
+			config.items = def.items
+		end
+		-- if def.brokenPrice then
+		-- 	config.brokenPrice = def.brokenPrice
+		-- end
+		-- if def.notes then
+		-- 	config.notes = def.notes
+		-- end
+		-- if def.basePrice then
+		-- 	config.basePrice = def.basePrice
+		-- end
+		if def.specialCoin then
+			config.specialCoin = def.specialCoin
+		end
+		if def.isVirtualBundle then
+			config.isVirtualBundle = def.isVirtualBundle
+		end
+
+		Shop.RegisterItem(def.id, config)
 	end
 
 	SharedLogger.log("Shops", "[ShopsHooksExample] Buy listings registered: " .. #listings.buy .. " items")
@@ -91,10 +111,18 @@ function Main.registerSellItems()
 	local listings = Main.loadAllListings()
 
 	for _, def in ipairs(listings.sell) do
-		Shop.RegisterSellItem(def.id, {
+		-- Build config table, passing through all optional properties
+		local config = {
 			price = def.price,
 			blacklisted = def.blacklisted,
-		})
+		}
+
+		-- Pass through optional properties if defined in listing
+		if def.specialCoin then
+			config.specialCoin = def.specialCoin
+		end
+
+		Shop.RegisterSellItem(def.id, config)
 	end
 
 	SharedLogger.log("Shops", "[ShopsHooksExample] Sell listings registered: " .. #listings.sell .. " items")

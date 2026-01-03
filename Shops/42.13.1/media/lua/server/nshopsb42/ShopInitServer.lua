@@ -47,9 +47,6 @@ function ShopInitServerModule.Initialize()
 	-- Trigger finalization (server-only)
 	SharedLogger.log("Shops", "[ShopInitServer] Calling ShopFinalizeHandler.finalizeNow()")
 	ShopFinalizeHandler.finalizeNow()
-
-	local TestPriceHooks = require("nshopsb42/TestPriceHooks")
-	TestPriceHooks.initialize()
 end
 
 -- -- NEW: Trigger finalization and build modifiers on game start (server context)

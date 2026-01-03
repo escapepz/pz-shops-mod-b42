@@ -48,9 +48,6 @@ require("nshopsb42/sync/ShopSyncClient")
 require("nshopsb42/ShopCommandDispatcherClient")
 require("nshopsb42/sync/ModDataDispatcherClient")
 
--- Test price hooks command (client-side - sends commands to server)
-require("nshopsb42/TestPriceHooksCommand")
-
 -- Initialize player shop after all dependencies loaded
 PSClient.Initialize()
 

@@ -32,46 +32,6 @@ function Builder.buildPriceModifiers()
 		"[PriceModifierBuilder] Registered hooks - Buy: " .. buyHookCount .. ", Sell: " .. sellHookCount
 	)
 
-	-- Extract serializable sell modifier rules from TestPriceHooks (if available)
-	local TestPriceHooks = SHOPSB42.TestPriceHooks
-	if TestPriceHooks and TestPriceHooks.sellModifierRules then
-		-- Filter and copy rules where multiplier != 1.0 (active modifiers)
-		for _, rule in ipairs(TestPriceHooks.sellModifierRules) do
-			if rule.effect and rule.effect.value and rule.effect.value ~= 1.0 then
-				-- Deep copy the rule to avoid shared references
-				local ruleCopy = {
-					itemId = rule.itemId,
-					type = rule.type,
-					priority = rule.priority,
-					condition = rule.condition,
-					effect = { kind = rule.effect.kind, value = rule.effect.value },
-				}
-				table.insert(modifiers.sellModifiers, ruleCopy)
-				SharedLogger.log(
-					"Shops",
-					"[PriceModifierBuilder] Added sell modifier rule for "
-						.. rule.itemId
-						.. " (multiplier="
-						.. rule.effect.value
-						.. ")"
-				)
-			end
-		end
-	end
-
-	-- Extract serializable sell override rules from TestPriceHooks (if available)
-	if TestPriceHooks and TestPriceHooks.sellOverrideRules then
-		for itemId, price in pairs(TestPriceHooks.sellOverrideRules) do
-			if price ~= nil then
-				modifiers.sellOverrides[itemId] = price
-				SharedLogger.log(
-					"Shops",
-					"[PriceModifierBuilder] Added sell override rule for " .. itemId .. " (price=" .. price .. ")"
-				)
-			end
-		end
-	end
-
 	-- Buy hooks require server-only prices (cannot serialize hook functions)
 	if buyHookCount > 0 then
 		modifiers.requiresServer = true

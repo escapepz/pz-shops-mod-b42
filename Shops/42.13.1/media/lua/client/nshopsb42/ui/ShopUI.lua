@@ -632,41 +632,12 @@ function ShopUI:onMouseDownCartItem(x, y)
 	end
 end
 
-local currentTooltip = nil
 local invTooltip = nil
-local itemPackTooltip = nil
+
 function ShopUI:toggleTooltip(show, item)
-	if item then
-		if item.invItem then
-			if not invTooltip then
-				invTooltip = ISToolTipInv:new(item.invItem)
-				invTooltip:setCharacter(getPlayer())
-			end
-			currentTooltip = invTooltip
-			item = item.invItem
-			if itemPackTooltip then
-				itemPackTooltip:removeFromUIManager()
-				itemPackTooltip:setVisible(false)
-			end
-		else
-			if not itemPackTooltip then
-				itemPackTooltip = ShopUITooltip:new()
-			end
-			if invTooltip then
-				invTooltip:removeFromUIManager()
-				invTooltip:setVisible(false)
-			end
-			currentTooltip = itemPackTooltip
-		end
-		currentTooltip:initialise()
-		currentTooltip:addToUIManager()
-		currentTooltip:setItem(item)
-		currentTooltip:setOwner(self)
-		currentTooltip:setVisible(true)
-	end
-	if not show and currentTooltip then
-		currentTooltip:removeFromUIManager()
-		currentTooltip:setVisible(false)
+	-- Tooltips disabled - use View UI instead for bundle contents
+	if invTooltip then
+		invTooltip:setVisible(false)
 	end
 end
 

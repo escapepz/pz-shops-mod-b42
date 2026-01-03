@@ -137,7 +137,10 @@ end
 function ShopUITooltip:doLayout()
 	local itemNameWidth = getTextManager():MeasureStringX(UIFont.Medium, self.item.name)
 	local defaultHeight = 60
-	local itemsCount = #self.item.items
+	local itemsCount = 0
+	if self.item.items and type(self.item.items) == "table" then
+		itemsCount = #self.item.items
+	end
 	if self.item.drop then
 		local dropWidth = getTextManager():MeasureStringX(UIFont.Small, UIText.DropOnFloor)
 		if dropWidth > itemNameWidth then
@@ -151,14 +154,16 @@ function ShopUITooltip:doLayout()
 	else
 		if itemsCount > 0 then
 			local packItems = self.item.items
-			for k, v in pairs(packItems) do
-				local itemName = getItemNameFromFullType(v.item)
-				local fixedWidth = getTextManager():MeasureStringX(UIFont.Medium, itemName)
-				if fixedWidth > itemNameWidth then
-					itemNameWidth = fixedWidth
+			if packItems and type(packItems) == "table" then
+				for k, v in pairs(packItems) do
+					local itemName = getItemNameFromFullType(v.item)
+					local fixedWidth = getTextManager():MeasureStringX(UIFont.Medium, itemName)
+					if fixedWidth > itemNameWidth then
+						itemNameWidth = fixedWidth
+					end
 				end
+				packItemsCache[self.item.type] = itemNameWidth
 			end
-			packItemsCache[self.item.type] = itemNameWidth
 		end
 	end
 

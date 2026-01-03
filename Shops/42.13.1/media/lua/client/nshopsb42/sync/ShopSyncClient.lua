@@ -51,21 +51,20 @@ function ShopSyncClient.invalidateUI(reason)
 		end
 		return true
 	elseif reason == ShopSyncClient.InvalidateReason.BUY_PRICE_DELTA then
-		-- Buy prices changed: invalidate visible rows (rows self-heal via lazy recalc)
+		-- Buy prices changed: rebuild active tab to update basePrice and current prices
 		SharedLogger.log("Shops", "[ShopSyncClient] Invalidating due to BUY_PRICE_DELTA")
 		if ui.cancelPendingTransactions then
 			ui:cancelPendingTransactions()
 		end
-		-- Invalidate non-active tabs for rebuild on next activation
+		-- Invalidate all tab caches for rebuild
 		if ui.shopItemsCache then
-			for tabType2, _ in pairs(ui.shopItemsCache) do
-				if tabType2 ~= tabType then
-					ui.shopItemsCache[tabType2] = nil
-				end
-			end
+			ui.shopItemsCache = {}
 		end
-		-- Active tab: let rows recalculate on next visibility (no rebuild needed)
-		SharedLogger.log("Shops", "[ShopSyncClient] Invalidated prices for lazy recalculation")
+		-- Rebuild the active tab to reflect new prices
+		if ui.rebuildActiveTab then
+			ui:rebuildActiveTab()
+			SharedLogger.log("Shops", "[ShopSyncClient] Rebuilt active tab due to buy price change")
+		end
 		return true
 	elseif reason == ShopSyncClient.InvalidateReason.STRUCTURAL_CHANGE then
 		-- Registry/membership changed: rebuild all tabs (items added/removed or mode changed)
@@ -385,6 +384,8 @@ function ShopSyncClient.handleSyncSellRules(data)
 			SharedLogger.log("Shops", "[ShopSyncClient] Sell rule change detected with UI open - invalidating directly")
 		end
 		ShopSyncClient.invalidateUI(ShopSyncClient.InvalidateReason.SELL_RULE_CHANGE)
+		-- Notify player of price change
+		ShopSyncClient._notifyAndRefreshUI()
 	else
 		SharedLogger.log(
 			"Shops",

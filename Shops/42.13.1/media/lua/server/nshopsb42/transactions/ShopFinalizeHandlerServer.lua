@@ -137,6 +137,7 @@ function ShopFinalizeHandler.shouldInvalidateBuyPrices()
 end
 
 -- Helper: Check if sell rules should be recalculated (Phase 2.4)
+-- Note: Delta comparison is performed in broadcastSellRules()
 function ShopFinalizeHandler.shouldInvalidateSellRules()
 	local ShopPriceEvents = SHOPSB42.ShopPriceEvents
 	local sellHookCount = (#ShopPriceEvents.OnShopModifySellPrice or 0)

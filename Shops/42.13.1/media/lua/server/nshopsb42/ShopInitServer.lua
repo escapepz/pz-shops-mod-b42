@@ -50,9 +50,6 @@ function ShopInitServerModule.Initialize()
 
 	local TestPriceHooks = require("nshopsb42/TestPriceHooks")
 	TestPriceHooks.initialize()
-
-	local TestPriceHooksCommand = require("nshopsb42/TestPriceHooksCommand")
-	TestPriceHooksCommand.register()
 end
 
 -- NEW: Trigger finalization and build modifiers on game start (server context)

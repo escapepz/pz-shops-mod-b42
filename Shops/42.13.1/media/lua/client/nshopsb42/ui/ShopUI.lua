@@ -13,6 +13,21 @@ local ShopSellAction = SHOPSB42.ShopSellAction
 local Calculator = require("nshopsb42/pricing/ShopPriceCalculatorShared")
 local SharedLogger = SHOPSB42.SharedLogger
 
+-- IMPORTANT: Tab Architecture and Revision Mapping
+-- =================================================
+-- Shop.BuyPriceRevision (affects buy-side tabs):
+--   - Tab.All       (shows all available items across all categories)
+--   - Tab.Food, Tab.Weapons, Tab.Vehicle, Tab.Event, Tab.FirstAid (custom registered tabs)
+--   - Tab.Favorite  (custom user-favorites, sourced from items in the above tabs)
+--
+-- Shop.SellRuleRevision (affects sell-side tabs):
+--   - Tab.Sell      (shows player inventory items available to sell)
+--
+-- When invalidateUI is triggered by price changes:
+--   - BUY_PRICE_DELTA: lazy-recalculates visible row prices (rows self-heal on visibility)
+--   - SELL_RULE_CHANGE: rebuilds entire Sell tab (inventory rules don't support lazy recalc)
+--   - When any tab rebuilds, cache for other tabs should be invalidated to ensure consistency
+
 local function generateTxnId()
 	return tostring(getGameTime():getWorldAgeHours()) .. "-" .. tostring(ZombRand(1, 1000000000))
 end
@@ -629,6 +644,8 @@ function ShopUI:onActivateView()
 					end
 					v.priceFull = price
 					price = Nfunction.drainablePrice(item, price)
+					-- Store base price for discount display
+					v.basePrice = price
 					local context = {
 						shopId = self.shop and self.shop:getName() or "Unknown",
 						quantity = 1,
@@ -672,12 +689,14 @@ function ShopUI:onActivateView()
 					isSpecialCoin = shopItemDef.specialCoin or false,
 					isBroken = false,
 				}
+				-- Always reset basePrice to the original shop item price
+				-- This prevents stale cached prices from being used as basePrice
+				v.basePrice = shopItemDef.price
 				-- Use shared calculator for preview price
 				local calculatedPrice = calcBuyPrice(k, character, shopItemDef.price)
 				-- Fall back to old method if calculator unavailable
 				local dynamicPrice = calculatedPrice or Shop.resolvePlayerBuyPrice(character, k, context)
 				v.price = dynamicPrice or shopItemDef.price
-				v.basePrice = shopItemDef.price -- Store base price for discount display
 			end
 			if item then
 				local VehicleID = item:getModData().VehicleID
@@ -734,16 +753,21 @@ function ShopUI:onActivateView()
 					isSpecialCoin = v.specialCoin or false,
 					isBroken = false,
 				}
-				-- Determine the original shop item price for basePrice
-				-- If this item is being loaded for the first time, v.price is the original shop item price
-				-- If previously processed (tab reload after cache clear), use the existing basePrice to preserve original price
-				local originalPrice = v.basePrice or v.price
+				-- Get the original registration price from Shop.Items (never modified by price hooks)
+				local originalPrice = Shop.Items[k] and Shop.Items[k].price or v.price
+				-- Always use the original registration price as basePrice
+				-- This prevents stale cached prices or price overrides from being misused as basePrice
 				v.basePrice = originalPrice
-				-- Use shared calculator for preview price
-				local calculatedPrice = calcBuyPrice(k, character, originalPrice)
-				-- Fall back to old method if calculator unavailable
-				local dynamicPrice = calculatedPrice or Shop.resolvePlayerBuyPrice(character, k, context)
-				v.price = dynamicPrice or originalPrice
+				-- Use server-authoritative price first (with price hooks applied)
+				local serverPrice = Shop.CalculatedPrices and Shop.CalculatedPrices.buyPrices and Shop.CalculatedPrices.buyPrices[k]
+				if serverPrice then
+					v.price = serverPrice
+				else
+					-- Fall back to preview calculator if no server price yet
+					local calculatedPrice = calcBuyPrice(k, character, v.basePrice)
+					local dynamicPrice = calculatedPrice or Shop.resolvePlayerBuyPrice(character, k, context)
+					v.price = dynamicPrice or v.basePrice
+				end
 				shopItems:addItem(k, v)
 			end
 		end

@@ -1,0 +1,5 @@
+name=Shops B42 Listing Override
+id=nshopsb42_shop_override
+description=Shops B42 Listing Override use with your care
+poster=poster.png
+require=\nshopsb42

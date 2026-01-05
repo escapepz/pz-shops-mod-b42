@@ -12,6 +12,7 @@ local ShopBuyAction = SHOPSB42.ShopBuyAction
 local ShopSellAction = SHOPSB42.ShopSellAction
 local Calculator = require("nshopsb42/pricing/ShopPriceCalculatorShared")
 local SharedLogger = SHOPSB42.SharedLogger
+local ClientShopListingService = require("nshopsb42/ui/ClientShopListingService") -- Phase 3: Client listing service
 
 -- IMPORTANT: Tab Architecture and Revision Mapping
 -- =================================================
@@ -39,13 +40,37 @@ local function generateTxnId()
 	return player:getUsername() .. "-" .. tostring(os.time()) .. "-" .. tostring(ZombRand(1, 1000))
 end
 
--- Calculate buy price using shared calculator or calculated prices
+-- Phase 3: Calculate buy price using deterministic client-side listing
+-- Prioritizes ClientShopListingService for zero-network preview pricing
+local function calcBuyPricePhase3(itemId, player, basePrice)
+	if not basePrice then
+		return nil
+	end
+
+	player = player or getPlayer()
+
+	---@diagnostic disable-next-line: unnecessary-if
+	-- Phase 3: Use ClientShopListingService for deterministic preview
+	-- This ensures no network traffic is generated for listing/browsing
+	if ClientShopListingService and ClientShopListingService.calculatePreviewBuyPrice then
+		local previewPrice =
+			ClientShopListingService.calculatePreviewBuyPrice(itemId, "npc_general_store", basePrice, player)
+		if previewPrice then
+			return previewPrice
+		end
+	end
+
+	return basePrice
+end
+
+-- Phase 3b: Calculate buy price using deterministic client-side listing
+-- Prioritizes server-authoritative prices, then falls back to ClientShopListingService
 local function calcBuyPrice(itemId, player, basePrice)
 	if not basePrice then
 		return nil
 	end
 
-	-- Check if server calculated this price (server-only hooks)
+	-- Check if server calculated this price (server-only hooks - takes priority)
 	local calculatedPrices = Shop.CalculatedPrices or {}
 	if calculatedPrices.buyPrices and calculatedPrices.buyPrices[itemId] then
 		local priceData = calculatedPrices.buyPrices[itemId]
@@ -67,32 +92,37 @@ local function calcBuyPrice(itemId, player, basePrice)
 		return price
 	end
 
-	-- Try using shared calculator for preview
-	local modifiers = Shop.PriceModifiers or {}
-	local price = Calculator.calcBuyPrice(itemId, player, modifiers)
+	-- Phase 3b: Use ClientShopListingService for deterministic preview pricing (ZERO NETWORK)
+	-- This ensures client-side listing is fast and doesn't generate network traffic
+	---@diagnostic disable-next-line: unnecessary-if
+	if ClientShopListingService and ClientShopListingService.calculatePreviewBuyPrice then
+		player = player or getPlayer()
+		local previewPrice =
+			ClientShopListingService.calculatePreviewBuyPrice(itemId, "npc_general_store", basePrice, player)
 
-	-- Fallback to base price if calculator returns nil (server-only)
-	if not price then
-		price = basePrice
+		-- DEBUG: Log price calculations for Base.Apple
+		if itemId == "Base.Apple" then
+			SharedLogger.log(
+				"Shops",
+				"[ShopUI:calcBuyPrice] Base.Apple: basePrice="
+					.. basePrice
+					.. ", previewPrice="
+					.. (previewPrice or "nil")
+					.. " (from ClientShopListingService)"
+			)
+		end
+
+		if previewPrice then
+			return previewPrice
+		end
 	end
 
-	-- DEBUG: Log price calculations for Base.Apple
-	if itemId == "Base.Apple" then
-		SharedLogger.log(
-			"Shops",
-			"[ShopUI:calcBuyPrice] Base.Apple: basePrice="
-				.. basePrice
-				.. ", calculated="
-				.. price
-				.. ", modifiers count="
-				.. #modifiers
-		)
-	end
-
-	return price
+	-- Fallback to base price if all else fails
+	return basePrice
 end
 
--- Calculate sell price using shared calculator or calculated prices
+-- Phase 3b: Calculate sell price using deterministic client-side listing
+-- Prioritizes server-authoritative prices, then falls back to ClientShopListingService
 local function calcSellPrice(item, player, basePrice)
 	if not basePrice or not item then
 		return nil
@@ -100,7 +130,7 @@ local function calcSellPrice(item, player, basePrice)
 
 	local itemId = item:getFullType()
 
-	-- Check if server calculated this price (server-only hooks)
+	-- Check if server calculated this price (server-only hooks - takes priority)
 	local calculatedPrices = Shop.CalculatedPrices or {}
 	if calculatedPrices.sellPrices and calculatedPrices.sellPrices[itemId] then
 		local price = calculatedPrices.sellPrices[itemId]
@@ -120,32 +150,71 @@ local function calcSellPrice(item, player, basePrice)
 		return price
 	end
 
-	-- Try using shared calculator for preview (Phase 4.1: use separate modifiers)
-	local modifiers = {
-		sellModifiers = Shop.SellModifiers or {},
-		sellOverrides = Shop.SellOverrides or {},
-	}
-	local price = Calculator.calcSellPrice(item, player, modifiers)
+	---@diagnostic disable-next-line: unnecessary-if
+	-- Phase 3b: Use ClientShopListingService for deterministic preview pricing (ZERO NETWORK)
+	-- This ensures client-side listing is fast and doesn't generate network traffic
+	if ClientShopListingService and ClientShopListingService.calculatePreviewSellPrice then
+		player = player or getPlayer()
+		local itemCondition = item:getCondition()
+		local previewPrice = ClientShopListingService.calculatePreviewSellPrice(
+			itemId,
+			"npc_general_store",
+			basePrice,
+			itemCondition,
+			player
+		)
 
-	-- Fallback to base price if calculator returns nil (server-only)
-	if not price then
-		price = basePrice
+		-- DEBUG: Log price calculations for Base.Apple
+		if itemId == "Base.Apple" then
+			SharedLogger.log(
+				"Shops",
+				"[ShopUI:calcSellPrice] Base.Apple: basePrice="
+					.. basePrice
+					.. ", previewPrice="
+					.. (previewPrice or "nil")
+					.. " (from ClientShopListingService)"
+			)
+		end
+
+		if previewPrice then
+			return previewPrice
+		end
 	end
 
-	-- DEBUG: Log price calculations for Base.Apple
-	if itemId == "Base.Apple" then
+	-- Fallback to base price if all else fails
+	return basePrice
+end
+
+-- Phase 2.3: Validate transaction price mismatch between client preview and server final price
+-- Returns (isValid, errorCode)
+-- isValid = true if price is within tolerance
+-- errorCode = "missing_price" (missing data) or "mismatch" (exceeds tolerance) or nil
+local function validateTransactionPrice(itemId, clientPrice, serverPrice, tolerance)
+	tolerance = tolerance or 1 -- Default: ±1 coin tolerance
+
+	if not clientPrice or not serverPrice then
+		return false, "missing_price"
+	end
+
+	local diff = math.abs(clientPrice - serverPrice)
+	if diff > tolerance then
 		SharedLogger.log(
 			"Shops",
-			"[ShopUI:calcSellPrice] Base.Apple: basePrice="
-				.. basePrice
-				.. ", calculated="
-				.. price
-				.. ", modifiers count="
-				.. #modifiers
+			"[ShopUI:validateTransactionPrice] Price mismatch: itemId="
+				.. tostring(itemId)
+				.. " clientPrice="
+				.. tostring(clientPrice)
+				.. " serverPrice="
+				.. tostring(serverPrice)
+				.. " diff="
+				.. tostring(diff)
+				.. " tolerance="
+				.. tostring(tolerance)
 		)
+		return false, "mismatch"
 	end
 
-	return price
+	return true, nil
 end
 
 SHOPSB42.ShopUI = ISCollapsableWindow:derive("ShopUI")
@@ -177,6 +246,7 @@ local height = 550
 function ShopUI:show(player, viewMode, shop)
 	-- Phase 3: Gate on initial sync completion (atomicity check)
 	local ShopSyncClient = SHOPSB42.ShopSyncClient
+	---@diagnostic disable-next-line: unnecessary-if
 	if ShopSyncClient and not ShopSyncClient.isShopReady() then
 		SharedLogger.log("Shops", "[ShopUI:show] Shop not yet synced from server. Waiting...")
 
@@ -192,6 +262,7 @@ function ShopUI:show(player, viewMode, shop)
 			viewMode = viewMode,
 			shop = shop,
 		}
+		---@diagnostic disable-next-line: unnecessary-if
 		-- Register callback to retry when sync completes
 		if ShopSyncClient.onInitialSyncComplete then
 			ShopSyncClient.onInitialSyncComplete(function()
@@ -199,8 +270,11 @@ function ShopUI:show(player, viewMode, shop)
 					SharedLogger.log("Shops", "[ShopUI:show] Retrying show after sync complete")
 					local req = ShopUI._pendingShowRequest
 					ShopUI._pendingShowRequest = nil
-					---@diagnostic disable-next-line: redundant-parameter
-					ShopUI:show(req.player, req.viewMode, req.shop)
+					---@diagnostic disable-next-line: unnecessary-if
+					if req then
+						---@diagnostic disable-next-line: redundant-parameter
+						ShopUI:show(req.player, req.viewMode, req.shop)
+					end
 				end
 			end)
 		end
@@ -235,6 +309,7 @@ function ShopUI:show(player, viewMode, shop)
 	-- Check if prices changed while UI was closed
 	local ShopSyncClient = SHOPSB42.ShopSyncClient
 	local Shop = SHOPSB42.Shop
+	---@diagnostic disable-next-line: unnecessary-if
 	if ShopSyncClient and ShopSyncClient.checkAndHandlePriceChanges then
 		SharedLogger.log("Shops", "[ShopUI:show] Calling checkAndHandlePriceChanges()...")
 		ShopSyncClient.checkAndHandlePriceChanges()
@@ -268,6 +343,7 @@ function ShopUI:show(player, viewMode, shop)
 		end
 	end
 
+	---@diagnostic disable-next-line: unnecessary-if
 	-- DEBUG: Log current pricing state when UI opens
 	if ShopSyncClient then
 		SharedLogger.log(
@@ -293,7 +369,8 @@ end
 function ShopUI:update()
 	if not self.viewMode then
 		local player = self.player
-		if player:DistTo(posX, posY) > 2 then
+		---@diagnostic disable-next-line: unnecessary-if
+		if player and player:DistTo(posX, posY) > 2 then
 			self:close()
 		end
 	end
@@ -303,6 +380,7 @@ function ShopUI:update()
 	self.balanceCoinLabel:setName("" .. coinFormatted)
 	local specialCoinFormatted = Currency.format(specialCoin)
 	self.balanceSpecialCoinLabel:setName("" .. specialCoinFormatted)
+	---@diagnostic disable-next-line: unnecessary-if
 	if self.actionInProgress then
 		self.buyCartButton.enable = false
 		self.buyCartButton:setVisible(false)
@@ -586,6 +664,9 @@ function ShopUI:onMouseMove(dx, dy)
 		self:setY(self.y + dy)
 		self:bringToTop()
 	end
+	if not ShopUI.instance then
+		return
+	end
 	if ShopUI.instance.panel.activeView.view.shopItems:isMouseOver() then
 		return
 	end
@@ -597,6 +678,7 @@ end
 
 function ShopUI:onMouseDown(x, y)
 	ISCollapsableWindow.onMouseDown(self, x, y)
+	---@diagnostic disable-next-line: unnecessary-if
 	if PreviewUI.instance then
 		PreviewUI.instance:close()
 	end
@@ -604,9 +686,11 @@ end
 
 function ShopUI:onMouseDownCartItem(x, y)
 	ISScrollingListBox.onMouseDown(self, x, y)
+	---@diagnostic disable-next-line: unnecessary-if
 	if PreviewUI.instance then
 		PreviewUI.instance:close()
 	end
+	---@diagnostic disable-next-line: unnecessary-if
 	if ContainerViewerUI.instance then
 		ContainerViewerUI.instance:close()
 	end
@@ -627,7 +711,7 @@ function ShopUI:onMouseDownCartItem(x, y)
 			return
 		end
 		if self.removeBtn then
-			ShopUI.instance:removeFromCart(self.selectedRow)
+			self:removeFromCart(self.selectedRow)
 		end
 	end
 end
@@ -635,6 +719,7 @@ end
 local invTooltip = nil
 
 function ShopUI:toggleTooltip(show, item)
+	---@diagnostic disable-next-line: unnecessary-if
 	-- Tooltips disabled - use View UI instead for bundle contents
 	if invTooltip then
 		invTooltip:setVisible(false)
@@ -642,7 +727,7 @@ function ShopUI:toggleTooltip(show, item)
 end
 
 function ShopUI:onMouseMoveCartItem(dx, dy)
-	local list = ShopUI.instance.cartItems
+	local list = self.cartItems
 	if not list then
 		return
 	end
@@ -650,17 +735,17 @@ function ShopUI:onMouseMoveCartItem(dx, dy)
 	list.previewBtn = nil
 	list.removeBtn = nil
 	if list:isMouseOverScrollBar() or not list:isMouseOver() then
-		ShopUI.instance:toggleTooltip(false)
+		self:toggleTooltip(false)
 		return
 	end
 	local rowIndex = list:rowAt(list:getMouseX(), list:getMouseY())
 	if not rowIndex then
-		ShopUI.instance:toggleTooltip(false)
+		self:toggleTooltip(false)
 		return
 	end
 	local selectedRow = list.items[rowIndex]
 	if not selectedRow then
-		ShopUI.instance:toggleTooltip(false)
+		self:toggleTooltip(false)
 		return
 	end
 	local mouseX = self:getMouseX()
@@ -672,10 +757,10 @@ function ShopUI:onMouseMoveCartItem(dx, dy)
 		list.previewBtn = true
 	end
 	if not selectedRow.item.items then
-		ShopUI.instance:toggleTooltip(false)
+		self:toggleTooltip(false)
 		return
 	end
-	ShopUI.instance:toggleTooltip(true, selectedRow.item)
+	self:toggleTooltip(true, selectedRow.item)
 end
 
 function ShopUI:createCategories()
@@ -708,12 +793,24 @@ end
 
 function ShopUI:onActivateView()
 	local character = self.player
+	if not character then
+		return
+	end
 	if not character:getModData().shopFavorites then
 		character:getModData().shopFavorites = {}
 	end
+	if not self.panel or not self.panel.activeView then
+		return
+	end
 	local tab = self.panel.activeView.view
+	if not tab then
+		return
+	end
 	local tabType = tab.tabType
 	local shopItems = tab.shopItems
+	if not shopItems then
+		return
+	end
 
 	if self.reloadItems then
 		shopItems:clear()
@@ -743,12 +840,14 @@ function ShopUI:onActivateView()
 		for i = 0, inventory:size() - 1 do
 			local item = inventory:get(i)
 			local itemType = item:getFullType()
-			local itemSell = Shop.PlayerSell[itemType]
+			local playerSell = Shop.PlayerSell or {}
+			local itemSell = playerSell[itemType]
 			local isBroken = item:isBroken()
 			-- WIP: Item filtering for Sell tab (conditions, drainage, item state refinements needed)
 			if not (item:isEquipped() or item:isFavorite() or Currency.Coins[itemType]) then
 				local canSell = false
 
+				---@diagnostic disable-next-line: unnecessary-if
 				if Shop.SellisWhitelist then
 					-- Whitelist mode: only registered items allowed
 					canSell = itemSell ~= nil
@@ -764,6 +863,7 @@ function ShopUI:onActivateView()
 					if isBroken then
 						price = Shop.defaultPriceBroken
 					end
+					---@diagnostic disable-next-line: unnecessary-if
 					if itemSell then
 						v.specialCoin = itemSell.specialCoin
 						if isBroken then
@@ -813,6 +913,7 @@ function ShopUI:onActivateView()
 		for k, v in pairs(shopFavorites) do
 			local shopItemDef = Shop.Items[k]
 			local item = self:getItemInstance(k)
+			---@diagnostic disable-next-line: unnecessary-if
 			if shopItemDef then
 				local context = {
 					shopId = self.shop and self.shop:getName() or "Unknown",
@@ -893,6 +994,7 @@ function ShopUI:onActivateView()
 				local serverPrice = Shop.CalculatedPrices
 					and Shop.CalculatedPrices.buyPrices
 					and Shop.CalculatedPrices.buyPrices[k]
+				---@diagnostic disable-next-line: unnecessary-if
 				if serverPrice then
 					-- Handle both table format (price + basePrice) and scalar format for backward compatibility
 					if type(serverPrice) == "table" then
@@ -1041,6 +1143,7 @@ function ShopUI:createChildren()
 		ISLabel:new(x + 560, y + 305, ShopUI.SMALL_FONT_HGT, "0", 1, 1, 1, 1, UIFont.Medium, true)
 	self:addChild(self.totalSpecialCoinLabel)
 
+	---@diagnostic disable-next-line: unnecessary-if
 	if not Currency.UseSpecialCoin then
 		self.balanceSpecialCoinTex:setVisible(false)
 		self.balanceSpecialCoinLabel:setVisible(false)
@@ -1057,6 +1160,7 @@ function ShopUI:activateFirstTab()
 end
 
 function ShopUI:removeFromCart(selectedRowIndex)
+	---@diagnostic disable-next-line: unnecessary-if
 	if self.actionInProgress then
 		return
 	end
@@ -1066,7 +1170,13 @@ function ShopUI:removeFromCart(selectedRowIndex)
 		return
 	end
 
+	if not self.panel or not self.panel.activeView then
+		return
+	end
 	local tab = self.panel.activeView.view
+	if not tab then
+		return
+	end
 	local tabType = tab.tabType
 	if tabType == Tab.Sell then
 		tab.shopItems:addItem(selectedRow.item.type, selectedRow.item)
@@ -1075,10 +1185,17 @@ function ShopUI:removeFromCart(selectedRowIndex)
 end
 
 function ShopUI:clearCartBtn()
+	---@diagnostic disable-next-line: unnecessary-if
 	if self.actionInProgress then
 		return
 	end
+	if not self.panel or not self.panel.activeView then
+		return
+	end
 	local tab = self.panel.activeView.view
+	if not tab then
+		return
+	end
 	local tabType = tab.tabType
 	if tabType == Tab.Sell then
 		for k, v in pairs(self.cartItems.items) do
@@ -1089,7 +1206,7 @@ function ShopUI:clearCartBtn()
 end
 
 function ShopUI:cancelBuyBtn()
-	-- ✓ SAFE: Use ISTimedActionQueue.clear() - the only correct way to cancel from UI
+	-- OK SAFE: Use ISTimedActionQueue.clear() - the only correct way to cancel from UI
 	ISTimedActionQueue.clear(self.player)
 
 	-- Reset action in progress flag and UI state
@@ -1097,6 +1214,9 @@ function ShopUI:cancelBuyBtn()
 	self._wasShopActionRunning = false
 
 	-- Restore cart and button visibility
+	if not self.panel or not self.panel.activeView or not self.panel.activeView.view then
+		return
+	end
 	local tabType = self.panel.activeView.view.tabType
 	if tabType == Tab.Sell then
 		self.sellCartButton.enable = true
@@ -1169,6 +1289,19 @@ function ShopUI:buyCartBtn()
 	self.actionInProgress = true
 
 	local ticket = self:buildBuyTicket()
+
+	-- Phase 2.3: Record transaction for price validation (lazy-load to avoid circular deps)
+	if not self._transactionValidationLoaded then
+		self._transactionValidationLoaded = true
+		require("nshopsb42/transactions/TransactionValidationClient")
+	end
+	local TransactionValidationClient = SHOPSB42.TransactionValidationClient
+	---@diagnostic disable-next-line: unnecessary-if
+	if TransactionValidationClient then
+		TransactionValidationClient.recordTransaction(ticket.txnId, self.cartItems, self._lastPreviewPrices)
+		SharedLogger.log("Shops", "[ShopUI:buyCartBtn] Recorded transaction for validation - txnId=" .. ticket.txnId)
+	end
+
 	-- Extract shop coordinates for serialization (objects don't serialize over network)
 	local shopCoords = nil
 	if self.shop then
@@ -1265,7 +1398,7 @@ end
 function ShopUI:render()
 	ISCollapsableWindow.render(self)
 	local actionQueue = ISTimedActionQueue.getTimedActionQueue(self.player)
-	local currentAction = actionQueue.current -- ✓ CRITICAL: Use queue.current, not queue[1]
+	local currentAction = actionQueue.current -- OK CRITICAL: Use queue.current, not queue[1]
 
 	-- Check if this is a shop action (using marker field, not class identity)
 	local isShopAction = currentAction
@@ -1279,6 +1412,7 @@ function ShopUI:render()
 		-- Action is not running: finalize UI state once (state latch prevents flickering)
 		if self._wasShopActionRunning then
 			self._wasShopActionRunning = false
+			---@diagnostic disable-next-line: unnecessary-if
 			-- Clear cart and reset buttons only on transition
 			if self.actionInProgress then
 				self.cartItems:clear()
@@ -1314,6 +1448,9 @@ function ShopUI:updateTotal()
 		return
 	end
 
+	if not self.panel or not self.panel.activeView or not self.panel.activeView.view then
+		return
+	end
 	local tabType = self.panel.activeView.view.tabType
 	if tabType == Tab.Sell then
 		self.sellCartButton.enable = false
@@ -1369,6 +1506,7 @@ function ShopUI:close()
 
 	-- Save pricing state before closing for comparison when reopening
 	local Shop = SHOPSB42.Shop
+	---@diagnostic disable-next-line: unnecessary-if
 	if Shop then
 		ShopUI._lastPricingState = {
 			buyRev = Shop.BuyPriceRevision,
@@ -1383,12 +1521,15 @@ function ShopUI:close()
 		)
 	end
 
+	---@diagnostic disable-next-line: unnecessary-if
 	if PreviewUI.instance then
 		PreviewUI.instance:close()
 	end
+	---@diagnostic disable-next-line: unnecessary-if
 	if ContainerViewerUI.instance then
 		ContainerViewerUI.instance:close()
 	end
+	---@diagnostic disable-next-line: unnecessary-if
 	if ShopUI.instance then
 		ShopUI.instance:removeFromUIManager()
 		ShopUI.instance = nil
@@ -1419,12 +1560,14 @@ end
 
 -- Helper: Set button enabled state
 function ShopUI:setButtonsEnabled(enabled)
+	---@diagnostic disable-next-line: unnecessary-if
 	if self.buyCartButton then
 		self.buyCartButton.enable = enabled
 	end
 	if self.sellCartButton then
 		self.sellCartButton.enable = enabled
 	end
+	---@diagnostic disable-next-line: unnecessary-if
 	if self.cancelBuyButton then
 		self.cancelBuyButton.enable = enabled
 	end
@@ -1485,8 +1628,18 @@ function ShopUI:recalculateRowPrice(row)
 			end
 			row.priceIsApproximate = false
 		else
-			-- Fallback to preview calculator if no server price
-			price = Calculator.calcBuyPrice(row.type, player, mods)
+			---@diagnostic disable-next-line: unnecessary-if
+			-- Phase 3: Use ClientShopListingService for deterministic preview (ZERO NETWORK)
+			if ClientShopListingService and ClientShopListingService.calculatePreviewBuyPrice then
+				price = ClientShopListingService.calculatePreviewBuyPrice(
+					row.type,
+					"npc_general_store",
+					row.basePrice,
+					player
+				)
+			else
+				price = row.basePrice
+			end
 			row.priceIsApproximate = true
 		end
 	elseif row.item and row.item.invItem then
@@ -1565,6 +1718,56 @@ function ShopUI:getVisibleRows()
 	return rows
 end
 
+-- Phase 2.3: Validate transaction price (mismatch handler)
+-- Called when balance update arrives after a transaction
+-- Returns (isValid, errorMessage)
+function ShopUI.validateTransactionPrice(itemId, clientPrice, serverPrice, tolerance)
+	tolerance = tolerance or 1 -- Default: ±1 coin
+
+	if not clientPrice or not serverPrice then
+		return false, "missing_price"
+	end
+
+	local diff = math.abs(clientPrice - serverPrice)
+	if diff > tolerance then
+		SharedLogger.log(
+			"Shops",
+			"[ShopUI:validateTransactionPrice] Price mismatch: "
+				.. tostring(itemId)
+				.. " client="
+				.. tostring(clientPrice)
+				.. " server="
+				.. tostring(serverPrice)
+				.. " diff="
+				.. tostring(diff)
+		)
+		return false, "mismatch"
+	end
+
+	return true, nil
+end
+
+-- Phase 2.3: Instance method to validate transaction price
+function ShopUI:validateTransactionPriceInstance(itemId, clientPrice, serverPrice, tolerance)
+	return ShopUI.validateTransactionPrice(itemId, clientPrice, serverPrice, tolerance)
+end
+
+-- Phase 2.3: Store preview price for an item (called when item is added to cart)
+function ShopUI:storePreviewPrice(itemId, price)
+	if not self._lastPreviewPrices then
+		self._lastPreviewPrices = {}
+	end
+	self._lastPreviewPrices[itemId] = price
+end
+
+-- Phase 2.3: Retrieve stored preview price
+function ShopUI:getStoredPreviewPrice(itemId)
+	if not self._lastPreviewPrices then
+		return nil
+	end
+	return self._lastPreviewPrices[itemId]
+end
+
 function ShopUI:new(x, y, width, height, player)
 	local o = {}
 	if x == 0 and y == 0 then
@@ -1581,6 +1784,9 @@ function ShopUI:new(x, y, width, height, player)
 
 	-- Phase 3.4: Initialize row price revision tracking
 	o._priceUpdateCooldown = nil
+
+	-- Phase 2.3: Initialize preview price tracking
+	o._lastPreviewPrices = {}
 
 	return o
 end

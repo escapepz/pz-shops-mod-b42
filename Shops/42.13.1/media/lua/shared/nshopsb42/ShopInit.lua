@@ -3,6 +3,7 @@
 -- Extends SHOPSB42 namespace (no new globals)
 
 local SharedLogger = require("nshopsb42/utils/SharedLogger")
+local DeterminismTest = require("nshopsb42/pricing/DeterminismTest")
 
 local Shop = SHOPSB42.Shop
 local ShopEvents = SHOPSB42.ShopEvents
@@ -38,6 +39,7 @@ local function migrateLegacyShopTables()
 end
 
 function Shop.FinalizeRegistry()
+	---@diagnostic disable-next-line: unnecessary-if
 	if Shop._locked then
 		return
 	end
@@ -66,7 +68,8 @@ function Shop.FinalizeRegistry()
 			.. " items (available for players to buy in NPC shop)"
 	)
 	Shop.PlayerBuy = Shop.PlayerBuy or {}
-	for _, entry in ipairs(Shop._pendingRegistrations) do
+	local pendingRegs = Shop._pendingRegistrations or {}
+	for _, entry in ipairs(pendingRegs) do
 		validateItem(entry.id, entry.def)
 		-- Store base price separately so price can change without affecting base
 		if not entry.def.basePrice then
@@ -82,6 +85,14 @@ function Shop.FinalizeRegistry()
 		itemCount = itemCount + 1
 	end
 	SharedLogger.log("Shops", "[ShopBuyInit] FinalizeRegistry complete. Total NPC Shop buy items: " .. itemCount)
+
+	-- Phase 5: Run determinism validation (Phase 6 integration)
+	SharedLogger.log("Shops", "[ShopBuyInit] Phase 5: Running determinism validation...")
+	if DeterminismTest.runComplete() then
+		SharedLogger.log("Shops", "[ShopBuyInit] OK Determinism validation PASSED - Safe for multiplayer")
+	else
+		SharedLogger.log("Shops", "[ShopBuyInit] FAILED Determinism validation FAILED - Check logs for violations")
+	end
 
 	Shop._pendingRegistrations = nil
 	Shop._locked = true

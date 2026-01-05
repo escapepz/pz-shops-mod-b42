@@ -17,6 +17,7 @@ local totalSpecial = 0
 
 function IncomeUI:show(player, shop)
 	if IncomeUI.instance == nil then
+		---@diagnostic disable-next-line: redundant-parameter
 		IncomeUI.instance = IncomeUI:new(0, 0, width, height, player)
 		IncomeUI.instance.shop = shop
 		IncomeUI.instance:initialise()
@@ -34,6 +35,9 @@ function IncomeUI:filter()
 	self.tickets.items = self.ticketsCache
 	filterText = string.lower(filterText)
 	local tickets = self.tickets.items
+	if not tickets then
+		return
+	end
 	self.tickets:clear()
 	for k, v in ipairs(tickets) do
 		if string.contains(string.lower(v.item.buyer), filterText) then
@@ -43,7 +47,10 @@ function IncomeUI:filter()
 end
 
 function IncomeUI:onFilterChange()
-	IncomeUI.instance:filter()
+	---@diagnostic disable-next-line: unnecessary-if
+	if IncomeUI.instance then
+		IncomeUI.instance:filter()
+	end
 end
 
 function IncomeUI:doDrawItem(y, item, alt)
@@ -81,6 +88,7 @@ function IncomeUI:doDrawItem(y, item, alt)
 	local coinImg = Currency.CoinsTexture.Coin
 	if item.item.t.tl then
 		local fixedY = 4
+		---@diagnostic disable-next-line: unnecessary-if
 		if not Currency.UseSpecialCoin then
 			fixedY = 12
 		end
@@ -136,6 +144,9 @@ function IncomeUI:createChildren()
 
 	total = 0
 	totalSpecial = 0
+	if not IncomeUI.instance or not IncomeUI.instance.shop then
+		return
+	end
 	local income = IncomeUI.instance.shop:getModData().income
 	for k, v in pairs(income) do
 		self.tickets:addItem(v.buyer, v)
@@ -149,6 +160,7 @@ function IncomeUI:createChildren()
 	self.getButton.enable = false
 	self:addChild(self.getButton)
 
+	---@diagnostic disable-next-line: unnecessary-if
 	-- Check wallet is linked before enabling income collection
 	if total > 0 or totalSpecial > 0 then
 		local account = Balance.getUserAccount(self.character:getUsername())
@@ -185,6 +197,7 @@ function IncomeUI:createChildren()
 	local totalSpecialFormatted = Currency.format(totalSpecial)
 	self.totalSpecialCoinLabel:setName("" .. totalSpecialFormatted)
 
+	---@diagnostic disable-next-line: unnecessary-if
 	if not Currency.UseSpecialCoin then
 		self.totalSpecialCoinTex:setVisible(false)
 		self.totalSpecialCoinLabel:setVisible(false)
@@ -213,8 +226,11 @@ function IncomeUI:getBtn()
 			specialCoin = totalSpecial,
 			source = "ShopIncome",
 		})
-		IncomeUI.instance.shop:getModData().income = {}
-		IncomeUI.instance.shop:transmitModData()
+		---@diagnostic disable-next-line: unnecessary-if
+		if IncomeUI.instance and IncomeUI.instance.shop then
+			IncomeUI.instance.shop:getModData().income = {}
+			IncomeUI.instance.shop:transmitModData()
+		end
 		self.character:playSound("CashRegister")
 	else
 		self.character:setHaloNote(UIText.AccountNeeded, 255, 255, 255, 400)
@@ -224,8 +240,11 @@ end
 
 function IncomeUI:close()
 	ISCollapsableWindow.close(self)
-	IncomeUI.instance:removeFromUIManager()
-	IncomeUI.instance = nil
+	---@diagnostic disable-next-line: unnecessary-if
+	if IncomeUI.instance then
+		IncomeUI.instance:removeFromUIManager()
+		IncomeUI.instance = nil
+	end
 	self:removeFromUIManager()
 end
 

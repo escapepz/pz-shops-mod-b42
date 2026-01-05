@@ -32,6 +32,7 @@ function Shop.addShop(worldobjects, playerNum, sprites)
 		SharedLogger.log("Shops", "addShop: ERROR - ShopSpriteCursorUI not available")
 		return
 	end
+	---@diagnostic disable-next-line: redundant-parameter
 	-- Create cursor instance (lazy-loads class if not already derived)
 	-- Set actionClass to ISAddShopAction for admin shops
 	local cursorUI = SHOPSB42.ShopSpriteCursorUI:new(player, sprites)

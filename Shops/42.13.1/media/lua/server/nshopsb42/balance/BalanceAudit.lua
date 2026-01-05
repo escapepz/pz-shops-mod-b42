@@ -35,7 +35,9 @@ function BalanceAudit.prune()
 	-- Remove entries older than MAX_AGE_SECONDS
 	while i <= #data do
 		local entry = data[i]
-		if entry.ts and (now - (entry.ts / 1000)) > MAX_AGE_SECONDS then
+		if not entry then
+			i = i + 1
+		elseif entry.ts and (now - (entry.ts / 1000)) > MAX_AGE_SECONDS then
 			table.remove(data, i)
 		else
 			i = i + 1

@@ -13,6 +13,7 @@ Shop._pendingRegistrations = Shop._pendingRegistrations or {}
 Shop._locked = Shop._locked or false
 
 function Shop.RegisterItem(itemId, def)
+	---@diagnostic disable-next-line: unnecessary-if
 	if Shop._locked then
 		return
 	end

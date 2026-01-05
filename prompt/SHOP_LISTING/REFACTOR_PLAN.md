@@ -191,6 +191,12 @@ Add dev-only determinism assert:
 - Mark old price fields as deprecated
 - Lazy-migrate existing saves (read old, ignore, write new)
 
+**✅ COMPLETE**: See `6.1.4_COMPLETION_SUMMARY.md` for integration details
+- ModDataSchema.lua created
+- LazyMigration.lua created
+- 4 integration points added (PlayerShopServer, ShopSellAction, BalanceServer, ShopCommandDispatcher)
+- Migration runs on login and during item access
+
 ### 6.2 Network Traffic Baseline
 - Measure current RakNet traffic with WIP\_ (before refactor)
 - Measure after client-listing implementation

@@ -34,6 +34,9 @@ function ShopBuyAction:isValid()
 	local username = self.character:getUsername()
 	local coin, specialCoin = Balance.getUserBalance(username)
 	local ticket = self.ticket
+	if not ticket then
+		return false
+	end
 	return coin >= ticket.coin and specialCoin >= ticket.specialCoin
 end
 
@@ -109,9 +112,15 @@ function ShopBuyAction:complete()
 	end
 
 	-- Recompute prices authoritatively on server
+	---@type number
 	local totalCoin = 0
+	---@type number
 	local totalSpecialCoin = 0
 	local ticket = self.ticket
+
+	if not ticket or not ticket.items then
+		return false
+	end
 
 	-- First pass: validate and compute final prices
 	for _, entry in ipairs(ticket.items) do
@@ -163,6 +172,33 @@ function ShopBuyAction:complete()
 	ModData.transmit("CoinBalance")
 	SharedLogger.logAction("ShopBuyAction", "complete", "Balance transmitted successfully")
 
+	-- Phase 3c: Send targeted transaction result to player (not broadcast)
+	-- Find the player object from username
+	local onlinePlayer = nil
+	for i = 0, getOnlinePlayers():size() - 1 do
+		local p = getOnlinePlayers():get(i)
+		if p and p:getUsername() == username then
+			onlinePlayer = p
+			break
+		end
+	end
+
+	---@diagnostic disable-next-line: unnecessary-if
+	if onlinePlayer then
+		local itemCount = ticket.items and #ticket.items or 0
+		Utilities.SendServerCommandTo(onlinePlayer, "nshopsb42", "TransactionResult", {
+			txnId = txnId,
+			type = "BUY",
+			success = true,
+			finalCost = totalCoin,
+			finalCostSpecial = totalSpecialCoin,
+			newBalance = account.coin,
+			newBalanceSpecial = account.specialCoin,
+			itemCount = itemCount,
+		})
+		SharedLogger.logAction("ShopBuyAction", "complete", "Transaction result sent to player")
+	end
+
 	-- Spawn purchased items
 	local playerInv = self.character:getInventory()
 
@@ -175,6 +211,7 @@ function ShopBuyAction:complete()
 					local packQuantity = packEntry.quantity or 1
 					for i = 1, packQuantity do
 						local newItem = instanceItem(packEntry.item)
+						---@diagnostic disable-next-line: unnecessary-if
 						if newItem then
 							playerInv:AddItem(newItem)
 							sendAddItemToContainer(playerInv, newItem)
@@ -223,6 +260,7 @@ function ShopBuyAction:complete()
 						local packQuantity = packEntry.quantity or 1
 						for i = 1, packQuantity do
 							local newItem = instanceItem(packEntry.item)
+							---@diagnostic disable-next-line: unnecessary-if
 							if newItem then
 								containerInv:AddItem(newItem)
 								Nfunction.buildLogShop(packEntry.item)
@@ -258,6 +296,7 @@ function ShopBuyAction:complete()
 
 	-- Mark transaction as processed
 	TxnRegistry = getTransactionRegistry()
+	---@diagnostic disable-next-line: unnecessary-if
 	if TxnRegistry then
 		TxnRegistry.markProcessed(username, txnId)
 	end

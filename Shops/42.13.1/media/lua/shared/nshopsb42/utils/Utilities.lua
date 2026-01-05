@@ -162,12 +162,10 @@ function Utilities.SendServerCommandToAllInRange(_x, _y, _z, _distanceMin, _dist
 			end
 		else
 			local players = getOnlinePlayers()
-			if players then
-				for i = 0, players:size() - 1 do
-					local targetPlayer = players:get(i)
-					if Utilities.IsPlayerInRange(targetPlayer, _x, _y, _z, _distanceMin, _distanceMax) then
-						sendServerCommand(targetPlayer, _module, _command, _data)
-					end
+			for i = 0, players:size() - 1 do
+				local targetPlayer = players:get(i)
+				if Utilities.IsPlayerInRange(targetPlayer, _x, _y, _z, _distanceMin, _distanceMax) then
+					sendServerCommand(targetPlayer, _module, _command, _data)
 				end
 			end
 		end
@@ -234,21 +232,16 @@ end
 function Utilities.StringToSquare(string)
 	local split = Utilities.SplitString(string, "|")
 	if #split >= 3 then
-		local x, y, z = tonumber(split[1]), tonumber(split[2]), tonumber(split[3])
-		local square = getCell():getGridSquare(x, y, z)
-		if square then
-			return square
-		end
+		local x, y, z = tonumber(split[1]) or 0, tonumber(split[2]) or 0, tonumber(split[3]) or 0
+		return getCell():getGridSquare(x, y, z)
 	end
 end
 
 function Utilities.FindAllItemInInventoryByTag(inventory, tag)
 	local foundItems = ArrayList.new()
 	local validItems = getScriptManager():getItemsTag(tag)
-	if validItems then
-		for i = 0, validItems:size() - 1 do
-			foundItems:addAll(inventory:getItemsFromFullType(validItems:get(i):getFullName()))
-		end
+	for i = 0, validItems:size() - 1 do
+		foundItems:addAll(inventory:getItemsFromFullType(validItems:get(i):getFullName()))
 	end
 	return foundItems
 end
@@ -275,8 +268,8 @@ end
 ---@param x number
 ---@param y number
 ---@param z number
----@param spritePrefix string - e.g. "npcshop_" or "playershop_"
----@return table|nil - The shop object or nil
+---@param spritePrefix string -- e.g. "npcshop_" or "playershop_"
+---@return table|nil -- The shop object or nil
 function Utilities.FindShopAtCoords(x, y, z, spritePrefix)
 	local square = getCell():getGridSquare(x, y, z)
 	if not square then
@@ -285,29 +278,21 @@ function Utilities.FindShopAtCoords(x, y, z, spritePrefix)
 
 	-- Check TileObjects first (NPC shops)
 	local objects = square:getObjects()
-	if objects then
-		for i = 0, objects:size() - 1 do
-			local o = objects:get(i)
-			if o and o:getSprite() then
-				local spriteName = o:getSprite():getName()
-				if spriteName and string.find(spriteName, spritePrefix) then
-					return o
-				end
-			end
+	for i = 0, objects:size() - 1 do
+		local o = objects:get(i)
+		local spriteName = o:getSprite():getName()
+		if spriteName and string.find(spriteName, spritePrefix) then
+			return o
 		end
 	end
 
 	-- Check SpecialObjects (player shops)
 	local specialObjects = square:getSpecialObjects()
-	if specialObjects then
-		for i = 0, specialObjects:size() - 1 do
-			local o = specialObjects:get(i)
-			if o and o:getSprite() then
-				local spriteName = o:getSprite():getName()
-				if spriteName and string.find(spriteName, spritePrefix) then
-					return o
-				end
-			end
+	for i = 0, specialObjects:size() - 1 do
+		local o = specialObjects:get(i)
+		local spriteName = o:getSprite():getName()
+		if spriteName and string.find(spriteName, spritePrefix) then
+			return o
 		end
 	end
 

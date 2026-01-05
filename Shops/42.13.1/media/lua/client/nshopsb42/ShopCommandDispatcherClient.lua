@@ -74,33 +74,31 @@ function Commands.SyncShopData(data)
 
 	-- Mark initial sync complete so ShopUI can open
 	local ShopSyncClient = SHOPSB42.ShopSyncClient
+	---@diagnostic disable-next-line: unnecessary-if
 	if ShopSyncClient and ShopSyncClient.handleSyncInitialComplete then
 		ShopSyncClient.handleSyncInitialComplete(data)
 	end
 end
 
 function Commands.SyncBuyPrices(data)
-	SharedLogger.log("Shops", "[ShopCommandDispatcher:SyncBuyPrices] Received")
-
-	local ShopSyncClient = require("nshopsb42/sync/ShopSyncClient")
-	if ShopSyncClient.handleSyncBuyPrices then
-		ShopSyncClient.handleSyncBuyPrices(data)
-	end
+	-- Phase 2.2: Per-player broadcast handler REMOVED
+	-- Clients now calculate prices deterministically using PricingContract + NPCShopCatalog
+	-- No need to receive or store prices from broadcast
+	SharedLogger.log("Shops", "[ShopCommandDispatcher:SyncBuyPrices] IGNORED (Phase 2.2: broadcasts removed)")
 end
 
 function Commands.SyncSellRules(data)
-	SharedLogger.log("Shops", "[ShopCommandDispatcher:SyncSellRules] Received")
-
-	local ShopSyncClient = require("nshopsb42/sync/ShopSyncClient")
-	if ShopSyncClient.handleSyncSellRules then
-		ShopSyncClient.handleSyncSellRules(data)
-	end
+	-- Phase 2.2: Per-player broadcast handler REMOVED
+	-- Clients calculate sell prices deterministically (same as buy prices)
+	-- Server validates on transaction (Phase 3)
+	SharedLogger.log("Shops", "[ShopCommandDispatcher:SyncSellRules] IGNORED (Phase 2.2: broadcasts removed)")
 end
 
 function Commands.SyncInitialComplete(data)
 	SharedLogger.log("Shops", "[ShopCommandDispatcher:SyncInitialComplete] Received")
 
 	local ShopSyncClient = require("nshopsb42/sync/ShopSyncClient")
+	---@diagnostic disable-next-line: unnecessary-if
 	if ShopSyncClient.handleSyncInitialComplete then
 		ShopSyncClient.handleSyncInitialComplete(data)
 	end
@@ -113,11 +111,14 @@ end
 function Commands.ClearShopSpriteDrag(args)
 	SharedLogger.log("Shops", "[ShopCommandDispatcher:ClearShopSpriteDrag] Received")
 
+	---@diagnostic disable-next-line: unnecessary-if
 	if getWorld() and getWorld():getCell() then
+		---@diagnostic disable-next-line: param-type-mismatch
 		getWorld():getCell():setDrag(nil, 0)
 		SharedLogger.log("Shops", "[ShopCommandDispatcher:ClearShopSpriteDrag] Sprite drag cleared")
 	end
 
+	---@diagnostic disable-next-line: unnecessary-if
 	-- Clear the ShopSpriteCursorUI instance so rotation doesn't work on stale instance
 	if SHOPSB42.ShopSpriteCursorUI then
 		SHOPSB42.ShopSpriteCursorUI.instance = nil
@@ -165,6 +166,7 @@ function Commands.BalanceTransferReceived(noti)
 	local coin = SHOPSB42.Currency.format(noti.coin)
 	local specialCoin = SHOPSB42.Currency.format(noti.specialCoin)
 	local msg = getText("IGUI_Balance_TransferReceivedSpecial", sender, coin, specialCoin)
+	---@diagnostic disable-next-line: unnecessary-if
 	if not SHOPSB42.Currency.UseSpecialCoin then
 		msg = getText("IGUI_Balance_TransferReceived", sender, coin)
 	end
@@ -185,11 +187,32 @@ function Commands.BalanceMailboxReceived(noti)
 	local entryCount = noti.entryCount or 0
 
 	local msg = getText("IGUI_Balance_MailboxReceivedSpecial", coin, specialCoin, entryCount)
+	---@diagnostic disable-next-line: unnecessary-if
 	if not SHOPSB42.Currency.UseSpecialCoin then
 		msg = getText("IGUI_Balance_MailboxReceived", coin, entryCount)
 	end
 	player:playSound("Notification")
 	player:setHaloNote(msg, 255, 255, 255, 400)
+end
+
+-- =============================================================================
+-- TRANSACTION RESULT (Phase 3c: Targeted Response)
+-- =============================================================================
+
+function Commands.TransactionResult(data)
+	SharedLogger.log(
+		"Shops",
+		"[ShopCommandDispatcher:TransactionResult] Received - txnId=" .. (data.txnId or "unknown")
+	)
+
+	-- Route to TransactionValidationClient for confirmation
+	local ValidationClient = SHOPSB42.TransactionValidationClient
+	---@diagnostic disable-next-line: unnecessary-if
+	if ValidationClient and ValidationClient.handleTransactionResult then
+		ValidationClient.handleTransactionResult(data)
+	else
+		SharedLogger.log("Shops", "[ShopCommandDispatcher:TransactionResult] WARNING: ValidationClient not available")
+	end
 end
 
 -- =============================================================================
@@ -214,6 +237,7 @@ function Dispatcher.onServerCommand(module, command, args)
 	end
 
 	local handler = Commands[command]
+	---@diagnostic disable-next-line: unnecessary-if
 	if handler then
 		handler(args)
 	else
@@ -225,6 +249,7 @@ end
 -- IDEMPOTENT REGISTRATION
 -- =============================================================================
 
+---@diagnostic disable-next-line: unnecessary-if
 if not Dispatcher._registered then
 	Dispatcher._registered = true
 	Events.OnServerCommand.Add(Dispatcher.onServerCommand)

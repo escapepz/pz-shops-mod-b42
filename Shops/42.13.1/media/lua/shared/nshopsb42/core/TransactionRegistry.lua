@@ -45,6 +45,7 @@ function TransactionRegistry.cleanupExpired()
 			-- Collect all txnIds with their server timestamps
 			local txnList = {}
 			for txnId, txnData in pairs(transactions) do
+				---@diagnostic disable-next-line: unnecessary-if
 				if type(txnData) == "table" and txnData.serverTimestamp then
 					table.insert(txnList, {
 						txnId = txnId,
@@ -66,8 +67,11 @@ function TransactionRegistry.cleanupExpired()
 				-- Delete oldest records until we're at 1000
 				for i = 1, recordCount - MAX_RECORDS_PER_PLAYER do
 					local entry = txnList[i]
-					data[username][entry.txnId] = nil
-					userCleaned = userCleaned + 1
+					---@diagnostic disable-next-line: unnecessary-if
+					if entry then
+						data[username][entry.txnId] = nil
+						userCleaned = userCleaned + 1
+					end
 				end
 			end
 

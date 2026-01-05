@@ -20,6 +20,7 @@ function Dispatcher.onFillWorldObjectContextMenu(playerNum, context, worldobject
 
 	-- ShopContext handler
 	local Shop = SHOPSB42.Shop
+	---@diagnostic disable-next-line: unnecessary-if
 	if Shop.ShopViewContextMenu then
 		Shop.ShopViewContextMenu(playerNum, context, worldobjects)
 	end
@@ -34,15 +35,18 @@ function Dispatcher.onPreFillWorldObjectContextMenu(playerNum, context, worldobj
 
 	-- ShopContext handlers
 	local Shop = SHOPSB42.Shop
+	---@diagnostic disable-next-line: unnecessary-if
 	if Shop.ShopContextMenu then
 		Shop.ShopContextMenu(playerNum, context, worldobjects)
 	end
+	---@diagnostic disable-next-line: unnecessary-if
 	if Shop.ShopUIContextMenu then
 		Shop.ShopUIContextMenu(playerNum, context, worldobjects)
 	end
 
 	-- PlayerShopContext handler
 	local PlayerShop = SHOPSB42.PlayerShop
+	---@diagnostic disable-next-line: unnecessary-if
 	if PlayerShop.PlayerShopContextMenu then
 		PlayerShop.PlayerShopContextMenu(playerNum, context, worldobjects)
 	end
@@ -52,6 +56,7 @@ end
 -- IDEMPOTENT REGISTRATION
 -- =============================================================================
 
+---@diagnostic disable-next-line: unnecessary-if
 if not Dispatcher._registered then
 	Dispatcher._registered = true
 	Events.OnFillWorldObjectContextMenu.Add(Dispatcher.onFillWorldObjectContextMenu)

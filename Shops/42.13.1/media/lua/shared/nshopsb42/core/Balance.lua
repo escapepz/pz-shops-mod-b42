@@ -53,6 +53,7 @@ function Balance.deposit(username, coin, specialCoin)
 	coin = coin or 0
 	specialCoin = specialCoin or 0
 
+	---@diagnostic disable-next-line: unnecessary-if
 	-- Reject zero-value deposits
 	if coin <= 0 and specialCoin <= 0 then
 		return

@@ -2,6 +2,7 @@ local Nfunction = require("nshopsb42/utils/Nfunction")
 local PlayerShop = require("nshopsb42/core/PlayerShop")
 local Utilities = require("nshopsb42/utils/Utilities")
 local SharedLogger = SHOPSB42.SharedLogger
+local LazyMigration = require("nshopsb42/schema/LazyMigration")
 local PSServer = {}
 local PlayerShopStatus = {}
 
@@ -56,6 +57,9 @@ function PSServer.SetItemPrice(player, args)
 		return
 	end
 
+	-- Migrate item from old schema if needed (removes deprecated fields)
+	LazyMigration.migrateItemIfNeeded(item)
+
 	-- Store price on the item itself (persists with item when moved)
 	local modData = item:getModData()
 	if price == nil then
@@ -100,6 +104,7 @@ function PSServer.PickupShop(player, args)
 	end
 
 	local income = shop:getModData().income
+	---@diagnostic disable-next-line: unnecessary-if
 	if income and #income > 0 then
 		return
 	end

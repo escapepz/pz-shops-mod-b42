@@ -60,6 +60,7 @@ function PlayerShop.playerShopUI(worldobjects, playerNum, clickedSquare, shop)
 			SharedLogger.log("Shops", "playerShopUI: ERROR - PlayerShopUI not available")
 			return
 		end
+		---@diagnostic disable-next-line: unnecessary-if
 		if PlayerShopUI.instance then
 			PlayerShopUI.instance:close()
 		end
@@ -81,6 +82,7 @@ function PlayerShop.addPlayerShop(worldobjects, playerNum, sprites)
 		return
 	end
 	-- Create cursor instance (lazy-loads class if not already derived)
+	---@diagnostic disable-next-line: redundant-parameter
 	local cursorUI = SHOPSB42.ShopSpriteCursorUI:new(player, sprites)
 	-- Explicitly set actionClass to ISAddPlayerShopAction (default, but be explicit)
 	cursorUI.actionClass = SHOPSB42.ISAddPlayerShopAction
@@ -139,6 +141,7 @@ end
 function PlayerShop.isBusy(shop)
 	local id = PlayerShop.getShopID(shop)
 	local shopStatus = PlayerShop.status[id]
+	---@diagnostic disable-next-line: unnecessary-if
 	if shopStatus then
 		if not shopStatus.time then
 			shopStatus.time = getTimestampMs() + shopLockTime
@@ -289,7 +292,11 @@ function PlayerShop.ItemsSellPrice(playerNum, context, items, worldobjects)
 	if #items < 1 then
 		return
 	end
-	local container = items[1]:getContainer()
+	local item = items[1]
+	if not item then
+		return
+	end
+	local container = item:getContainer()
 	local player = getSpecificPlayer(playerNum)
 	if container and container:isInCharacterInventory(player) then
 		local inv = player:getInventory()

@@ -9,12 +9,14 @@ local Shop = SHOPSB42.Shop
 local ShopPriceEvents = SHOPSB42.ShopPriceEvents
 
 function Shop.canPlayerBuy(fullType)
-	local cfg = Shop.PlayerBuy[fullType]
+	local playerBuy = Shop.PlayerBuy or {}
+	local cfg = playerBuy[fullType]
 	return cfg and cfg.enabled
 end
 
 function Shop.getPlayerBuyCost(fullType)
-	local cfg = Shop.PlayerBuy[fullType]
+	local playerBuy = Shop.PlayerBuy or {}
+	local cfg = playerBuy[fullType]
 	if not cfg then
 		return nil
 	end

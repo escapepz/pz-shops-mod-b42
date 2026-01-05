@@ -57,6 +57,7 @@ local function computeBuyPriceWithModifiers(itemId)
 
 	-- Check for overrides (don't include override in modifiers list, just use final price)
 	local override = ShopPriceEvents.triggerOnShopOverrideBuyPrice(nil, itemId, price, { type = "sync" })
+	---@diagnostic disable-next-line: unnecessary-if
 	if override then
 		price = override
 	end
@@ -75,6 +76,7 @@ local function buildCalculatedPrices()
 		sellPrices = {},
 	}
 
+	---@diagnostic disable-next-line: unnecessary-if
 	-- ONLY calculate buy prices for defined items in PlayerBuy registry
 	if Shop.PlayerBuy then
 		for itemId, config in pairs(Shop.PlayerBuy) do
@@ -87,6 +89,7 @@ local function buildCalculatedPrices()
 		end
 	end
 
+	---@diagnostic disable-next-line: unnecessary-if
 	-- ONLY calculate sell prices for defined items in PlayerSell registry
 	-- (Note: Still need item objects for sell price hooks, may defer)
 	if Shop.PlayerSell then
@@ -108,8 +111,9 @@ local function detectPriceChanges(newCalculatedPrices, previousPrices)
 
 	-- Only check items in PlayerBuy registry (defined items)
 	if newCalculatedPrices.buyPrices then
+		local playerBuy = Shop.PlayerBuy or {}
 		for itemId, newPriceData in pairs(newCalculatedPrices.buyPrices) do
-			if Shop.PlayerBuy[itemId] then -- ← Only registered items
+			if playerBuy[itemId] then -- ← Only registered items
 				local oldPriceData = previousPrices[itemId]
 				-- Compare final prices (oldPriceData might be just a number from old format)
 				local oldPrice = (type(oldPriceData) == "table") and oldPriceData.price or oldPriceData
@@ -169,84 +173,65 @@ local function deepCopy(tbl)
 	return result
 end
 
--- Broadcast buy prices to all players (Phase 2.3)
+-- DEPRECATED: Broadcast buy prices to all players (Phase 2.3 - DISABLED IN PHASE 3)
+-- Phase 3 uses deterministic client-side pricing via ClientShopListingService
+-- Clients calculate preview prices from shared catalog, no network broadcast needed
 function ShopFinalizeHandler.broadcastBuyPrices()
-	Shop.BuyPriceRevision = Shop.BuyPriceRevision + 1
-
-	local modifiers = Builder.buildPriceModifiers()
-	Shop.PriceModifiers = modifiers
-
-	local calculatedPrices = buildCalculatedPrices()
-	local changedPrices = detectPriceChanges(calculatedPrices, ShopFinalizeHandler._previousBuyPrices)
-
-	-- Store full price data (with modifiers) for next comparison (Phase 2)
-	ShopFinalizeHandler._previousBuyPrices = {}
-	for itemId, priceData in pairs(calculatedPrices.buyPrices or {}) do
-		ShopFinalizeHandler._previousBuyPrices[itemId] = priceData
-	end
-
-	Utilities.SendServerCommandToAll("nshopsb42", "SyncBuyPrices", {
-		buyRevision = Shop.BuyPriceRevision,
-		sellRevision = Shop.SellRuleRevision, -- Both revisions for atomicity
-		buyPrices = changedPrices, -- Delta: only changed items (now includes modifiers)
-	})
-
-	SharedLogger.log("Shops", "[ShopFinalizeHandler] BUY prices broadcast (rev=" .. Shop.BuyPriceRevision .. ")")
+	-- PHASE 3B: BROADCAST DISABLED
+	-- Reason: Client loads catalog locally and calculates deterministically
+	-- No per-player price sync needed during listing, only on transaction (server validates)
+	SharedLogger.log(
+		"Shops",
+		"[ShopFinalizeHandler] broadcastBuyPrices() called but DISABLED (Phase 2.3 deprecated, using Phase 3 deterministic pricing)"
+	)
+	return
 end
 
--- Broadcast sell rules to all players (Phase 2.5)
+-- DEPRECATED: Broadcast sell rules to all players (Phase 2.5 - DISABLED IN PHASE 3)
+-- Phase 3 uses deterministic client-side pricing via ClientShopListingService
+-- Clients calculate preview prices from shared catalog, no network broadcast needed
 function ShopFinalizeHandler.broadcastSellRules()
-	Shop.SellRuleRevision = Shop.SellRuleRevision + 1
-
-	local modifiers = Builder.buildPriceModifiers()
-
-	-- Extract sell-specific data
-	local sellData = {
-		sellModifiers = modifiers.sellModifiers or {},
-		sellOverrides = modifiers.sellOverrides or {},
-	}
-
-	-- Delta detection (compare with previous rules)
-	if not ruleSetsEqual(sellData, ShopFinalizeHandler._previousSellRules) then
-		ShopFinalizeHandler._previousSellRules = deepCopy(sellData)
-
-		Utilities.SendServerCommandToAll("nshopsb42", "SyncSellRules", {
-			buyRevision = Shop.BuyPriceRevision, -- ADD: Both revisions for atomicity
-			sellRevision = Shop.SellRuleRevision,
-			sellModifiers = sellData.sellModifiers,
-			sellOverrides = sellData.sellOverrides,
-		})
-
-		SharedLogger.log("Shops", "[ShopFinalizeHandler] SELL rules broadcast (rev=" .. Shop.SellRuleRevision .. ")")
-	end
+	-- PHASE 3B: BROADCAST DISABLED
+	-- Reason: Client loads catalog locally and calculates deterministically
+	-- No per-player price sync needed during listing, only on transaction (server validates)
+	SharedLogger.log(
+		"Shops",
+		"[ShopFinalizeHandler] broadcastSellRules() called but DISABLED (Phase 2.5 deprecated, using Phase 3 deterministic pricing)"
+	)
+	return
 end
 
 -- Callback for price hook mutations (Phase 1.2)
 local function onPriceHookAdded()
+	---@diagnostic disable-next-line: unnecessary-if
 	if Shop._finalized then
 		ShopFinalizeHandler.resyncPriceModifiers()
 	end
 end
 
 -- Callback for runtime price hook changes (test hooks, live updates) (Phase 2.1)
+-- Phase 2.2: REMOVED per-player broadcasts
+-- Clients calculate prices deterministically using PricingContract + NPCShopCatalog
+-- No network sync needed during listing, only on transaction (server validates)
 function ShopFinalizeHandler.onPriceHooksChanged()
-	SharedLogger.log("Shops", "[ShopFinalizeHandler] onPriceHooksChanged() called")
+	SharedLogger.log("Shops", "[ShopFinalizeHandler] onPriceHooksChanged() called (broadcasts removed)")
 
+	---@diagnostic disable-next-line: unnecessary-if
 	if not Shop._finalized then
 		SharedLogger.log("Shops", "[ShopFinalizeHandler] Shop not finalized yet, aborting")
 		return
 	end
 
-	-- Split into independent buy and sell broadcasts
-	if ShopFinalizeHandler.shouldInvalidateBuyPrices() then
-		ShopFinalizeHandler.broadcastBuyPrices()
-	end
-	if ShopFinalizeHandler.shouldInvalidateSellRules() then
-		ShopFinalizeHandler.broadcastSellRules()
-	end
+	-- Phase 2.2: Broadcast calls REMOVED
+	-- Reason: Client no longer needs per-player price syncs
+	-- Client loads catalog locally and calculates deterministically
+	-- Server validates price on actual transaction (Phase 3)
+
+	-- Note: Late-join sync still handled in sendShopDataToPlayer() (one-time handshake)
 end
 
 function ShopFinalizeHandler.finalizeNow()
+	---@diagnostic disable-next-line: unnecessary-if
 	if ShopFinalizeHandler._finalizationAttempted then
 		return
 	end
@@ -256,11 +241,13 @@ function ShopFinalizeHandler.finalizeNow()
 	Shop.BuyPriceRevision = 0
 	Shop.SellRuleRevision = 0
 
+	---@diagnostic disable-next-line: unnecessary-if
 	if not Shop._locked then
 		SharedLogger.log("Shops", "[ShopFinalizeHandler] Finalizing buy registry...")
 		Shop.FinalizeRegistry()
 	end
 
+	---@diagnostic disable-next-line: unnecessary-if
 	if not Shop._sellLocked then
 		SharedLogger.log("Shops", "[ShopFinalizeHandler] Finalizing sell registry...")
 		Shop.FinalizeSellRegistry()
@@ -273,6 +260,7 @@ function ShopFinalizeHandler.finalizeNow()
 	-- Store on server for reuse during transactions
 	SHOPSB42.Shop.PriceModifiers = priceModifiers
 
+	---@diagnostic disable-next-line: unnecessary-if
 	if priceModifiers.requiresServer then
 		SharedLogger.log("Shops", "[ShopFinalizeHandler] WARNING: Some hooks require server-side calculation")
 	end

@@ -100,7 +100,9 @@ function TransferUI:onMouseDownAccountItem(x, y)
 	if selectedRow then
 		local accountName = selectedRow.text
 		TransferUI.recipient = accountName
-		TransferUI.instance.toLabel:setName(UIText.TransferTo .. ": " .. accountName)
+		if self.joypadParent then
+			self.joypadParent.toLabel:setName(UIText.TransferTo .. ": " .. accountName)
+		end
 	end
 end
 
@@ -109,6 +111,9 @@ function TransferUI:filter()
 	self.accountItems.items = self.accountsCache
 	filterText = string.lower(filterText)
 	local accountItems = self.accountItems.items
+	if not accountItems then
+		return
+	end
 	self.accountItems:clear()
 	for k, v in ipairs(accountItems) do
 		if string.contains(string.lower(v.text), filterText) then
@@ -118,7 +123,9 @@ function TransferUI:filter()
 end
 
 function TransferUI:onFilterChange()
-	TransferUI.instance:filter()
+	if self.joypadParent then
+		self.joypadParent:filter()
+	end
 end
 
 local function twoDecimal(self)
@@ -245,6 +252,7 @@ function TransferUI:createChildren()
 	self.cancelButton:setVisible(false)
 	self:addChild(self.cancelButton)
 
+	---@diagnostic disable-next-line: unnecessary-if
 	if not Currency.UseSpecialCoin then
 		self.balanceSpecialCoinTex:setVisible(false)
 		self.balanceSpecialCoinLabel:setVisible(false)
@@ -304,7 +312,7 @@ function TransferUI:cancelBtn()
 		return
 	end
 
-	-- ✓ SAFE: Use ISTimedActionQueue.clear() - the only correct way to cancel from UI
+	-- OK SAFE: Use ISTimedActionQueue.clear() - the only correct way to cancel from UI
 	ISTimedActionQueue.clear(self.player)
 
 	self.state = self.TRANSFER_STATE_CANCELLED
@@ -346,7 +354,7 @@ end
 function TransferUI:render()
 	ISCollapsableWindow.render(self)
 	local actionQueue = ISTimedActionQueue.getTimedActionQueue(self.player)
-	local currentAction = actionQueue.current -- ✓ CRITICAL: Use queue.current, not queue[1]
+	local currentAction = actionQueue.current -- OK CRITICAL: Use queue.current, not queue[1]
 
 	-- Check if this is a transfer action (using marker field, not class identity)
 	local isTransferAction = currentAction and currentAction._shopActionType == "transfer"
@@ -378,9 +386,10 @@ function TransferUI:close()
 		self.filterEntry:setText("")
 	end
 
-	TransferUI.instance:removeFromUIManager()
-	TransferUI.instance = nil
 	self:removeFromUIManager()
+	if TransferUI.instance == self then
+		TransferUI.instance = nil
+	end
 end
 
 function TransferUI:new(x, y, width, height, player)

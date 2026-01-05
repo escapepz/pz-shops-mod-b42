@@ -1,3 +1,4 @@
+---@diagnostic disable: redundant-parameter
 SHOPSB42.PreviewUI = ISCollapsableWindow:derive("PreviewUI")
 local PreviewUI = SHOPSB42.PreviewUI
 PreviewUI.instance = nil
@@ -91,8 +92,11 @@ end
 
 function PreviewUI:close()
 	ISCollapsableWindow.close(self)
-	PreviewUI.instance:removeFromUIManager()
-	PreviewUI.instance = nil
+	---@diagnostic disable-next-line: unnecessary-if
+	if PreviewUI.instance then
+		PreviewUI.instance:removeFromUIManager()
+		PreviewUI.instance = nil
+	end
 	self:removeFromUIManager()
 end
 

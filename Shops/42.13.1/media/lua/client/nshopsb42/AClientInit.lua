@@ -14,6 +14,9 @@ local PSClient = require("nshopsb42/PlayerShopClient")
 
 require("nshopsb42/balance/BalanceClient")
 
+-- Phase 3: Client-side listing service (deterministic preview pricing)
+require("nshopsb42/ui/ClientShopListingService")
+
 -- UI components (load dependencies first, before components that depend on them)
 require("nshopsb42/ui/ContainerViewerUI")
 require("nshopsb42/ui/BundleViewerUI")
@@ -79,12 +82,23 @@ local function onGameStart()
 	ShopSpriteCursorUIModule.ensureInitialized()
 	SharedLogger.log("Shops", "[Client Init] ShopSpriteCursorUI loaded and initialized")
 
+	-- Phase 3: Initialize client-side listing service
+	SharedLogger.log("Shops", "[Client Init onGameStart] Initializing ClientShopListingService...")
+	---@diagnostic disable-next-line: unnecessary-if
+	if SHOPSB42.ClientShopListingService and SHOPSB42.ClientShopListingService.initialize then
+		SHOPSB42.ClientShopListingService.initialize()
+		SharedLogger.log("Shops", "[Client Init onGameStart] ClientShopListingService initialized")
+	else
+		SharedLogger.log("Shops", "[Client Init onGameStart] ERROR: ClientShopListingService not available")
+	end
+
 	-- Initialize shop sync client
 	SharedLogger.log("Shops", "[Client Init onGameStart] Initializing ShopSyncClient...")
 	local ShopSyncClient = SHOPSB42.ShopSyncClient
 	ShopSyncClient.Initialize()
 	SharedLogger.log("Shops", "[Client Init onGameStart] ShopSyncClient initialized")
 
+	---@diagnostic disable-next-line: unnecessary-if
 	-- TEST: Send a simple "ping" command to verify the network path works
 	if not SHOPSB42.hasRequestedData then
 		SHOPSB42.hasRequestedData = true
@@ -124,6 +138,7 @@ local function onPlayerUpdateRetry(player)
 		return
 	end
 
+	---@diagnostic disable-next-line: unnecessary-if
 	if not SHOPSB42.hasRequestedData then
 		return
 	end
@@ -131,6 +146,7 @@ local function onPlayerUpdateRetry(player)
 	local SharedLogger = SHOPSB42.SharedLogger
 	SHOPSB42.lastRequestTick = SHOPSB42.lastRequestTick + 1
 
+	---@diagnostic disable-next-line: unnecessary-if
 	-- Retry every 60 ticks (approximately 3 seconds), max 3 retries
 	if SHOPSB42.lastRequestTick >= 60 and SHOPSB42.requestRetryCount < 3 then
 		SHOPSB42.requestRetryCount = SHOPSB42.requestRetryCount + 1

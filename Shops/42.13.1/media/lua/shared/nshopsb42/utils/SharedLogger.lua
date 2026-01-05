@@ -38,10 +38,6 @@ end
 -- @param context: Additional context string, or phase name if table follows
 -- @param details: Optional table or string with details (txnId, status, etc.)
 function SharedLogger.log(modName, message, context, details)
-	if not SharedLogger.DEBUG then
-		return
-	end
-
 	local side = getSide()
 	local fullMessage
 

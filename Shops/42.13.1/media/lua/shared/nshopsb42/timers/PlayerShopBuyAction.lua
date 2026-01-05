@@ -12,6 +12,9 @@ function PlayerShopBuyAction:isValid()
 	local username = self.character:getUsername()
 	local coin, specialCoin = Balance.getUserBalance(username)
 	local ticket = self.ticket
+	if not ticket then
+		return false
+	end
 	return coin >= ticket.coin and specialCoin >= ticket.specialCoin
 end
 
@@ -102,7 +105,7 @@ function PlayerShopBuyAction:complete()
 
 	-- Step 2: Re-validate balance (defensive check)
 	local coin, specialCoin = Balance.getUserBalance(username)
-	if coin < ticket.coin or specialCoin < ticket.specialCoin then
+	if not ticket or coin < ticket.coin or specialCoin < ticket.specialCoin then
 		return false
 	end
 

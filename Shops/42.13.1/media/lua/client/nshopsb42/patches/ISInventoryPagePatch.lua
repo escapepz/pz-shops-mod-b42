@@ -6,6 +6,7 @@ function ISInventoryPage:isRemoveButtonVisible()
 		return false
 	end
 	local container = obj:getContainer()
+	---@diagnostic disable-next-line: unnecessary-if
 	if container then
 		local parent = container:getParent()
 		if parent and parent:getModData().owner then

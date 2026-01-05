@@ -47,8 +47,10 @@ function ShopDefaultItems.loadDefaultSellItems()
 
 	-- Load sell item definitions
 	local items = require("nshopsb42/ShopItems/ForSell")
+	---@diagnostic disable-next-line: unnecessary-if
 	if items then
 		for _, entry in ipairs(items) do
+			---@diagnostic disable-next-line: unnecessary-if
 			if entry.id and entry.config then
 				Shop.RegisterSellItem(entry.id, entry.config)
 			end
@@ -70,10 +72,12 @@ function ShopDefaultItems.registerHooks()
 		return
 	end
 
+	---@diagnostic disable-next-line: unnecessary-if
 	if ShopEvents and ShopEvents.registerOnShopRegisterItems then
 		ShopEvents.registerOnShopRegisterItems(ShopDefaultItems.loadDefaultBuyItems)
 	end
 
+	---@diagnostic disable-next-line: unnecessary-if
 	if ShopSellEvents and ShopSellEvents.registerOnShopRegisterSellItems then
 		ShopSellEvents.registerOnShopRegisterSellItems(ShopDefaultItems.loadDefaultSellItems)
 	end

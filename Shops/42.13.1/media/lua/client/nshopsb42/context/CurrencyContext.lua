@@ -12,7 +12,11 @@ local function getTransferUI()
 end
 
 function Currency.lootCoins(worldobjects, playerNum, player)
-	local containers = getPlayerLoot(playerNum).inventoryPane.inventoryPage.backpacks
+	local inventoryPane = getPlayerLoot(playerNum)
+	if not inventoryPane then
+		return
+	end
+	local containers = inventoryPane.inventoryPane.inventoryPage.backpacks
 	local coinsList = ArrayList.new()
 	for k, v in pairs(containers) do
 		local container = v.inventory
@@ -26,7 +30,11 @@ function Currency.lootCoins(worldobjects, playerNum, player)
 		end
 	end
 	if coinsList:size() > 0 then
-		local playerInv = getPlayerInventory(playerNum).inventory
+		local playerInventoryPane = getPlayerInventory(playerNum)
+		if not playerInventoryPane then
+			return
+		end
+		local playerInv = playerInventoryPane.inventory
 		for i = 0, coinsList:size() - 1 do
 			local coin = coinsList:get(i)
 			ISTimedActionQueue.add(ISInventoryTransferAction:new(player, coin, coin:getContainer(), playerInv))
@@ -46,10 +54,14 @@ function Currency.LootCoinsObjectContextMenu(playerNum, context, items)
 	if #items < 1 then
 		return
 	end
-	if items[1]:isInPlayerInventory() then
+	local item = items[1]
+	if not item then
 		return
 	end
-	local coin = Currency.Coins[items[1]:getFullType()]
+	if item:isInPlayerInventory() then
+		return
+	end
+	local coin = Currency.Coins[item:getFullType()]
 	if not coin then
 		return
 	end
@@ -75,7 +87,18 @@ function Currency.CoinsToAccountObjectContextMenu(playerNum, context, items)
 	if not items or #items < 1 then
 		return
 	end
-	local playerInv = getPlayerInventory(playerNum).backpacks[1].inventory
+	local playerInventoryPane = getPlayerInventory(playerNum)
+	if not playerInventoryPane then
+		return
+	end
+	local backpack = playerInventoryPane.backpacks[1]
+	if not backpack then
+		return
+	end
+	local playerInv = backpack.inventory
+	if not playerInv then
+		return
+	end
 	local wallet = nil
 	local player = getSpecificPlayer(playerNum)
 	local username = player:getUsername()
@@ -93,9 +116,6 @@ function Currency.CoinsToAccountObjectContextMenu(playerNum, context, items)
 					break
 				end
 			end
-		end
-		if wallet then
-			break
 		end
 	end
 	if not wallet then
@@ -121,6 +141,7 @@ function Currency.CoinsToAccountObjectContextMenu(playerNum, context, items)
 	end
 	local isSinglePlayer = Utilities.IsClientOrSinglePlayer()
 	if isSinglePlayer or account then
+		---@diagnostic disable-next-line: unnecessary-if
 		if coinQuantity.coin > 0 or coinQuantity.specialCoin > 0 then
 			context:addOption(UIText.CoinsToAccount, worldobjects, Currency.coinsToAccount, items, coinQuantity)
 		end
@@ -177,7 +198,18 @@ function Currency.LinkWalletObjectContextMenu(playerNum, context, items)
 	end
 
 	-- Check if player already has a valid linked wallet in main inventory
-	local playerInv = getPlayerInventory(playerNum).backpacks[1].inventory
+	local playerInventoryPane = getPlayerInventory(playerNum)
+	if not playerInventoryPane then
+		return
+	end
+	local backpack = playerInventoryPane.backpacks[1]
+	if not backpack then
+		return
+	end
+	local playerInv = backpack.inventory
+	if not playerInv then
+		return
+	end
 	for k, v in pairs(Currency.Wallets) do
 		local walletItems = playerInv:getItemsFromFullType(k)
 		for i = 0, walletItems:size() - 1 do

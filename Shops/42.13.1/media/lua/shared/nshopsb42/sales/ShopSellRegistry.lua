@@ -7,10 +7,12 @@ SHOPSB42.Shop = SHOPSB42.Shop or {}
 local Shop = SHOPSB42.Shop
 
 Shop.Sell = Shop.Sell or {}
+---@type table<integer, {id: string, def: any}>
 Shop._sellPending = Shop._sellPending or {}
 Shop._sellLocked = Shop._sellLocked or false
 
 function Shop.RegisterSellItem(itemId, def)
+	---@diagnostic disable-next-line: unnecessary-if
 	if Shop._sellLocked then
 		return
 	end

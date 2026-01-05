@@ -9,6 +9,7 @@ end
 
 local SharedLogger = require("nshopsb42/utils/SharedLogger")
 local Utilities = require("nshopsb42/utils/Utilities")
+local LazyMigration = require("nshopsb42/schema/LazyMigration")
 
 local Dispatcher = {}
 local Commands = {}
@@ -29,6 +30,11 @@ end
 function Commands.RequestShopData(player, args)
 	local username = player and player:getUsername() or "unknown"
 	SharedLogger.log("Shops", "[ShopCommandDispatcher:RequestShopData] from " .. username)
+
+	-- Migrate player inventory on login (lazy-migrate old save data)
+	if player then
+		LazyMigration.migratePlayerInventory(player)
+	end
 
 	local ShopFinalizeHandler = require("nshopsb42/transactions/ShopFinalizeHandlerServer")
 	local success, err = pcall(function()
@@ -98,6 +104,7 @@ end
 function Commands.PlayerShopSyncStatusData(player, args)
 	-- Retrieve shop status from PlayerShopServer
 	local PlayerShopServer = require("nshopsb42/PlayerShopServer")
+	---@diagnostic disable-next-line: unnecessary-if
 	if PlayerShopServer.PlayerShopStatus then
 		SharedLogger.log(
 			"Shops",
@@ -228,6 +235,7 @@ function Commands.PlayerShopPickupShop(player, args)
 		if not o then
 			break
 		end
+		---@diagnostic disable-next-line: unnecessary-if
 		if o:getSprite() then
 			local spriteStr = o:getSprite():getName()
 			if spriteStr and string.find(spriteStr, PlayerShop.spritePrefix) then
@@ -330,6 +338,7 @@ function Commands.BalanceCreateAccount(player, args)
 	local walletID = args.walletID
 	local account = ModData.get("CoinBalance")[username]
 
+	---@diagnostic disable-next-line: unnecessary-if
 	if account then
 		account.linkedTo = linkedTo
 		SharedLogger.log("Shops", "[ShopCommandDispatcher:CreateAccount] Linked wallet for " .. username)
@@ -459,6 +468,7 @@ end
 function Commands.BalanceTransfer(player, args)
 	-- Delegate to BalanceServer for complex transfer logic
 	local BalanceServer = require("nshopsb42/balance/BalanceServer")
+	---@diagnostic disable-next-line: unnecessary-if
 	if BalanceServer.Transfer then
 		BalanceServer.Transfer(player, args)
 	end
@@ -537,6 +547,7 @@ function Commands.BalanceClaimMailbox(player, args)
 
 	-- Delegate to BalanceServer for mailbox delivery
 	local BalanceServer = require("nshopsb42/balance/BalanceServer")
+	---@diagnostic disable-next-line: unnecessary-if
 	if BalanceServer.ClaimMailbox then
 		BalanceServer.ClaimMailbox(player, args)
 	end
@@ -549,6 +560,7 @@ function Commands.BalanceRollback(player, args)
 
 	-- Delegate to BalanceServer for rollback logic
 	local BalanceServer = require("nshopsb42/balance/BalanceServer")
+	---@diagnostic disable-next-line: unnecessary-if
 	if BalanceServer.Rollback then
 		BalanceServer.Rollback(player, args)
 	end
@@ -599,6 +611,7 @@ function Dispatcher.onClientCommand(module, command, player, args)
 	)
 
 	local handler = Commands[command]
+	---@diagnostic disable-next-line: unnecessary-if
 	if handler then
 		local success, err = pcall(function()
 			handler(player, args)
@@ -615,6 +628,7 @@ end
 -- IDEMPOTENT REGISTRATION
 -- =============================================================================
 
+---@diagnostic disable-next-line: unnecessary-if
 if not Dispatcher._registered then
 	Dispatcher._registered = true
 	Events.OnClientCommand.Add(Dispatcher.onClientCommand)

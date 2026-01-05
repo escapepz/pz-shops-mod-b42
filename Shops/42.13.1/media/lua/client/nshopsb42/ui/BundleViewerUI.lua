@@ -20,6 +20,7 @@ function BundleViewerUI:instantiate()
 end
 
 function BundleViewerUI:show(bundleItem)
+	---@diagnostic disable-next-line: unnecessary-if
 	if BundleViewerUI.instance then
 		BundleViewerUI.instance:close()
 	end
@@ -28,6 +29,7 @@ function BundleViewerUI:show(bundleItem)
 	local x = (getCore():getScreenWidth() / 2) - (width / 2)
 	local y = (getCore():getScreenHeight() / 2) - (height / 2)
 
+	---@diagnostic disable-next-line: redundant-parameter
 	local o = BundleViewerUI:new(x, y, width, height, bundleItem)
 	o:initialise()
 	o:instantiate()

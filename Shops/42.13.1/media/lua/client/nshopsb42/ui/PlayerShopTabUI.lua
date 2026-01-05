@@ -109,9 +109,11 @@ end
 
 function PlayerShopTabUI:onMouseDownShopItem(x, y)
 	ISScrollingListBox.onMouseDown(self, x, y)
+	---@diagnostic disable-next-line: unnecessary-if
 	if PreviewUI.instance then
 		PreviewUI.instance:close()
 	end
+	---@diagnostic disable-next-line: unnecessary-if
 	if ContainerViewerUI.instance then
 		ContainerViewerUI.instance:close()
 	end
@@ -182,6 +184,9 @@ end
 
 function PlayerShopTabUI:addToCart(selectedRow)
 	local item = self.shopItems.items[selectedRow]
+	if not item then
+		return
+	end
 	if self.ShopUI.actionInProgress then
 		return
 	end
@@ -197,6 +202,9 @@ function PlayerShopTabUI:filter()
 	self.shopItems.items = self.ShopUI.shopItemsCache[tabType]
 	filterText = string.lower(filterText)
 	local shopItems = self.shopItems.items
+	if not shopItems then
+		return
+	end
 	self.shopItems:clear()
 	for k, v in ipairs(shopItems) do
 		if string.contains(string.lower(v.item.name), filterText) then
@@ -248,6 +256,9 @@ end
 local sortToggle = true
 function PlayerShopTabUI:sortPriceBtn()
 	local items = self.shopItems.items
+	if not items then
+		return
+	end
 	table.sort(items, function(v1, v2)
 		if sortToggle then
 			return v1.item.price < v2.item.price

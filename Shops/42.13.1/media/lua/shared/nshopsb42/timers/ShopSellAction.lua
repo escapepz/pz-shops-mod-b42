@@ -11,6 +11,7 @@ local Shop = SHOPSB42.Shop
 local Balance = SHOPSB42.Balance
 local Utilities = require("nshopsb42/utils/Utilities")
 local SharedLogger = SHOPSB42.SharedLogger
+local LazyMigration
 
 -- Lazy-load server modules to avoid initialization order issues
 local TransactionRegistry
@@ -28,6 +29,13 @@ local function getShopAudit()
 		ShopAudit = require("nshopsb42/audit/ShopAudit")
 	end
 	return ShopAudit
+end
+
+local function getLazyMigration()
+	if not LazyMigration then
+		LazyMigration = require("nshopsb42/schema/LazyMigration")
+	end
+	return LazyMigration
 end
 
 function ShopSellAction:isValid()
@@ -55,6 +63,7 @@ end
 
 function ShopSellAction:perform()
 	SharedLogger.logAction("ShopSellAction", "perform", "time remaining=" .. tostring(self.timer))
+	---@diagnostic disable-next-line: unnecessary-if
 	if self.total and (self.total > 0 or self.totalSpecial > 0) then
 		self.character:playSound("CashRegister")
 	end
@@ -117,9 +126,16 @@ function ShopSellAction:complete()
 	for _, entry in ipairs(self.sellList.items) do
 		local item = inv:getItemById(entry.itemID)
 		if item then
+			-- Migrate item from old schema if needed (removes deprecated fields)
+			getLazyMigration().migrateItemIfNeeded(item)
+
 			-- Recompute sell price authoritatively on server
 			local itemType = item:getFullType()
-			local isSpecialCoin = Shop.PlayerSell[itemType] and Shop.PlayerSell[itemType].specialCoin or false
+			local isSpecialCoin = (
+				Shop.PlayerSell
+				and Shop.PlayerSell[itemType]
+				and Shop.PlayerSell[itemType].specialCoin
+			) or false
 
 			local context = {
 				shopId = self.shopName,
@@ -136,7 +152,8 @@ function ShopSellAction:complete()
 				itemPrice = finalPrice
 			else
 				-- Server calculation failed - fallback to base price ONLY (server-authoritative)
-				local itemDef = Shop.PlayerSell[itemType]
+				local itemDef = Shop.PlayerSell and Shop.PlayerSell[itemType]
+				---@diagnostic disable-next-line: unnecessary-if
 				if itemDef and itemDef.basePrice then
 					itemPrice = itemDef.basePrice
 					SharedLogger.logAction(
@@ -160,6 +177,7 @@ function ShopSellAction:complete()
 				inv:Remove(item)
 				sendRemoveItemFromContainer(inv, item)
 
+				---@diagnostic disable-next-line: unnecessary-if
 				-- Accumulate payment with server-authoritative price
 				if isSpecialCoin then
 					totalSpecial = totalSpecial + itemPrice
@@ -198,8 +216,36 @@ function ShopSellAction:complete()
 		SharedLogger.logAction("ShopSellAction", "complete", "No balance to add (total=0, totalSpecial=0)")
 	end
 
+	-- Phase 3c: Send targeted transaction result to player (not broadcast)
+	-- Find the player object from username
+	local onlinePlayer = nil
+	for i = 0, getOnlinePlayers():size() - 1 do
+		local p = getOnlinePlayers():get(i)
+		if p and p:getUsername() == username then
+			onlinePlayer = p
+			break
+		end
+	end
+
+	---@diagnostic disable-next-line: unnecessary-if
+	if onlinePlayer then
+		local itemCount = self.sellList.items and #self.sellList.items or 0
+		Utilities.SendServerCommandTo(onlinePlayer, "nshopsb42", "TransactionResult", {
+			txnId = txnId,
+			type = "SELL",
+			success = true,
+			finalRevenue = total,
+			finalRevenueSpecial = totalSpecial,
+			newBalance = account.coin,
+			newBalanceSpecial = account.specialCoin,
+			itemCount = itemCount,
+		})
+		SharedLogger.logAction("ShopSellAction", "complete", "Transaction result sent to player")
+	end
+
 	-- Mark transaction as processed
 	local TxnRegistry = getTransactionRegistry()
+	---@diagnostic disable-next-line: unnecessary-if
 	if TxnRegistry then
 		TxnRegistry.markProcessed(username, txnId)
 	end

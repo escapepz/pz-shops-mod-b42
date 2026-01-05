@@ -71,7 +71,7 @@ function Validator.validateSellPrice(player, item, clientPrice)
 	-- In that case, fall back to base price (server is authority)
 	if not serverPrice then
 		local itemId = item:getFullType()
-		local sellData = Shop.PlayerSell[itemId]
+		local sellData = Shop.PlayerSell and Shop.PlayerSell[itemId]
 		serverPrice = (sellData and (sellData.basePrice or sellData.price)) or 0
 	end
 

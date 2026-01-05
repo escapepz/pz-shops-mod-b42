@@ -14,6 +14,7 @@ local function validateSellItem(id, def)
 end
 
 function Shop.FinalizeSellRegistry()
+	---@diagnostic disable-next-line: unnecessary-if
 	if Shop._sellLocked then
 		return
 	end
@@ -40,18 +41,25 @@ function Shop.FinalizeSellRegistry()
 			.. #Shop._sellPending
 			.. " items (available for players to sell to NPC shop)"
 	)
+	---@diagnostic disable-next-line: param-type-mismatch
 	for _, entry in ipairs(Shop._sellPending) do
 		validateSellItem(entry.id, entry.def)
 		-- Store base price separately so price can change without affecting base
 		if entry.def.price and not entry.def.basePrice then
 			entry.def.basePrice = entry.def.price
 		end
-		Shop.PlayerSell[entry.id] = entry.def
+		---@diagnostic disable-next-line: unnecessary-if
+		if Shop.PlayerSell then
+			Shop.PlayerSell[entry.id] = entry.def
+		end
 	end
 
 	local sellCount = 0
-	for _ in pairs(Shop.PlayerSell) do
-		sellCount = sellCount + 1
+	---@diagnostic disable-next-line: unnecessary-if
+	if Shop.PlayerSell then
+		for _ in pairs(Shop.PlayerSell) do
+			sellCount = sellCount + 1
+		end
 	end
 	SharedLogger.log("Shops", "[ShopSellInit] FinalizeSellRegistry complete. Total NPC Shop sell items: " .. sellCount)
 

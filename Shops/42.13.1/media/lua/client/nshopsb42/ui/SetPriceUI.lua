@@ -1,3 +1,4 @@
+---@diagnostic disable: redundant-parameter
 SHOPSB42.SetPriceUI = ISCollapsableWindow:derive("SetPriceUI")
 local SetPriceUI = SHOPSB42.SetPriceUI
 local UIText = SHOPSB42.UIText
@@ -84,6 +85,7 @@ function SetPriceUI:createChildren()
 	self.setButton.enable = true
 	self:addChild(self.setButton)
 
+	---@diagnostic disable-next-line: unnecessary-if
 	if not Currency.UseSpecialCoin then
 		self.specialCoin:setVisible(false)
 		self.specialCoinTex:setVisible(false)
@@ -128,8 +130,11 @@ end
 
 function SetPriceUI:close()
 	ISCollapsableWindow.close(self)
-	SetPriceUI.instance:removeFromUIManager()
-	SetPriceUI.instance = nil
+	---@diagnostic disable-next-line: unnecessary-if
+	if SetPriceUI.instance then
+		SetPriceUI.instance:removeFromUIManager()
+		SetPriceUI.instance = nil
+	end
 	self:removeFromUIManager()
 end
 

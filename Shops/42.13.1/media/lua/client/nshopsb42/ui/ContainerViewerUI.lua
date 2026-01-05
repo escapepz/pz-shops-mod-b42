@@ -15,6 +15,7 @@ local browseBtnX = 220
 local containerId = nil
 
 function ContainerViewerUI:show(container, reset)
+	---@diagnostic disable-next-line: unnecessary-if
 	if SHOPSB42.PlayerShopUI.instance and SHOPSB42.PlayerShopUI.instance.cvUis[container:getID()] then
 		return
 	end
@@ -22,6 +23,7 @@ function ContainerViewerUI:show(container, reset)
 		ContainerViewerUI.instance = nil
 	end
 	if ContainerViewerUI.instance == nil then
+		---@diagnostic disable-next-line: redundant-parameter
 		ContainerViewerUI.instance = ContainerViewerUI:new(0, 0, width, height, container)
 		ContainerViewerUI.instance.container = container
 		ContainerViewerUI.instance:initialise()
@@ -32,6 +34,7 @@ function ContainerViewerUI:show(container, reset)
 	ContainerViewerUI.instance.collapseButton:setVisible(false)
 	ContainerViewerUI.instance:addToUIManager()
 	ContainerViewerUI.instance:setVisible(true)
+	---@diagnostic disable-next-line: unnecessary-if
 	if SHOPSB42.PlayerShopUI.instance then
 		SHOPSB42.PlayerShopUI.instance.cvUis[container:getID()] = ContainerViewerUI.instance
 	end
@@ -47,6 +50,9 @@ function ContainerViewerUI:filter()
 	self.containertems.items = self.containerItemsCache
 	filterText = string.lower(filterText)
 	local containertems = self.containertems.items
+	if not containertems then
+		return
+	end
 	self.containertems:clear()
 	for k, v in ipairs(containertems) do
 		if string.contains(string.lower(v.item:getName()), filterText) then
@@ -84,6 +90,7 @@ function ContainerViewerUI:onMouseMove(dx, dy)
 		self:setY(self.y + dy)
 		self:bringToTop()
 	end
+	---@diagnostic disable-next-line: unnecessary-if
 	if SHOPSB42.PlayerShopUI.instance then
 		SHOPSB42.PlayerShopUI.instance:toggleTooltip(false)
 	end
@@ -214,6 +221,7 @@ end
 
 function ContainerViewerUI:close()
 	ISCollapsableWindow.close(self)
+	---@diagnostic disable-next-line: unnecessary-if
 	if SHOPSB42.PlayerShopUI.instance and containerId then
 		SHOPSB42.PlayerShopUI.instance.cvUis[containerId] = nil
 	end

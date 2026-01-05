@@ -8,8 +8,9 @@ local Shop = SHOPSB42.Shop
 local ShopPriceEvents = SHOPSB42.ShopPriceEvents
 
 function Shop.canPlayerSell(fullType)
-	local cfg = Shop.PlayerSell[fullType]
+	local cfg = Shop.PlayerSell and Shop.PlayerSell[fullType]
 
+	---@diagnostic disable-next-line: unnecessary-if
 	-- If item is registered
 	if cfg then
 		return cfg.enabled and not cfg.blacklisted
@@ -26,7 +27,7 @@ function Shop.canPlayerSell(fullType)
 end
 
 function Shop.getPlayerSellPayout(fullType)
-	local cfg = Shop.PlayerSell[fullType]
+	local cfg = Shop.PlayerSell and Shop.PlayerSell[fullType]
 	if not cfg then
 		return nil
 	end
@@ -41,9 +42,10 @@ function Shop.resolvePlayerSellPrice(player, item, context)
 		return nil
 	end
 
-	local rule = Shop.PlayerSell[id]
+	local rule = Shop.PlayerSell and Shop.PlayerSell[id]
 	local base
 
+	---@diagnostic disable-next-line: unnecessary-if
 	if rule then
 		-- Item is registered - use registered price
 		base = rule.basePrice or rule.price

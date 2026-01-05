@@ -5,8 +5,10 @@ local oldCanDestroy = ISDestroyCursor.canDestroy
 function ISDestroyCursor:canDestroy(object)
 	if not (isAdmin()) then
 		local sprite = object:getSprite()
+		---@diagnostic disable-next-line: unnecessary-if
 		if sprite then
 			local spriteName = sprite:getName()
+			---@diagnostic disable-next-line: unnecessary-if
 			if spriteName then
 				if string.find(spriteName, PlayerShop.spritePrefix) then
 					return false

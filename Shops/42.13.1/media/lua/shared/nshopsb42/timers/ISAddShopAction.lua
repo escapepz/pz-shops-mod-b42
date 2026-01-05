@@ -56,6 +56,16 @@ function ISAddShopAction:complete()
 	local north = self.north or false
 	local player = self.character
 
+	if not square then
+		SharedLogger.log("Shops", "[ISAddShopAction:complete] ERROR: square is nil")
+		return false
+	end
+
+	if not player then
+		SharedLogger.log("Shops", "[ISAddShopAction:complete] ERROR: player is nil")
+		return false
+	end
+
 	SharedLogger.log(
 		"Shops",
 		"[ISAddShopAction:complete] Placing admin shop at "

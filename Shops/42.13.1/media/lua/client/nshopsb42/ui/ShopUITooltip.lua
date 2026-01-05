@@ -72,7 +72,7 @@ function ShopUITooltip:render()
 		self:setX(getPlayerScreenLeft(playerNum) + 60)
 		self:setY(getPlayerScreenTop(playerNum) + 60)
 	elseif self.contextMenu and self.contextMenu.currentOptionRect then
-		if self.contextMenu.currentOptionRect.height > 32 then
+		if my and self.contextMenu.currentOptionRect.height and self.contextMenu.currentOptionRect.height > 32 then
 			self:setY(my + self.contextMenu.currentOptionRect.height)
 		end
 		self:adjustPositionToAvoidOverlap(self.contextMenu.currentOptionRect)
@@ -95,6 +95,7 @@ function ShopUITooltip:render()
 	end
 
 	local tooltip = tooltipCache[self.item.type]
+	---@diagnostic disable-next-line: unnecessary-if
 	if tooltip then
 		local y = 50
 		local x = 20
@@ -167,6 +168,9 @@ function ShopUITooltip:doLayout()
 		end
 	end
 
+	if not itemNameWidth then
+		itemNameWidth = 0
+	end
 	itemNameWidth = itemNameWidth + 40
 	local fixedHeight = defaultHeight + (getTextManager():getFontFromEnum(UIFont.Medium):getLineHeight() * itemsCount)
 	self:setWidth(itemNameWidth)

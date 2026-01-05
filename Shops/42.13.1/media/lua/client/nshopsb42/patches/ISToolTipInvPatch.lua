@@ -8,6 +8,7 @@ local fontConfig = {
 -- Injects price line into tooltip for shop items
 -- Shows: [coin icon] price
 local function injectPrice(self, item, isSpecialCoin)
+	---@diagnostic disable-next-line: unnecessary-if
 	-- Skip price injection if PlayerShopUI open (prices shown in cart already)
 	if SHOPSB42.PlayerShopUI.instance then
 		return
@@ -15,7 +16,11 @@ local function injectPrice(self, item, isSpecialCoin)
 
 	local price = item:getModData().price
 	local fontSize = getCore():getOptionTooltipFont()
-	local height = fontConfig[fontSize].y
+	local fontData = fontConfig[fontSize]
+	if not fontData then
+		return
+	end
+	local height = fontData.y
 	local x = 15
 	local y = -20
 
@@ -51,7 +56,7 @@ local function injectPrice(self, item, isSpecialCoin)
 	self.tooltip:DrawTextureScaledAspect(
 		coinImg.texture,
 		x - 10,
-		y + fontConfig[fontSize].iconY,
+		y + fontData.iconY,
 		coinImg.scale,
 		coinImg.scale,
 		1,
@@ -61,7 +66,7 @@ local function injectPrice(self, item, isSpecialCoin)
 	)
 	-- Draw price value
 	price = SHOPSB42.Currency.format(price)
-	self.tooltip:DrawText(self.tooltip:getFont(), "" .. price, x + 10, y - fontConfig[fontSize].iconY, 1, 1, 1, 1)
+	self.tooltip:DrawText(self.tooltip:getFont(), "" .. price, x + 10, y - fontData.iconY, 1, 1, 1, 1)
 	self:setY(self.tooltip:getY())
 end
 
@@ -71,6 +76,10 @@ end
 --        [special coin icon] special balance (if enabled)
 local function injectWallet(self, item)
 	local fontSize = getCore():getOptionTooltipFont()
+	local fontData = fontConfig[fontSize]
+	if not fontData then
+		return
+	end
 	local th = self.tooltip:getHeight()
 	local belongsTo = item:getModData().belongsTo
 	local x = 15
@@ -85,6 +94,7 @@ local function injectWallet(self, item)
 
 	local renderBalance = true
 	local rows = 3
+	---@diagnostic disable-next-line: unnecessary-if
 	if not SHOPSB42.Currency.UseSpecialCoin then
 		rows = 2
 	end
@@ -94,7 +104,7 @@ local function injectWallet(self, item)
 		renderBalance = false
 	end
 
-	local height = fontConfig[fontSize].y * rows
+	local height = fontData.y * rows
 
 	self:setY(self.tooltip:getY() + th)
 	self:setHeight(height)
@@ -126,7 +136,7 @@ local function injectWallet(self, item)
 	self.tooltip:DrawTextureScaledAspect(
 		wallet.texture,
 		x - 10,
-		y + fontConfig[fontSize].iconY,
+		y + fontData.iconY,
 		wallet.scale,
 		wallet.scale,
 		1,
@@ -143,12 +153,12 @@ local function injectWallet(self, item)
 
 	-- Draw coin balance
 	local coin = account.coin
-	y = y + fontConfig[fontSize].y
+	y = y + fontData.y
 	local coinImg = SHOPSB42.Currency.CoinsTexture.Coin
 	self.tooltip:DrawTextureScaledAspect(
 		coinImg.texture,
 		x - 10,
-		y + fontConfig[fontSize].iconY,
+		y + fontData.iconY,
 		coinImg.scale,
 		coinImg.scale,
 		1,
@@ -160,7 +170,7 @@ local function injectWallet(self, item)
 	self.tooltip:DrawText(self.tooltip:getFont(), "" .. coinFormatted, x + 10, y, 1, 1, 1, 1)
 
 	-- Draw special coin balance (if enabled)
-	y = y + fontConfig[fontSize].y
+	y = y + fontData.y
 	coinImg = SHOPSB42.Currency.CoinsTexture.SpecialCoin
 	if SHOPSB42.Currency.UseSpecialCoin then
 		local specialCoin = account.specialCoin
@@ -168,7 +178,7 @@ local function injectWallet(self, item)
 		self.tooltip:DrawTextureScaledAspect(
 			coinImg.texture,
 			x - 10,
-			y + fontConfig[fontSize].iconY,
+			y + fontData.iconY,
 			coinImg.scale,
 			coinImg.scale,
 			1,
@@ -217,6 +227,7 @@ end
 local oldRender = ISToolTipInv.render
 
 function ISToolTipInv:render()
+	---@diagnostic disable-next-line: unnecessary-if
 	-- Do not interfere during context-menu visibility checks
 	if ISContextMenu.instance and ISContextMenu.instance.visibleCheck then
 		pcall(function()

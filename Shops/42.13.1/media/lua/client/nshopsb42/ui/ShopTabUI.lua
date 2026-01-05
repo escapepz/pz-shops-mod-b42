@@ -175,8 +175,10 @@ function ShopTabUI:doDrawShopItem(y, item, alt)
 		if finalPrice ~= basePrice then
 			-- Price changed: finalPrice at original position, basePrice moves below
 			if finalPrice > basePrice then
+				---@diagnostic disable-next-line: unnecessary-if
+				-- SELL TAB: Price increased is GOOD for player - show in good color with +%
+				-- BUY TAB: Price increased is BAD for player - show in neutral color
 				if isSellTab then
-					-- SELL TAB: Price increased is GOOD for player - show in good color with +%
 					self:drawText(
 						finalPriceFormatted,
 						priceX,
@@ -243,6 +245,7 @@ function ShopTabUI:doDrawShopItem(y, item, alt)
 					)
 				end
 			else
+				---@diagnostic disable-next-line: unnecessary-if
 				if isSellTab then
 					-- SELL TAB: Price decreased is BAD for player - show in neutral color
 					self:drawText(
@@ -384,13 +387,13 @@ end
 
 function ShopTabUI:onMouseDownShopItem(x, y)
 	ISScrollingListBox.onMouseDown(self, x, y)
-	if PreviewUI.instance then
+	if PreviewUI.instance ~= nil then
 		PreviewUI.instance:close()
 	end
-	if ContainerViewerUI.instance then
+	if ContainerViewerUI.instance ~= nil then
 		ContainerViewerUI.instance:close()
 	end
-	if BundleViewerUI.instance then
+	if BundleViewerUI.instance ~= nil then
 		BundleViewerUI.instance:close()
 	end
 	if self.selectedRow then
@@ -505,6 +508,9 @@ end
 
 function ShopTabUI:addToCart(selectedRow)
 	local item = self.shopItems.items[selectedRow]
+	if not item then
+		return
+	end
 	if self.ShopUI.actionInProgress then
 		return
 	end
@@ -514,6 +520,11 @@ function ShopTabUI:addToCart(selectedRow)
 	-- This is critical for cart display logic which needs both finalPrice and basePrice
 	if item.item and item.item.price and not item.item.basePrice then
 		item.item.basePrice = item.item.price
+	end
+
+	-- Phase 2.3: Store preview price for transaction validation
+	if item.item and item.item.price and item.type then
+		self.ShopUI:storePreviewPrice(item.type, item.item.price)
 	end
 
 	self.ShopUI.cartItems:addItem(item.text, item.item)
@@ -530,6 +541,9 @@ function ShopTabUI:filter()
 	self.shopItems.items = self.ShopUI.shopItemsCache[tabType]
 	filterText = string.lower(filterText)
 	local shopItems = self.shopItems.items
+	if not shopItems then
+		return
+	end
 	self.shopItems:clear()
 	for k, v in ipairs(shopItems) do
 		if string.contains(string.lower(v.item.name), filterText) then
@@ -597,6 +611,9 @@ end
 local sortToggle = true
 function ShopTabUI:sortPriceBtn()
 	local items = self.shopItems.items
+	if not items then
+		return
+	end
 	table.sort(items, function(v1, v2)
 		if sortToggle then
 			return v1.item.price < v2.item.price
@@ -609,6 +626,9 @@ end
 
 function ShopTabUI:moveAllBtn()
 	local items = self.shopItems.items
+	if not items then
+		return
+	end
 	for k, v in pairs(items) do
 		self.ShopUI.cartItems:addItem(v.item.text, v.item)
 	end

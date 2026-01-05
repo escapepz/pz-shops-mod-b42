@@ -44,6 +44,7 @@ function ShopSyncClient.invalidateUI(reason)
 			ui:rebuildActiveTab()
 			SharedLogger.log("Shops", "[ShopSyncClient] Rebuilt Sell tab on rule change")
 		else
+			---@diagnostic disable-next-line: unnecessary-if
 			-- Sell is not active: cache will be invalidated on next activation
 			if ui.shopItemsCache then
 				ui.shopItemsCache[2] = nil
@@ -56,6 +57,7 @@ function ShopSyncClient.invalidateUI(reason)
 		if ui.cancelPendingTransactions then
 			ui:cancelPendingTransactions()
 		end
+		---@diagnostic disable-next-line: unnecessary-if
 		-- Invalidate all tab caches for rebuild
 		if ui.shopItemsCache then
 			ui.shopItemsCache = {}
@@ -81,6 +83,7 @@ function ShopSyncClient.invalidateUI(reason)
 			SharedLogger.log("Shops", "[ShopSyncClient] Cleared cart due to structural change")
 		end
 		ui:rebuildActiveTab()
+		---@diagnostic disable-next-line: unnecessary-if
 		if ui.shopItemsCache then
 			ui.shopItemsCache = {}
 		end
@@ -100,6 +103,7 @@ function ShopSyncClient.refreshUIForPriceChange()
 		"[ShopSyncClient.refreshUIForPriceChange] ENTRY - ui instance exists: " .. tostring(ui ~= nil)
 	)
 
+	---@diagnostic disable-next-line: unnecessary-if
 	-- Mark cache as invalidated (will be handled on next access)
 	if ui then
 		ui.cacheInvalidated = true
@@ -135,6 +139,7 @@ function ShopSyncClient.refreshUIForPriceChange()
 	local activeTabType = activeTab.tabType
 	SharedLogger.log("Shops", "[ShopSyncClient.refreshUIForPriceChange] Active tab type: " .. tostring(activeTabType))
 
+	---@diagnostic disable-next-line: unnecessary-if
 	-- Step 1: Invalidate caches for NON-active tabs
 	-- These will rebuild fresh when activated next
 	if ui.shopItemsCache then
@@ -484,6 +489,7 @@ function ShopSyncClient.handleSyncInitialComplete(data)
 		"[ShopSyncClient] Initial sync COMPLETE (buyRev=" .. incomingBuyRev .. ", sellRev=" .. incomingSellRev .. ")"
 	)
 
+	---@diagnostic disable-next-line: unnecessary-if
 	-- Notify listeners that initial sync is complete
 	-- External code (like ShopUI) can use this to know when rendering is safe
 	if ShopSyncClient._initialSyncCompleteCallbacks then
@@ -585,8 +591,10 @@ end
 -- Helper: Notify player if ShopUI is open (Phase 4.2: contextual notifications)
 function ShopSyncClient._notifyPriceChange()
 	local ShopUI = SHOPSB42.ShopUI and SHOPSB42.ShopUI.instance
+	---@diagnostic disable-next-line: unnecessary-if
 	if ShopUI then
 		local player = getPlayer()
+		---@diagnostic disable-next-line: unnecessary-if
 		if player then
 			player:setHaloNote(getText("IGUI_Shop_PricesChanged") or "Shop prices have changed", 0, 255, 0, 400)
 			SharedLogger.log("Shops", "[ShopSyncClient] Showed 'prices changed' halo note (UI is open)")
@@ -624,6 +632,7 @@ function ShopSyncClient.checkAndHandlePriceChanges()
 			.. tostring(Shop.SellRuleRevision)
 	)
 
+	---@diagnostic disable-next-line: unnecessary-if
 	if ShopSyncClient.pricesChangedWhileClosed then
 		SharedLogger.log(
 			"Shops",

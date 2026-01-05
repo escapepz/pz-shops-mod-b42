@@ -24,21 +24,26 @@ function Dispatcher.onPreFillInventoryObjectContextMenu(playerNum, context, item
 
 	-- Currency context handlers
 	local Currency = SHOPSB42.Currency
+	---@diagnostic disable-next-line: unnecessary-if
 	if Currency.LootCoinsObjectContextMenu then
 		Currency.LootCoinsObjectContextMenu(playerNum, context, item)
 	end
+	---@diagnostic disable-next-line: unnecessary-if
 	if Currency.LinkWalletObjectContextMenu then
 		Currency.LinkWalletObjectContextMenu(playerNum, context, item)
 	end
+	---@diagnostic disable-next-line: unnecessary-if
 	if Currency.UnlinkWalletObjectContextMenu then
 		Currency.UnlinkWalletObjectContextMenu(playerNum, context, item)
 	end
+	---@diagnostic disable-next-line: unnecessary-if
 	if Currency.CoinsToAccountObjectContextMenu then
 		Currency.CoinsToAccountObjectContextMenu(playerNum, context, item)
 	end
 
 	-- PlayerShop context handler
 	local PlayerShop = SHOPSB42.PlayerShop
+	---@diagnostic disable-next-line: unnecessary-if
 	if PlayerShop.ItemsSellPrice then
 		PlayerShop.ItemsSellPrice(playerNum, context, item)
 	end
@@ -57,6 +62,7 @@ end
 -- IDEMPOTENT REGISTRATION
 -- =============================================================================
 
+---@diagnostic disable-next-line: unnecessary-if
 if not Dispatcher._registered then
 	Dispatcher._registered = true
 	Events.OnPreFillInventoryObjectContextMenu.Add(Dispatcher.onPreFillInventoryObjectContextMenu)

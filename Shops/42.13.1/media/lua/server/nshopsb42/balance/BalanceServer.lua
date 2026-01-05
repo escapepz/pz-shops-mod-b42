@@ -2,6 +2,7 @@ local BServer = {}
 local BalanceAudit = require("nshopsb42/balance/BalanceAudit")
 local SharedLogger = require("nshopsb42/utils/SharedLogger")
 local Utilities = require("nshopsb42/utils/Utilities")
+local LazyMigration = require("nshopsb42/schema/LazyMigration")
 
 local logfile = "timestamp_economy.log"
 local msg = ""
@@ -45,6 +46,7 @@ function BServer.CreateAccount(player, args)
 	local walletID = args.walletID
 	local account = ModData.get("CoinBalance")[username]
 
+	---@diagnostic disable-next-line: unnecessary-if
 	if account then
 		account.linkedTo = linkedTo
 
@@ -181,6 +183,8 @@ function BServer.Deposit(player, args)
 			)
 			return
 		end
+		-- Migrate item from old schema if needed (removes deprecated fields)
+		LazyMigration.migrateItemIfNeeded(item)
 		table.insert(itemsToRemove, item)
 	end
 
@@ -255,6 +259,7 @@ function BServer.Transfer(player, args)
 	r.count = r.count + 1
 	r.lastTs = now
 
+	---@diagnostic disable-next-line: unnecessary-if
 	-- Reject if over limit (silent rejection)
 	if r.count > RATE_LIMIT.maxRequests then
 		SharedLogger.log(
@@ -377,9 +382,11 @@ function BServer.Transfer(player, args)
 	)
 
 	-- Check if recipient is online
+	---@type IsoPlayer | nil
 	local recipientPlayer = nil
 	local players = getOnlinePlayers()
 	local playersSize = players:size()
+	---@diagnostic disable-next-line: unnecessary-if
 	if playersSize then
 		for i = 0, playersSize - 1, 1 do
 			local p = players:get(i)
@@ -429,13 +436,16 @@ function BServer.Transfer(player, args)
 			)
 		)
 
+		---@diagnostic disable-next-line: unnecessary-if
 		-- Notify recipient
-		local noti = {
-			sender = sender,
-			coin = coin,
-			specialCoin = specialCoin,
-		}
-		Utilities.SendServerCommandTo(recipientPlayer, "nshopsb42", "BalanceTransferReceived", noti)
+		if recipientPlayer then
+			local noti = {
+				sender = sender,
+				coin = coin,
+				specialCoin = specialCoin,
+			}
+			Utilities.SendServerCommandTo(recipientPlayer, "nshopsb42", "BalanceTransferReceived", noti)
+		end
 	else
 		-- Offline path: enqueue mailbox entry
 		local mailbox = ModData.getOrCreate("BalanceMailbox")

@@ -27,6 +27,7 @@ function BClient.TransferReceived(noti)
 	local coin = SHOPSB42.Currency.format(noti.coin)
 	local specialCoin = SHOPSB42.Currency.format(noti.specialCoin)
 	local msg = getText("IGUI_Balance_TransferReceivedSpecial", sender, coin, specialCoin)
+	---@diagnostic disable-next-line: unnecessary-if
 	if not SHOPSB42.Currency.UseSpecialCoin then
 		msg = getText("IGUI_Balance_TransferReceived", sender, coin)
 	end
@@ -45,6 +46,7 @@ function BClient.MailboxReceived(noti)
 	local entryCount = noti.entryCount or 0
 
 	local msg = getText("IGUI_Balance_MailboxReceivedSpecial", coin, specialCoin, entryCount)
+	---@diagnostic disable-next-line: unnecessary-if
 	if not SHOPSB42.Currency.UseSpecialCoin then
 		msg = getText("IGUI_Balance_MailboxReceived", coin, entryCount)
 	end

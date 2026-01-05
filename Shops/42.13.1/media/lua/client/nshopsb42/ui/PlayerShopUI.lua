@@ -46,6 +46,7 @@ function PlayerShopUI:show(player, shop)
 	posY = square:getY()
 	if PlayerShopUI.instance == nil then
 		local shopOwner = shop:getModData().owner
+		---@diagnostic disable-next-line: redundant-parameter
 		PlayerShopUI.instance = PlayerShopUI:new(0, 0, width, height, player, shopOwner)
 		PlayerShopUI.instance.shop = shop
 		PlayerShopUI.instance.shopOwner = shopOwner
@@ -62,6 +63,10 @@ end
 
 function PlayerShopUI:update()
 	local player = self.player
+	if not player then
+		self:close()
+		return
+	end
 	if player:DistTo(posX, posY) > 2 then
 		self:close()
 	end
@@ -71,6 +76,7 @@ function PlayerShopUI:update()
 	self.balanceCoinLabel:setName("" .. coinFormatted)
 	local specialCoinFormatted = Currency.format(specialCoin)
 	self.balanceSpecialCoinLabel:setName("" .. specialCoinFormatted)
+	---@diagnostic disable-next-line: unnecessary-if
 	if self.actionInProgress then
 		self.buyCartButton.enable = false
 		self.buyCartButton:setVisible(false)
@@ -175,6 +181,9 @@ function PlayerShopUI:onMouseMove(dx, dy)
 		self:setY(self.y + dy)
 		self:bringToTop()
 	end
+	if not PlayerShopUI.instance then
+		return
+	end
 	if PlayerShopUI.instance.panel.activeView.view.shopItems:isMouseOver() then
 		return
 	end
@@ -186,6 +195,7 @@ end
 
 function PlayerShopUI:onMouseDown(x, y)
 	ISCollapsableWindow.onMouseDown(self, x, y)
+	---@diagnostic disable-next-line: unnecessary-if
 	if PreviewUI.instance then
 		PreviewUI.instance:close()
 	end
@@ -193,9 +203,11 @@ end
 
 function PlayerShopUI:onMouseDownCartItem(x, y)
 	ISScrollingListBox.onMouseDown(self, x, y)
+	---@diagnostic disable-next-line: unnecessary-if
 	if PreviewUI.instance then
 		PreviewUI.instance:close()
 	end
+	---@diagnostic disable-next-line: unnecessary-if
 	if ContainerViewerUI.instance then
 		ContainerViewerUI.instance:close()
 	end
@@ -215,7 +227,7 @@ function PlayerShopUI:onMouseDownCartItem(x, y)
 			PreviewUI:show(selectedRow.item.name, selectedRow.item.VehicleID)
 			return
 		end
-		if self.removeBtn then
+		if self.removeBtn and PlayerShopUI.instance then
 			PlayerShopUI.instance:removeFromCart(self.selectedRow)
 		end
 	end
@@ -244,6 +256,9 @@ function PlayerShopUI:toggleTooltip(show, item)
 end
 
 function PlayerShopUI:onMouseMoveCartItem(dx, dy)
+	if not PlayerShopUI.instance then
+		return
+	end
 	local list = PlayerShopUI.instance.cartItems
 	if not list then
 		return
@@ -282,6 +297,7 @@ end
 
 function PlayerShopUI:createCategories()
 	for k, v in pairs(PlayerShop.Tabs) do
+		---@diagnostic disable-next-line: redundant-parameter
 		local tab = PlayerShopTabUI:new(0, 0, self.width, self.panel.height - self.panel.tabHeight)
 		tab:initialise()
 		tab:setAnchorRight(true)
@@ -295,10 +311,17 @@ function PlayerShopUI:createCategories()
 end
 
 function PlayerShopUI:onActivateView()
+	if not self.panel or not self.panel.activeView then
+		return
+	end
 	local tabType = self.panel.activeView.view.tabType
 	local shopItems = self.panel.activeView.view.shopItems
+	if not shopItems then
+		return
+	end
 	local items = self.shop:getContainer():getItems()
 	shopItems:clear()
+	---@diagnostic disable-next-line: unnecessary-if
 	if self.cartItems then
 		self.cartItems:clear()
 	end
@@ -426,6 +449,7 @@ function PlayerShopUI:createChildren()
 		ISLabel:new(x + 560, y + 305, PlayerShopUI.SMALL_FONT_HGT, "0", 1, 1, 1, 1, UIFont.Medium, true)
 	self:addChild(self.totalSpecialCoinLabel)
 
+	---@diagnostic disable-next-line: unnecessary-if
 	if not Currency.UseSpecialCoin then
 		self.balanceSpecialCoinTex:setVisible(false)
 		self.balanceSpecialCoinLabel:setVisible(false)
@@ -443,6 +467,7 @@ function PlayerShopUI:activateFirstTab()
 end
 
 function PlayerShopUI:removeFromCart(selectedRowIndex)
+	---@diagnostic disable-next-line: unnecessary-if
 	if self.actionInProgress then
 		return
 	end
@@ -452,13 +477,20 @@ function PlayerShopUI:removeFromCart(selectedRowIndex)
 		return
 	end
 
+	if not self.panel or not self.panel.activeView then
+		return
+	end
 	local tab = self.panel.activeView.view
 	tab.shopItems:addItem(selectedRow.item.type, selectedRow.item)
 	self.cartItems:removeItemByIndex(selectedRowIndex)
 end
 
 function PlayerShopUI:clearCartBtn()
+	---@diagnostic disable-next-line: unnecessary-if
 	if self.actionInProgress then
+		return
+	end
+	if not self.panel or not self.panel.activeView then
 		return
 	end
 	local tab = self.panel.activeView.view
@@ -467,7 +499,7 @@ function PlayerShopUI:clearCartBtn()
 end
 
 function PlayerShopUI:cancelBuyBtn()
-	-- ✓ SAFE: Use ISTimedActionQueue.clear() - the only correct way to cancel from UI
+	-- OK SAFE: Use ISTimedActionQueue.clear() - the only correct way to cancel from UI
 	ISTimedActionQueue.clear(self.player)
 
 	-- Reset action in progress flag and UI state
@@ -482,6 +514,9 @@ function PlayerShopUI:cancelBuyBtn()
 end
 
 function PlayerShopUI:buyCartBtn()
+	if not PlayerShopUI.instance then
+		return
+	end
 	local shop = PlayerShopUI.instance.shop
 	local username = self.player:getUsername()
 	if not PlayerShop.isBlockByUser(shop, username) then
@@ -517,6 +552,7 @@ function PlayerShopUI:buyCartBtn()
 	else
 		shopCoords = { x = 0, y = 0, z = 0 }
 	end
+	---@diagnostic disable-next-line: redundant-parameter
 	local action = PlayerShopBuyAction:new(self.player, shopCoords, ticket)
 	ISTimedActionQueue.add(action)
 	self.buyCartButton.enable = false
@@ -528,7 +564,7 @@ end
 function PlayerShopUI:render()
 	ISCollapsableWindow.render(self)
 	local actionQueue = ISTimedActionQueue.getTimedActionQueue(self.player)
-	local currentAction = actionQueue.current -- ✓ CRITICAL: Use queue.current, not queue[1]
+	local currentAction = actionQueue.current -- OK CRITICAL: Use queue.current, not queue[1]
 
 	-- Check if this is a player shop action (using marker field, not class identity)
 	local isPlayerShopAction = currentAction and currentAction._shopActionType == "playerBuy"
@@ -538,9 +574,11 @@ function PlayerShopUI:render()
 		self._wasPlayerShopActionRunning = true
 		self:drawProgressBar((self.width / 2) + 180, 420, 120, 10, currentAction:getJobDelta(), self.fgBar)
 	else
+		---@diagnostic disable-next-line: unnecessary-if
 		-- Action is not running: finalize UI state once (state latch prevents flickering)
 		if self._wasPlayerShopActionRunning then
 			self._wasPlayerShopActionRunning = false
+			---@diagnostic disable-next-line: unnecessary-if
 			-- Clear cart and reset buttons only on transition
 			if self.actionInProgress then
 				self.cartItems:clear()
@@ -609,18 +647,24 @@ end
 
 function PlayerShopUI:close()
 	ISCollapsableWindow.close(self)
+	if not PlayerShopUI.instance then
+		return
+	end
 	local shop = PlayerShopUI.instance.shop
 	local username = self.player:getUsername()
 	if PlayerShop.isBlockByUser(shop, username) then
 		PlayerShop.toggleBusy(shop, username, false)
 	end
+	---@diagnostic disable-next-line: unnecessary-if
 	if PreviewUI.instance then
 		PreviewUI.instance:close()
 	end
+	---@diagnostic disable-next-line: unnecessary-if
 	if ContainerViewerUI.instance then
 		ContainerViewerUI.instance:close()
 	end
 	for k, v in pairs(PlayerShopUI.cvUis) do
+		---@diagnostic disable-next-line: unnecessary-if
 		if v then
 			v:close()
 		end

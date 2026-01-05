@@ -26,6 +26,7 @@ local function ensureInitialized()
 	function ShopSpriteCursorUI:new(character, sprites)
 		local o = {}
 		setmetatable(o, self)
+		---@diagnostic disable-next-line: need-check-nil
 		self.__index = self
 		o:init()
 		o.sprites = sprites
@@ -42,6 +43,7 @@ local function ensureInitialized()
 
 	function ShopSpriteCursorUI:isValid(square)
 		-- Pass self (the building object) and square to buildUtil
+		---@diagnostic disable-next-line: param-type-mismatch
 		return buildUtil.canBePlace(self, square)
 	end
 
@@ -54,6 +56,7 @@ local function ensureInitialized()
 	-- DO NOT create world objects here
 	function ShopSpriteCursorUI:tryBuild(x, y, z)
 		-- Determine which action class to use (default: ISAddPlayerShopAction)
+		---@diagnostic disable-next-line: need-check-nil
 		local ActionClass = self.actionClass or ISAddPlayerShopAction
 
 		if not ActionClass then
@@ -69,10 +72,17 @@ local function ensureInitialized()
 
 		SharedLogger.log(
 			"Shops",
-			"[ShopSpriteCursorUI:tryBuild] Queuing action for sprite=" .. self:getSprite() .. " at " .. x .. "," .. y
+			"[ShopSpriteCursorUI:tryBuild] Queuing action for sprite="
+				---@diagnostic disable-next-line: need-check-nil
+				.. self:getSprite()
+				.. " at "
+				.. x
+				.. ","
+				.. y
 		)
 
 		-- Queue the timed action (server will handle the actual placement)
+		---@diagnostic disable-next-line: need-check-nil, redundant-parameter
 		local action = ActionClass:new(self.character, square, self:getSprite(), self.north)
 		if not action then
 			SharedLogger.log("Shops", "[ShopSpriteCursorUI:tryBuild] ERROR: Action creation returned nil")
@@ -160,6 +170,7 @@ setmetatable(module, {
 -- Also provide explicit methods for clarity
 function module:new(character, sprites)
 	ensureInitialized()
+	---@diagnostic disable-next-line: unnecessary-if
 	if ShopSpriteCursorUI then
 		return ShopSpriteCursorUI:new(character, sprites)
 	end
@@ -168,6 +179,7 @@ end
 
 function module:derive(name)
 	ensureInitialized()
+	---@diagnostic disable-next-line: unnecessary-if
 	if ShopSpriteCursorUI then
 		return ShopSpriteCursorUI:derive(name)
 	end

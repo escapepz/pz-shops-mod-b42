@@ -7,7 +7,7 @@ local SharedLogger = SHOPSB42.SharedLogger
 
 -- Global debug toggle - set to false to disable all logging
 local isDebugMode = getCore():getDebug()
-SharedLogger.DEBUG = isDebugMode
+SharedLogger.DEBUG = true --isDebugMode
 
 -- Get the current execution side
 -- @return string: "[SERVER]", "[CLIENT]", or nil

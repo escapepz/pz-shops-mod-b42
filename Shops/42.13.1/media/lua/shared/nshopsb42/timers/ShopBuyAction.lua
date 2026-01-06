@@ -11,6 +11,8 @@ local Shop = SHOPSB42.Shop
 local Balance = SHOPSB42.Balance
 local Utilities = require("nshopsb42/utils/Utilities")
 local SharedLogger = SHOPSB42.SharedLogger
+local PricingContract = require("nshopsb42/pricing/PricingContract")
+local ShopListingNPC = require("nshopsb42/ui/ShopListingNPC")
 
 -- Lazy-load server modules to avoid initialization order issues
 local TransactionRegistry
@@ -122,21 +124,19 @@ function ShopBuyAction:complete()
 		return false
 	end
 
-	-- First pass: validate and compute final prices
+	-- First pass: validate and compute final prices using PricingContract (Phase 1 refactor)
 	for _, entry in ipairs(ticket.items) do
 		local itemType = entry.type
 		local quantity = entry.quantity or 1
 		if itemType and Shop.Items[itemType] then
-			local context = {
-				shopId = self.shopName,
-				quantity = quantity,
-				isSpecialCoin = Shop.Items[itemType].specialCoin or false,
-				isBroken = false,
-			}
-			local finalPrice = Shop.resolvePlayerBuyPrice(self.character, itemType, context)
-			if not finalPrice then
-				finalPrice = Shop.Items[itemType].price
-			end
+			local basePrice = Shop.Items[itemType].basePrice or Shop.Items[itemType].price
+			local playerSnapshot = ShopListingNPC.createPlayerSnapshot(self.character)
+			local modifiers = Shop.PriceModifiers and Shop.PriceModifiers.buyModifiers or {}
+
+			-- Use PricingContract for deterministic transaction pricing (Phase 1)
+			local result =
+				PricingContract.calculateBuyPrice(itemType, "npc_general_store", basePrice, playerSnapshot, modifiers)
+			local finalPrice = result and result.finalPrice or basePrice
 
 			if Shop.Items[itemType].specialCoin then
 				totalSpecialCoin = totalSpecialCoin + (finalPrice * quantity)

@@ -10,7 +10,6 @@ local ShopUITooltip = SHOPSB42.ShopUITooltip
 local ShopTabUI = SHOPSB42.ShopTabUI
 local ShopBuyAction = SHOPSB42.ShopBuyAction
 local ShopSellAction = SHOPSB42.ShopSellAction
-local Calculator = require("nshopsb42/pricing/ShopPriceCalculatorShared")
 local SharedLogger = SHOPSB42.SharedLogger
 local ClientShopListingService = require("nshopsb42/ui/ClientShopListingService") -- Phase 3: Client listing service
 
@@ -42,61 +41,21 @@ end
 
 -- Phase 3: Calculate buy price using deterministic client-side listing
 -- Prioritizes ClientShopListingService for zero-network preview pricing
-local function calcBuyPricePhase3(itemId, player, basePrice)
+-- Phase 3 (consolidated): Calculate buy price using deterministic client-side listing
+-- Canonical source: ClientShopListingService (calls PricingContract internally)
+-- ZERO network traffic - all calculations happen locally
+-- No server price check needed (Phase 2 broadcasts disabled; transactions validate server-side)
+local function calcBuyPrice(itemId, player, basePrice)
 	if not basePrice then
 		return nil
 	end
 
 	player = player or getPlayer()
 
-	---@diagnostic disable-next-line: unnecessary-if
-	-- Phase 3: Use ClientShopListingService for deterministic preview
-	-- This ensures no network traffic is generated for listing/browsing
-	if ClientShopListingService and ClientShopListingService.calculatePreviewBuyPrice then
-		local previewPrice =
-			ClientShopListingService.calculatePreviewBuyPrice(itemId, "npc_general_store", basePrice, player)
-		if previewPrice then
-			return previewPrice
-		end
-	end
-
-	return basePrice
-end
-
--- Phase 3b: Calculate buy price using deterministic client-side listing
--- Prioritizes server-authoritative prices, then falls back to ClientShopListingService
-local function calcBuyPrice(itemId, player, basePrice)
-	if not basePrice then
-		return nil
-	end
-
-	-- Check if server calculated this price (server-only hooks - takes priority)
-	local calculatedPrices = Shop.CalculatedPrices or {}
-	if calculatedPrices.buyPrices and calculatedPrices.buyPrices[itemId] then
-		local priceData = calculatedPrices.buyPrices[itemId]
-		-- Phase 4 Fix: Handle both table and scalar formats (backward compatibility)
-		local price = type(priceData) == "table" and priceData.price or priceData
-
-		-- DEBUG: Log price calculations for Base.Apple
-		if itemId == "Base.Apple" then
-			SharedLogger.log(
-				"Shops",
-				"[ShopUI:calcBuyPrice] Base.Apple: basePrice="
-					.. basePrice
-					.. ", calculated="
-					.. price
-					.. " (from server)"
-			)
-		end
-
-		return price
-	end
-
-	-- Phase 3b: Use ClientShopListingService for deterministic preview pricing (ZERO NETWORK)
-	-- This ensures client-side listing is fast and doesn't generate network traffic
+	-- PRIORITY 1: Use ClientShopListingService for deterministic preview pricing
+	-- This calls PricingContract internally for consistent client/server pricing
 	---@diagnostic disable-next-line: unnecessary-if
 	if ClientShopListingService and ClientShopListingService.calculatePreviewBuyPrice then
-		player = player or getPlayer()
 		local previewPrice =
 			ClientShopListingService.calculatePreviewBuyPrice(itemId, "npc_general_store", basePrice, player)
 
@@ -106,7 +65,7 @@ local function calcBuyPrice(itemId, player, basePrice)
 				"Shops",
 				"[ShopUI:calcBuyPrice] Base.Apple: basePrice="
 					.. basePrice
-					.. ", previewPrice="
+					.. ", preview="
 					.. (previewPrice or "nil")
 					.. " (from ClientShopListingService)"
 			)
@@ -117,44 +76,26 @@ local function calcBuyPrice(itemId, player, basePrice)
 		end
 	end
 
-	-- Fallback to base price if all else fails
+	-- FALLBACK: Use base price if calculation fails
 	return basePrice
 end
 
--- Phase 3b: Calculate sell price using deterministic client-side listing
--- Prioritizes server-authoritative prices, then falls back to ClientShopListingService
+-- Phase 3 (consolidated): Calculate sell price using deterministic client-side listing
+-- Canonical source: ClientShopListingService (calls PricingContract internally)
+-- ZERO network traffic - all calculations happen locally
+-- No server price check needed (Phase 2 broadcasts disabled; transactions validate server-side)
 local function calcSellPrice(item, player, basePrice)
 	if not basePrice or not item then
 		return nil
 	end
 
 	local itemId = item:getFullType()
+	player = player or getPlayer()
 
-	-- Check if server calculated this price (server-only hooks - takes priority)
-	local calculatedPrices = Shop.CalculatedPrices or {}
-	if calculatedPrices.sellPrices and calculatedPrices.sellPrices[itemId] then
-		local price = calculatedPrices.sellPrices[itemId]
-
-		-- DEBUG: Log price calculations for Base.Apple
-		if itemId == "Base.Apple" then
-			SharedLogger.log(
-				"Shops",
-				"[ShopUI:calcSellPrice] Base.Apple: basePrice="
-					.. basePrice
-					.. ", calculated="
-					.. price
-					.. " (from server)"
-			)
-		end
-
-		return price
-	end
-
+	-- PRIORITY 1: Use ClientShopListingService for deterministic preview pricing
+	-- This calls PricingContract internally for consistent client/server pricing
 	---@diagnostic disable-next-line: unnecessary-if
-	-- Phase 3b: Use ClientShopListingService for deterministic preview pricing (ZERO NETWORK)
-	-- This ensures client-side listing is fast and doesn't generate network traffic
 	if ClientShopListingService and ClientShopListingService.calculatePreviewSellPrice then
-		player = player or getPlayer()
 		local itemCondition = item:getCondition()
 		local previewPrice = ClientShopListingService.calculatePreviewSellPrice(
 			itemId,
@@ -170,7 +111,7 @@ local function calcSellPrice(item, player, basePrice)
 				"Shops",
 				"[ShopUI:calcSellPrice] Base.Apple: basePrice="
 					.. basePrice
-					.. ", previewPrice="
+					.. ", preview="
 					.. (previewPrice or "nil")
 					.. " (from ClientShopListingService)"
 			)
@@ -181,7 +122,7 @@ local function calcSellPrice(item, player, basePrice)
 		end
 	end
 
-	-- Fallback to base price if all else fails
+	-- FALLBACK: Use base price if calculation fails
 	return basePrice
 end
 
@@ -1643,8 +1584,20 @@ function ShopUI:recalculateRowPrice(row)
 			row.priceIsApproximate = true
 		end
 	elseif row.item and row.item.invItem then
-		-- Sell tab: calculate sell price for inventory item (preview-only, no server override)
-		price = Calculator.calcSellPrice(row.item.invItem, player, mods)
+		---@diagnostic disable-next-line: unnecessary-if
+		-- Sell tab: calculate sell price for inventory item (Phase 3: use ClientShopListingService)
+		if ClientShopListingService and ClientShopListingService.calculatePreviewSellPrice then
+			local itemCondition = row.item.invItem:getCondition()
+			price = ClientShopListingService.calculatePreviewSellPrice(
+				row.item.invItem:getFullType(),
+				"npc_general_store",
+				row.basePrice,
+				itemCondition,
+				player
+			)
+		else
+			price = row.basePrice
+		end
 		row.priceIsApproximate = true
 	end
 

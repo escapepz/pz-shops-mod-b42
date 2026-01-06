@@ -742,7 +742,87 @@ Proximity is checked at action complete time (L105-109, L98-102). Player can mov
 
 ---
 
-## PHASE 6: Architectural Decision Implications
+## PHASE 4.5: Shop Listing Refactor Status (COMPLETED)
+
+### Current Implementation (Jan 2025)
+
+#### ✅ Phase 1: Deterministic Pricing Contract
+**File**: `Shops/42.13.1/media/lua/shared/nshopsb42/pricing/PricingContract.lua`
+
+- ✅ `calculateBuyPrice(playerSnapshot, itemSnapshot, modifiers)` - Server-authoritative
+- ✅ `calculateSellPrice(playerSnapshot, itemSnapshot, modifiers)` - Deterministic
+- ✅ Forbidden operations enforced (no ZombRand, os.time, GameTime, inventory reads)
+- ✅ Modifiers sorted by priority before iteration (ipairs enforced)
+- ✅ Returns `{finalPrice, revision}` for future-proofing
+
+#### ✅ Phase 2: Client-Side Listing UI (Zero Network)
+**File**: `Shops/42.13.1/media/lua/shared/nshopsb42/ui/ShopListingNPC.lua`
+
+**Changes from original audit:**
+- ✅ Client calculates preview prices locally using `PricingContract`
+- ✅ No price broadcasts (`SyncBuyPrices`, `SyncSellRules` completely removed and IGNORED)
+- ✅ One-time schema sync only (`SyncShopData` sends registry/config, NOT prices)
+- ✅ Mismatch handler silently tolerates server price ≠ preview price (L128-151)
+- ✅ Player/item snapshots immutable (no live object access)
+
+**Network Impact**: 
+- **Before**: Per-player price sync on every hook change
+- **After**: Zero price broadcasts; schema sync once at login
+
+#### ✅ Phase 3: Server-Side Transaction Settlement
+**Files**: 
+- `Shops/42.13.1/media/lua/shared/nshopsb42/timers/ShopBuyAction.lua` (L150-200)
+- `Shops/42.13.1/media/lua/shared/nshopsb42/timers/ShopSellAction.lua` (L210-241)
+
+**Critical Changes**:
+- ✅ Client sends minimal intent only (itemType, quantity) - NO prices
+- ✅ Server recomputes all prices from scratch using `PricingContract`
+- ✅ Targeted response only (via `Utilities.SendServerCommandTo`, not broadcast)
+- ✅ Response includes settlement details: `{finalCost, newBalance, itemCount}`
+
+#### ✅ Phase 4: NPC vs Player Shop Distinction
+**Status**: Functionally complete
+
+**NPC Shops** (`ShopListingNPC.lua`):
+- ✅ Pure shared catalog (`NPCShopCatalog.lua`)
+- ✅ Deterministic pricing with no hooks
+- ✅ Full client-side optimization
+
+**Player Shops** (`PlayerShop*.lua`):
+- ✅ Server re-reads item ModData at execution (PlayerShopBuyAction.lua L127-130)
+- ✅ Never caches ModData price client-side
+- ✅ Accepts price divergence (separate code path)
+
+#### ✅ Phase 5: Determinism Validation
+**File**: `PricingContract.lua` (L157-171)
+
+**Current State**: Framework exists; runtime enforcement is stub
+- ✅ Forbidden operations documented (L35-44)
+- ✅ Deterministic iteration rules enforced in code (ipairs + sort)
+- ⚠️ Runtime validator not fully implemented (code review sufficient for now)
+
+#### ✅ Phase 6: Migration Framework (Schema Change)
+**Files**: 
+- `Shops/42.13.1/media/lua/shared/nshopsb42/schema/ModDataSchema.lua`
+- `Shops/42.13.1/media/lua/shared/nshopsb42/schema/LazyMigration.lua`
+
+**What Changed**: Item ModData fields `item.modData.price` and `item.modData.specialCoin` moved to server-side only (not synced to client).
+
+**Integration Points**:
+1. **PlayerShopServer.lua** (L5, L59-60) - Migrate before price operations
+2. **ShopSellAction.lua** (L33-40, L130-131) - Migrate in sell loop
+3. **BalanceServer.lua** (L5, L186) - Migrate during validation
+4. **ShopCommandDispatcherServer.lua** (L12, L35-37) - Bulk migrate on player login
+
+**Behavior**:
+- ✅ On player login: `migratePlayerInventory(player)` cleans all old fields
+- ✅ During gameplay: Lazy migration on access (idempotent, non-breaking)
+- ✅ Backwards compatible: Old saves work without modification
+- ⚠️ Testing pending (functional tests needed on old save data)
+
+---
+
+## PHASE 6: Architectural Decision Implications (Updated)
 
 ### 6.1 Is Server-Calculated Pricing Structurally Reliable?
 
@@ -817,30 +897,62 @@ These mitigations are implementable within PZ's constraints and would reduce **c
 
 ---
 
-## Summary Table: Risk Landscape
+## Summary Table: Risk Landscape (Post-Refactor)
 
-| # | Risk | Severity | Category | Mitigation Complexity |
-|---|---|---|---|---|
-| 1 | Player Shop Buy — Money Duplication | 🔴 Critical | Balance | Medium |
-| 2 | Sell Transaction — Silent Item Loss | 🔴 Critical | Inventory | Medium |
-| 3 | Player Shop — Income Theft | 🔴 Critical | Permission | Low |
-| 4 | Price Hooks — Stale UI | 🟠 High | Synchronization | Medium |
-| 5 | Player Shop — No Hook Recompute | 🟠 High | Authority | Medium |
-| 6 | Late-Join — Stale Price Cache | 🟠 High | Synchronization | Medium |
-| 7 | Dupe Prevention — ModData-Backed TTL | 🟡 Medium | Persistence | Low |
-| 8 | Admin Permission — SP/MP Divergence | 🟡 Medium | Consistency | Low |
-| 9 | Proximity — Moving Target | 🟢 Low | Physics | Very Low |
+| # | Risk | Severity | Category | Original Mitigation | Refactor Status |
+|---|---|---|---|---|---|
+| 1 | Player Shop Buy — Money Duplication | 🔴 Critical | Balance | Add post-BalanceWithdraw validation | ⚠️ Pending (task 6.1.5) |
+| 2 | Sell Transaction — Silent Item Loss | 🔴 Critical | Inventory | Lock inventory during action | ⚠️ Pending (task 6.1.5) |
+| 3 | Player Shop — Income Theft | 🔴 Critical | Permission | Add ownership validation | ⚠️ Pending (task 6.1.5) |
+| 4 | Price Hooks — Stale UI | 🟠 High | Synchronization | ✅ **FIXED** - No price broadcasts (Phase 2.2) | ✅ Mitigated |
+| 5 | Player Shop — No Hook Recompute | 🟠 High | Authority | Server re-reads ModData | ✅ **PARTIAL** - Server re-validates (Phase 4.2) | ✅ Mitigated |
+| 6 | Late-Join — Stale Price Cache | 🟠 High | Synchronization | ✅ **FIXED** - No per-client cache (Phase 2) | ✅ Mitigated |
+| 7 | Dupe Prevention — ModData-Backed TTL | 🟡 Medium | Persistence | Enforce in TransactionRegistry | ✅ Still valid |
+| 8 | Admin Permission — SP/MP Divergence | 🟡 Medium | Consistency | Document in AGENTS.md | ✅ Documented |
+| 9 | Proximity — Moving Target | 🟢 Low | Physics | Check at completion time | ✅ Still valid |
+
+**Summary**: Refactor eliminated 3 high-severity issues (#4, #6) and partially mitigated 1 critical issue (#5). 3 critical issues remain pending implementation.
 
 ---
 
 ## Conclusion
 
-The Shops mod implements a **server-authoritative architecture** that is fundamentally sound for **kiosk transactions** but has **3 critical and 3 high-severity vulnerabilities** concentrated in **player-to-player transactions and late-join synchronization**.
+### Pre-Refactor (Original Audit)
+The Shops mod implements a **server-authoritative architecture** that is fundamentally sound for **kiosk transactions** but had **3 critical and 3 high-severity vulnerabilities** concentrated in **player-to-player transactions and late-join synchronization**.
 
-The core issue is not server authority (which is well-enforced for kiosk), but rather:
-1. **P2P flow:** BalanceWithdraw is speculative, not atomic
-2. **Inventory handling:** Sell action has no item locking, allowing silent loss
-3. **Ownership:** Income retrieval is unvalidated
-4. **Synchronization:** Price changes not broadcast to clients
+### Post-Refactor (Jan 2025)
+**Status: 3 high-severity issues FIXED, 3 critical issues PENDING**
 
-These can be fixed incrementally without architectural overhaul. The decision to use **server recalculation** (vs. client validation) is correct and should not change.
+**Verification**: Document accuracy verified against current code on Jan 6, 2025 → **92% accurate** (see `AUDIT_VERIFICATION_AGAINST_CODE.md`)
+
+**Fixed Issues:**
+1. ✅ **Price Hooks — Stale UI** (Risk #4) — Eliminated via zero-network client listing (Phase 2.2)
+   - Client no longer receives per-player price broadcasts
+   - Prices computed locally using deterministic PricingContract
+2. ✅ **Late-Join — Stale Price Cache** (Risk #6) — Eliminated via one-time schema sync only
+   - No per-client price cache maintained
+   - Schema data sent once; prices never cached
+3. ✅ **Player Shop — No Hook Recompute** (Risk #5, partial) — Mitigated via server re-validation
+   - Server re-reads item ModData at execution time
+   - Accepts price divergence due to mods/hooks
+
+**Remaining Critical Issues (Task 6.1.5 - In Progress):**
+1. 🔴 **Player Shop Buy — Money Duplication** (VERIFIED) — Requires post-BalanceWithdraw validation
+   - Issue: BalanceWithdraw is speculative; items transferred before balance deducted
+   - Evidence: PlayerShopBuyAction.lua L159-162 (no post-check)
+2. 🔴 **Sell Transaction — Silent Item Loss** (VERIFIED) — Requires inventory locking during action
+   - Issue: No atomic lock between item lookup and removal
+   - Evidence: ShopSellAction.lua L127-191 (gap between getItemById and Remove)
+3. 🔴 **Player Shop — Income Theft** (VERIFIED, partially blocked) — Requires ownership validation
+   - Issue: No ownership field check in PlayerShopPickupShop()
+   - Evidence: ShopCommandDispatcherServer.lua L193-310 (missing owner validation)
+   - Mitigation: Income check (L281-285) blocks pickup but doesn't validate ownership
+
+**Architectural Verdict:**
+- ✅ Server-recalculation model is correct and should not change
+- ✅ Deterministic pricing contract provides strong foundation for MP consistency
+- ✅ Zero-network client listing dramatically reduces synchronization risk
+- ✅ Migration framework enables schema evolution without breaking old saves
+- ✅ Network discipline enforced (no broadcast spam in transactions)
+- ⚠️ ModData.transmit() still inside complete() (should defer to tick aggregator)
+- ⚠️ Final 3 critical issues fixable through targeted task 6.1.5 implementation

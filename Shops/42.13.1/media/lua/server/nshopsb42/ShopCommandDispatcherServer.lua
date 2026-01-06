@@ -278,6 +278,27 @@ function Commands.PlayerShopPickupShop(player, args)
 		return
 	end
 
+	-- OWNERSHIP VALIDATION (Fix for Bug #1: Income Theft)
+	local shopOwner = modData.owner
+	if not shopOwner then
+		-- Auto-assign owner if missing (old save migration)
+		modData.owner = player:getUsername()
+		shop:setModData(modData)
+		SharedLogger.log(
+			"Shops",
+			"[ShopCommandDispatcher:PlayerShopPickupShop] Auto-assigned owner: " .. player:getUsername()
+		)
+	elseif shopOwner ~= player:getUsername() then
+		SharedLogger.log(
+			"Shops",
+			"[ShopCommandDispatcher:PlayerShopPickupShop] REJECTED - not owner. Expected: "
+				.. tostring(shopOwner)
+				.. " Got: "
+				.. player:getUsername()
+		)
+		return
+	end
+
 	local income = modData.income
 	if income and #income > 0 then
 		SharedLogger.log("Shops", "[ShopCommandDispatcher:PlayerShopPickupShop] REJECTED - shop has income")

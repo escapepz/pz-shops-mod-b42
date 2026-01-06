@@ -28,81 +28,13 @@ ShopFinalizeHandler._previousSellRules = {
 	sellOverrides = {},
 }
 
--- Helper: Compute buy price WITH modifier tracking for transparency (Phase 2)
-local function computeBuyPriceWithModifiers(itemId)
-	local item = Shop.Items[itemId]
-	if not item then
-		return nil
-	end
+-- DEPRECATED: computeBuyPriceWithModifiers() - removed in Phase 1 cleanup
+-- Pricing is now handled by PricingContract.calculateBuyPrice() in transactions
+-- Client calculates preview prices deterministically (no server broadcast needed)
 
-	-- Check if player can buy this item
-	if not Shop.canPlayerBuy(itemId) then
-		return {
-			price = item.basePrice or item.price,
-			basePrice = item.basePrice or item.price,
-			modifiers = {},
-		}
-	end
-
-	local base = item.basePrice or item.price
-	local modifiers = {}
-
-	-- Trigger modify hooks to collect modifiers
-	local ShopPriceEvents = SHOPSB42.ShopPriceEvents
-	ShopPriceEvents.triggerOnShopModifyBuyPrice(nil, itemId, base, { type = "sync" }, modifiers)
-
-	-- Apply modifiers
-	local PriceUtils = require("nshopsb42/pricing/ShopPriceUtils")
-	local price = PriceUtils.applyModifiers(base, modifiers)
-
-	-- Check for overrides (don't include override in modifiers list, just use final price)
-	local override = ShopPriceEvents.triggerOnShopOverrideBuyPrice(nil, itemId, price, { type = "sync" })
-	---@diagnostic disable-next-line: unnecessary-if
-	if override then
-		price = override
-	end
-
-	return {
-		price = price,
-		basePrice = base,
-		modifiers = modifiers,
-	}
-end
-
--- Helper: Calculate prices for ONLY defined items in PlayerBuy + PlayerSell registries (Step 2)
-local function buildCalculatedPrices()
-	local calculatedPrices = {
-		buyPrices = {},
-		sellPrices = {},
-	}
-
-	---@diagnostic disable-next-line: unnecessary-if
-	-- ONLY calculate buy prices for defined items in PlayerBuy registry
-	if Shop.PlayerBuy then
-		for itemId, config in pairs(Shop.PlayerBuy) do
-			if config.enabled then
-				local priceData = computeBuyPriceWithModifiers(itemId)
-				if priceData then
-					calculatedPrices.buyPrices[itemId] = priceData
-				end
-			end
-		end
-	end
-
-	---@diagnostic disable-next-line: unnecessary-if
-	-- ONLY calculate sell prices for defined items in PlayerSell registry
-	-- (Note: Still need item objects for sell price hooks, may defer)
-	if Shop.PlayerSell then
-		for itemId, config in pairs(Shop.PlayerSell) do
-			if config.enabled and not config.blacklisted then
-				-- Sell price calculation deferred to client for now
-				-- Client will use modifiers from this broadcast
-			end
-		end
-	end
-
-	return calculatedPrices
-end
+-- DEPRECATED: buildCalculatedPrices() - removed in Phase 1 cleanup
+-- Reason: Client no longer needs per-player price syncs
+-- Server broadcasts (SyncBuyPrices/SyncSellRules) are ignored by client (Phase 3)
 
 -- Detect price changes by comparing new prices with previous state (Step 3)
 -- Now returns full price data WITH modifiers (Phase 2)
@@ -173,30 +105,44 @@ local function deepCopy(tbl)
 	return result
 end
 
--- DEPRECATED: Broadcast buy prices to all players (Phase 2.3 - DISABLED IN PHASE 3)
+-- DISABLED: Broadcast buy prices to all players (Phase 2.3 - kept for future live updates)
 -- Phase 3 uses deterministic client-side pricing via ClientShopListingService
 -- Clients calculate preview prices from shared catalog, no network broadcast needed
+--
+-- FUTURE CAPABILITY: To enable live price updates (e.g., when mods change prices):
+-- 1. Uncomment the network broadcast code below
+-- 2. Re-enable calls in sendShopDataToPlayer() and onPriceHooksChanged()
+-- 3. Client handlers in ShopSyncClient.handleSyncBuyPrices() will receive updates
+-- This infrastructure is intentionally kept for future extensibility
 function ShopFinalizeHandler.broadcastBuyPrices()
-	-- PHASE 3B: BROADCAST DISABLED
+	-- PHASE 3B: BROADCAST DISABLED FOR PERFORMANCE
 	-- Reason: Client loads catalog locally and calculates deterministically
 	-- No per-player price sync needed during listing, only on transaction (server validates)
+	-- TODO: Re-enable this if implementing live price updates from server
 	SharedLogger.log(
 		"Shops",
-		"[ShopFinalizeHandler] broadcastBuyPrices() called but DISABLED (Phase 2.3 deprecated, using Phase 3 deterministic pricing)"
+		"[ShopFinalizeHandler] broadcastBuyPrices() called but DISABLED (Phase 3: deterministic pricing active; re-enable for live updates)"
 	)
 	return
 end
 
--- DEPRECATED: Broadcast sell rules to all players (Phase 2.5 - DISABLED IN PHASE 3)
+-- DISABLED: Broadcast sell rules to all players (Phase 2.5 - kept for future live updates)
 -- Phase 3 uses deterministic client-side pricing via ClientShopListingService
 -- Clients calculate preview prices from shared catalog, no network broadcast needed
+--
+-- FUTURE CAPABILITY: To enable live price updates (e.g., when mods change prices):
+-- 1. Uncomment the network broadcast code below
+-- 2. Re-enable calls in sendShopDataToPlayer() and onPriceHooksChanged()
+-- 3. Client handlers in ShopSyncClient.handleSyncSellRules() will receive updates
+-- This infrastructure is intentionally kept for future extensibility
 function ShopFinalizeHandler.broadcastSellRules()
-	-- PHASE 3B: BROADCAST DISABLED
+	-- PHASE 3B: BROADCAST DISABLED FOR PERFORMANCE
 	-- Reason: Client loads catalog locally and calculates deterministically
 	-- No per-player price sync needed during listing, only on transaction (server validates)
+	-- TODO: Re-enable this if implementing live price updates from server
 	SharedLogger.log(
 		"Shops",
-		"[ShopFinalizeHandler] broadcastSellRules() called but DISABLED (Phase 2.5 deprecated, using Phase 3 deterministic pricing)"
+		"[ShopFinalizeHandler] broadcastSellRules() called but DISABLED (Phase 3: deterministic pricing active; re-enable for live updates)"
 	)
 	return
 end
@@ -210,11 +156,16 @@ local function onPriceHookAdded()
 end
 
 -- Callback for runtime price hook changes (test hooks, live updates) (Phase 2.1)
--- Phase 2.2: REMOVED per-player broadcasts
+-- Phase 3: Broadcasts DISABLED for deterministic client-side pricing
 -- Clients calculate prices deterministically using PricingContract + NPCShopCatalog
 -- No network sync needed during listing, only on transaction (server validates)
+--
+-- FUTURE: To enable live price updates (e.g., when a mod changes prices):
+-- 1. Uncomment the broadcastBuyPrices() and broadcastSellRules() calls below
+-- 2. These functions will re-enable and broadcast to all online players
+-- 3. Client will update Shop.CalculatedPrices with new prices
 function ShopFinalizeHandler.onPriceHooksChanged()
-	SharedLogger.log("Shops", "[ShopFinalizeHandler] onPriceHooksChanged() called (broadcasts removed)")
+	SharedLogger.log("Shops", "[ShopFinalizeHandler] onPriceHooksChanged() called (broadcasts currently disabled)")
 
 	---@diagnostic disable-next-line: unnecessary-if
 	if not Shop._finalized then
@@ -222,10 +173,13 @@ function ShopFinalizeHandler.onPriceHooksChanged()
 		return
 	end
 
-	-- Phase 2.2: Broadcast calls REMOVED
-	-- Reason: Client no longer needs per-player price syncs
+	-- Phase 3: Broadcast calls currently DISABLED
+	-- Reason: Client no longer needs per-player price syncs for deterministic preview
 	-- Client loads catalog locally and calculates deterministically
 	-- Server validates price on actual transaction (Phase 3)
+	-- TODO: Uncomment these for live price update feature:
+	-- ShopFinalizeHandler.broadcastBuyPrices()
+	-- ShopFinalizeHandler.broadcastSellRules()
 
 	-- Note: Late-join sync still handled in sendShopDataToPlayer() (one-time handshake)
 end
@@ -268,6 +222,9 @@ function ShopFinalizeHandler.finalizeNow()
 	SharedLogger.log("Shops", "[ShopFinalizeHandler] Price modifiers built and cached")
 
 	-- Register hook listeners for post-finalization changes (Phase 1.2)
+	-- These listeners call onPriceHookAdded() which can trigger onPriceHooksChanged()
+	-- FUTURE: onPriceHooksChanged() can be extended to re-enable broadcastBuyPrices/broadcastSellRules
+	-- This infrastructure supports live price updates if needed in the future
 	if ShopEvents.OnShopModifyBuyPrice then
 		ShopEvents.OnShopModifyBuyPrice:Add(onPriceHookAdded)
 	end
@@ -283,11 +240,17 @@ function ShopFinalizeHandler.finalizeNow()
 
 	SharedLogger.log("Shops", "[ShopFinalizeHandler] Hook listeners registered")
 
-	-- Enable live price hook broadcasting to clients
+	-- Enable hook event firing after finalization
 	-- CRITICAL: Only set to true when finalization is complete and prices are stable
-	-- This allows mods/code to use onPriceHooksChanged() to live-update prices
+	-- This allows mods/code to use onPriceHooksChanged() for post-finalization price updates
+	-- NOTE: Currently broadcasts are disabled (Phase 3), but hook listeners are active
+	-- If a mod adds prices after finalization, onPriceHooksChanged() WILL be called
+	-- To implement live updates: uncomment broadcasts in onPriceHooksChanged()
 	Shop._finalized = true
-	SharedLogger.log("Shops", "[ShopFinalizeHandler] Finalization complete - live price hook broadcasting ENABLED")
+	SharedLogger.log(
+		"Shops",
+		"[ShopFinalizeHandler] Finalization complete - hook listeners active (broadcasts currently disabled)"
+	)
 end
 
 -- Rebuild price modifiers and broadcast to all online players (Phase 2.7)
@@ -362,72 +325,13 @@ function ShopFinalizeHandler.sendShopDataToPlayer(player)
 	end
 	SharedLogger.log("Shops", "[ShopFinalizeHandler] SyncShopData sent")
 
-	-- Send buy prices (initial sync) (Phase 2.8)
-	SharedLogger.log("Shops", "[ShopFinalizeHandler.sendShopDataToPlayer] Building buy prices...")
-	local buyData = buildCalculatedPrices()
-	SharedLogger.log(
-		"Shops",
-		"[ShopFinalizeHandler.sendShopDataToPlayer] SENDING SyncBuyPrices (buyRev="
-			.. tostring(Shop.BuyPriceRevision or 0)
-			.. ", sellRev="
-			.. tostring(Shop.SellRuleRevision or 0)
-			.. ")"
-	)
-	SharedLogger.log(
-		"Shops",
-		"[ShopFinalizeHandler] Sending SyncBuyPrices (revision: " .. tostring(Shop.BuyPriceRevision or 0) .. ")"
-	)
+	-- DEPRECATED: SyncBuyPrices broadcast removed in Phase 1 cleanup
+	-- Reason: Client now calculates prices deterministically (no server broadcast needed)
+	-- Client ignores SyncBuyPrices if received (Phase 3)
 
-	local success2, err2 = pcall(function()
-		Utilities.SendServerCommandTo(player, "nshopsb42", "SyncBuyPrices", {
-			buyRevision = Shop.BuyPriceRevision,
-			sellRevision = Shop.SellRuleRevision, -- Both revisions for atomicity
-			buyPrices = buyData.buyPrices, -- Now includes modifiers for transparency
-			isInitialSync = true,
-		})
-	end)
-	if not success2 then
-		SharedLogger.log(
-			"Shops",
-			"[ShopFinalizeHandler.sendShopDataToPlayer] ERROR sending SyncBuyPrices: " .. tostring(err2)
-		)
-	else
-		SharedLogger.log("Shops", "[ShopFinalizeHandler.sendShopDataToPlayer] SyncBuyPrices sent successfully")
-	end
-	SharedLogger.log("Shops", "[ShopFinalizeHandler] SyncBuyPrices sent")
-
-	-- Send sell rules (initial sync) (Phase 2.8)
-	SharedLogger.log("Shops", "[ShopFinalizeHandler.sendShopDataToPlayer] Building sell rules...")
-	local modifiers = Builder.buildPriceModifiers()
-	SharedLogger.log(
-		"Shops",
-		"[ShopFinalizeHandler.sendShopDataToPlayer] SENDING SyncSellRules (sellRev="
-			.. tostring(Shop.SellRuleRevision or 0)
-			.. ")"
-	)
-	SharedLogger.log(
-		"Shops",
-		"[ShopFinalizeHandler] Sending SyncSellRules (revision: " .. tostring(Shop.SellRuleRevision or 0) .. ")"
-	)
-
-	local success3, err3 = pcall(function()
-		Utilities.SendServerCommandTo(player, "nshopsb42", "SyncSellRules", {
-			buyRevision = Shop.BuyPriceRevision, -- Both revisions for atomicity
-			sellRevision = Shop.SellRuleRevision,
-			sellModifiers = modifiers.sellModifiers or {},
-			sellOverrides = modifiers.sellOverrides or {},
-			isInitialSync = true,
-		})
-	end)
-	if not success3 then
-		SharedLogger.log(
-			"Shops",
-			"[ShopFinalizeHandler.sendShopDataToPlayer] ERROR sending SyncSellRules: " .. tostring(err3)
-		)
-	else
-		SharedLogger.log("Shops", "[ShopFinalizeHandler.sendShopDataToPlayer] SyncSellRules sent successfully")
-	end
-	SharedLogger.log("Shops", "[ShopFinalizeHandler] SyncSellRules sent")
+	-- DEPRECATED: SyncSellRules broadcast removed in Phase 1 cleanup
+	-- Reason: Same as SyncBuyPrices - client calculates deterministically
+	-- Client ignores SyncSellRules if received (Phase 3)
 
 	-- Send completion signal (Phase 3: completion handshake)
 	SharedLogger.log("Shops", "[ShopFinalizeHandler.sendShopDataToPlayer] SENDING SyncInitialComplete...")

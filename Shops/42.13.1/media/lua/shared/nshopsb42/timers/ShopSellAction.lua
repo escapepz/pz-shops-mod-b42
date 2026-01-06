@@ -12,6 +12,8 @@ local Balance = SHOPSB42.Balance
 local Utilities = require("nshopsb42/utils/Utilities")
 local SharedLogger = SHOPSB42.SharedLogger
 local LazyMigration
+local PricingContract = require("nshopsb42/pricing/PricingContract")
+local ShopListingNPC = require("nshopsb42/ui/ShopListingNPC")
 
 -- Lazy-load server modules to avoid initialization order issues
 local TransactionRegistry
@@ -122,14 +124,26 @@ function ShopSellAction:complete()
 		return false
 	end
 
-	-- Process each item in the sell list
+	-- PHASE 1: VALIDATE all items BEFORE removing ANY (Fix for Bug #3: Silent Item Loss)
+	-- Collect items to sell with their prices, but don't remove yet
+	local itemsToSell = {} -- {item, price, isSpecialCoin}
+	local itemsMissing = 0
+
 	for _, entry in ipairs(self.sellList.items) do
 		local item = inv:getItemById(entry.itemID)
-		if item then
+		if not item then
+			-- Log missing items (race condition detected)
+			SharedLogger.logAction(
+				"ShopSellAction",
+				"complete",
+				"[SKIP] Item not found (possibly removed by concurrent action): " .. tostring(entry.itemID)
+			)
+			itemsMissing = itemsMissing + 1
+		else
 			-- Migrate item from old schema if needed (removes deprecated fields)
 			getLazyMigration().migrateItemIfNeeded(item)
 
-			-- Recompute sell price authoritatively on server
+			-- Recompute sell price authoritatively on server using PricingContract (Phase 1 refactor)
 			local itemType = item:getFullType()
 			local isSpecialCoin = (
 				Shop.PlayerSell
@@ -137,22 +151,20 @@ function ShopSellAction:complete()
 				and Shop.PlayerSell[itemType].specialCoin
 			) or false
 
-			local context = {
-				shopId = self.shopName,
-				quantity = 1,
-				isSpecialCoin = isSpecialCoin,
-				isBroken = false,
-			}
-			local finalPrice = Shop.resolvePlayerSellPrice(self.character, item, context)
+			local itemDef = Shop.PlayerSell and Shop.PlayerSell[itemType]
+			local basePrice = itemDef and itemDef.basePrice or itemDef and itemDef.price or 0
+			local itemSnapshot = ShopListingNPC.createItemSnapshot(item)
+			local modifiers = Shop.PriceModifiers and Shop.PriceModifiers.sellModifiers or {}
+
+			-- Use PricingContract for deterministic transaction pricing (Phase 1)
+			local result =
+				PricingContract.calculateSellPrice(itemType, "npc_general_store", basePrice, itemSnapshot, modifiers)
+			local itemPrice = result and result.finalPrice or basePrice
 
 			-- SECURITY INVARIANT: Server must never consume client-provided prices under any circumstance
-			local itemPrice = nil
-			if finalPrice ~= nil then
-				-- Server successfully calculated price - use it
-				itemPrice = finalPrice
-			else
-				-- Server calculation failed - fallback to base price ONLY (server-authoritative)
-				local itemDef = Shop.PlayerSell and Shop.PlayerSell[itemType]
+			---@diagnostic disable-next-line: unnecessary-if
+			if not itemPrice or itemPrice < 0 then
+				-- Fallback to base price ONLY (server-authoritative)
 				---@diagnostic disable-next-line: unnecessary-if
 				if itemDef and itemDef.basePrice then
 					itemPrice = itemDef.basePrice
@@ -162,35 +174,60 @@ function ShopSellAction:complete()
 						"[SECURITY] Price fallback to base for " .. itemType
 					)
 				else
-					-- Unpriceable item - reject this entry
-					SharedLogger.logAction(
-						"ShopSellAction",
-						"complete",
-						"[SECURITY] Reject sell: unpriceable item " .. itemType
-					)
+					-- Unpriceable item - skip this entry
+					SharedLogger.logAction("ShopSellAction", "complete", "[SKIP] Unpriceable item: " .. itemType)
+					itemsMissing = itemsMissing + 1
 					-- Skip this item without payment
 				end
 			end
 
+			-- Queue for removal only if price is valid
 			if itemPrice ~= nil then
-				-- Remove item from inventory
-				inv:Remove(item)
-				sendRemoveItemFromContainer(inv, item)
-
-				---@diagnostic disable-next-line: unnecessary-if
-				-- Accumulate payment with server-authoritative price
-				if isSpecialCoin then
-					totalSpecial = totalSpecial + itemPrice
-				else
-					total = total + itemPrice
-				end
-
-				-- Log sale
-				Nfunction.buildLogShop(item:getFullType())
+				table.insert(itemsToSell, { item = item, price = itemPrice, isSpecialCoin = isSpecialCoin })
 			end
-			-- If itemPrice is nil (unpriceable or blacklisted), item is skipped without payment
 		end
 	end
+
+	-- PHASE 2: REMOVE items ONLY after all validation passes (no race condition window)
+	for _, sellData in ipairs(itemsToSell) do
+		local item = sellData.item
+		local itemPrice = sellData.price
+		local isSpecialCoin = sellData.isSpecialCoin
+
+		-- Double-check item still exists before removal (defensive)
+		if inv:contains(item) then
+			-- Remove item from inventory
+			inv:Remove(item)
+			sendRemoveItemFromContainer(inv, item)
+
+			-- Accumulate payment with server-authoritative price
+			if isSpecialCoin then
+				totalSpecial = totalSpecial + itemPrice
+			else
+				total = total + itemPrice
+			end
+
+			-- Log sale
+			Nfunction.buildLogShop(item:getFullType())
+		else
+			-- Item disappeared between PHASE 1 and PHASE 2 (extreme race condition)
+			SharedLogger.logAction(
+				"ShopSellAction",
+				"complete",
+				"[DEFENSIVE] Item vanished during PHASE 2: " .. item:getFullType()
+			)
+			itemsMissing = itemsMissing + 1
+		end
+	end
+
+	-- Log summary
+	local itemsRequested = self.sellList.items and #self.sellList.items or 0
+	local itemsSold = #itemsToSell - itemsMissing
+	SharedLogger.logAction(
+		"ShopSellAction",
+		"complete",
+		"[SKIP MODE] Requested: " .. itemsRequested .. ", Sold: " .. itemsSold .. ", Missing: " .. itemsMissing
+	)
 
 	-- Note: Server-side logging is handled by buildLogShop() above for each item sold
 
@@ -230,17 +267,23 @@ function ShopSellAction:complete()
 	---@diagnostic disable-next-line: unnecessary-if
 	if onlinePlayer then
 		local itemCount = self.sellList.items and #self.sellList.items or 0
+		local itemsSold = #itemsToSell - itemsMissing
 		Utilities.SendServerCommandTo(onlinePlayer, "nshopsb42", "TransactionResult", {
 			txnId = txnId,
 			type = "SELL",
-			success = true,
+			success = (itemsMissing == 0), -- Only true if ALL items sold
 			finalRevenue = total,
 			finalRevenueSpecial = totalSpecial,
 			newBalance = account.coin,
 			newBalanceSpecial = account.specialCoin,
-			itemCount = itemCount,
+			itemCount = itemsSold, -- Actual items sold, not requested
+			itemsMissing = itemsMissing, -- Tell client what failed
 		})
-		SharedLogger.logAction("ShopSellAction", "complete", "Transaction result sent to player")
+		SharedLogger.logAction(
+			"ShopSellAction",
+			"complete",
+			"Transaction result sent to player - sold: " .. itemsSold .. ", missing: " .. itemsMissing
+		)
 	end
 
 	-- Mark transaction as processed

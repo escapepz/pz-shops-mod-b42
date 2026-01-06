@@ -27,8 +27,8 @@ local ShopDefaultItems = require("nshopsb42/ShopDefaultItems")
 -- Sixth: Server-side finalization (must be last - registers hooks and finalizes)
 local ShopFinalizeHandler = require("nshopsb42/transactions/ShopFinalizeHandlerServer")
 
--- Seventh: Server-side transaction validation
-require("nshopsb42/transactions/ShopTransactionValidationServer")
+-- Seventh: Server-side transaction validation (REMOVED - Phase 4 cleanup)
+-- ShopTransactionValidationServer was dead code (never called; PricingContract ensures consistency)
 
 -- Eighth: Server-side patches
 require("nshopsb42/patches/ISTransferActionPatch")

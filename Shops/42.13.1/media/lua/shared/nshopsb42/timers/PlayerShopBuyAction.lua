@@ -115,53 +115,78 @@ function PlayerShopBuyAction:complete()
 		return false
 	end
 
-	-- Step 4: Iterate cart items and transfer
+	-- Step 4a: PHASE 1 - Validate all items and calculate totals BEFORE any transfers
 	local playerInv = self.character:getInventory()
 	shopModData = self.shop:getModData()
 	local income = shopModData.income or {}
 	local totalCoin = 0
 	local totalSpecial = 0
+	local itemsToTransfer = {}
 
+	-- Pre-validate: Check all items exist and prices are valid
 	for _, cartEntry in ipairs(ticket.items or {}) do
 		local itemID = cartEntry.itemID
 		local invItem = shopContainer:getItemById(itemID)
 
-		-- Validate item still exists in shop
 		if invItem then
-			-- Remove from shop container
-			shopContainer:Remove(invItem)
-			sendRemoveItemFromContainer(shopContainer, invItem)
-
-			-- Add to player inventory
-			playerInv:AddItem(invItem)
-			sendAddItemToContainer(playerInv, invItem)
-
-			-- Clear shop-specific ModData
-			local modData = invItem:getModData()
-			modData.price = nil
-			modData.specialCoin = nil
-			syncItemModData(self.character, invItem)
-
-			-- Track totals
+			-- Calculate correct currency totals
 			if cartEntry.specialCoin then
 				totalSpecial = totalSpecial + cartEntry.price
 			else
 				totalCoin = totalCoin + cartEntry.price
 			end
 
-			-- Log item
-			Nfunction.buildLogShop(invItem:getFullType())
+			-- Store item for later transfer (after balance deduction)
+			table.insert(itemsToTransfer, { item = invItem, entry = cartEntry })
 		end
 	end
 
-	-- Step 5: Withdraw currency (server-initiated)
+	-- Step 4b: PHASE 2 - Deduct balance BEFORE transferring items (atomic server-side operation)
 	if totalCoin > 0 or totalSpecial > 0 then
-		sendClientCommand(self.character, "nshopsb42", "BalanceWithdraw", {
-			coin = totalCoin,
-			specialCoin = totalSpecial,
-		})
+		-- Server-side balance check and deduction (atomic)
+		local account = ModData.get("CoinBalance")[username]
+		if not account then
+			SharedLogger.logAction("PlayerShopBuyAction", "complete", "ERROR: Account not found for " .. username)
+			return false
+		end
 
-		-- Record income
+		-- Verify balance exists
+		if account.coin < totalCoin or account.specialCoin < totalSpecial then
+			SharedLogger.logAction(
+				"PlayerShopBuyAction",
+				"complete",
+				"REJECTED - insufficient balance. Have: "
+					.. account.coin
+					.. "/"
+					.. account.specialCoin
+					.. " Need: "
+					.. totalCoin
+					.. "/"
+					.. totalSpecial
+			)
+			return false
+		end
+
+		-- DEDUCT BALANCE FIRST (atomic, server-side)
+		account.coin = account.coin - totalCoin
+		account.specialCoin = account.specialCoin - totalSpecial
+		ModData.transmit("CoinBalance")
+
+		SharedLogger.logAction(
+			"PlayerShopBuyAction",
+			"complete",
+			"Balance deducted: -"
+				.. totalCoin
+				.. "/"
+				.. totalSpecial
+				.. " (new: "
+				.. account.coin
+				.. "/"
+				.. account.specialCoin
+				.. ")"
+		)
+
+		-- Record income in shop (after balance deduction confirmed)
 		local data = {
 			b = username,
 			t = { tl = totalCoin, tls = totalSpecial },
@@ -169,6 +194,32 @@ function PlayerShopBuyAction:complete()
 		table.insert(income, data)
 		shopModData.income = income
 	end
+
+	-- Step 4c: PHASE 3 - Transfer items ONLY after balance deducted successfully
+	for _, transferData in ipairs(itemsToTransfer) do
+		local invItem = transferData.item
+		local cartEntry = transferData.entry
+
+		-- Remove from shop container
+		shopContainer:Remove(invItem)
+		sendRemoveItemFromContainer(shopContainer, invItem)
+
+		-- Add to player inventory
+		playerInv:AddItem(invItem)
+		sendAddItemToContainer(playerInv, invItem)
+
+		-- Clear shop-specific ModData
+		local modData = invItem:getModData()
+		modData.price = nil
+		modData.specialCoin = nil
+		syncItemModData(self.character, invItem)
+
+		-- Log item
+		Nfunction.buildLogShop(invItem:getFullType())
+	end
+
+	-- Step 5: (deprecated - balance now deducted at PHASE 2)
+	-- Keeping note: Old code used speculative sendClientCommand - now atomic server-side
 
 	-- Step 6: Sync shop state
 	self.shop:transmitModData()

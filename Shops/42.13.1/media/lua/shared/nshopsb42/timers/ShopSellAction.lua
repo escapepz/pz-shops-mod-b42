@@ -128,6 +128,9 @@ function ShopSellAction:complete()
 	-- Collect items to sell with their prices, but don't remove yet
 	local itemsToSell = {} -- {item, price, isSpecialCoin}
 	local itemsMissing = 0
+	
+	-- Static item snapshot (condition calculation disabled - all items treated as full condition)
+	local staticItemSnapshot = { condition = 1.0, fullType = "unknown", category = "unknown" }
 
 	for _, entry in ipairs(self.sellList.items) do
 		local item = inv:getItemById(entry.itemID)
@@ -153,7 +156,20 @@ function ShopSellAction:complete()
 
 			local itemDef = Shop.PlayerSell and Shop.PlayerSell[itemType]
 			local basePrice = itemDef and itemDef.basePrice or itemDef and itemDef.price or 0
-			local itemSnapshot = ShopListingNPC.createItemSnapshot(item)
+			
+			-- DISABLED: Per-item snapshot calculation (commented out for potential re-enable)
+			-- Safely create item snapshot (defensive nil-check for race conditions)
+			-- local itemSnapshot = nil
+			-- if item then
+			-- 	itemSnapshot = ShopListingNPC.createItemSnapshot(item)
+			-- else
+			-- 	itemSnapshot = { condition = 1.0, fullType = "unknown" }
+			-- 	SharedLogger.logAction("ShopSellAction", "complete", "[RACE CONDITION] Item became nil before snapshot")
+			-- end
+			
+			-- Use static snapshot (no per-item snapshot calls to avoid race conditions)
+			-- Condition calculation is disabled - all items priced at full condition
+			local itemSnapshot = staticItemSnapshot
 			local modifiers = Shop.PriceModifiers and Shop.PriceModifiers.sellModifiers or {}
 
 			-- Use PricingContract for deterministic transaction pricing (Phase 1)

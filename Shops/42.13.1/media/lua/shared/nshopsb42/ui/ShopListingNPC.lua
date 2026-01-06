@@ -192,13 +192,12 @@ end
 --
 -- @return table - { traits = {...} } immutable snapshot
 function ShopListingNPC.createPlayerSnapshot(player)
-	if not player then
-		return { traits = {} }
-	end
-
-	-- Snapshot only traits (immutable, safe for deterministic pricing)
-	-- Do NOT include inventory, items, or world state
 	local traits = {}
+	
+	-- Return empty snapshot if player is nil
+	if not player then
+		return { traits = traits }
+	end
 
 	-- List of trait names that are safe for pricing (read-only, static)
 	local safeTraits = {
@@ -213,11 +212,20 @@ function ShopListingNPC.createPlayerSnapshot(player)
 		"PacketThief",
 	}
 
-	for _, traitName in ipairs(safeTraits) do
-		if player:HasTrait(traitName) then
-			table.insert(traits, traitName)
-		end
-	end
+	-- DISABLED: Trait-based pricing is disabled (commented out for potential re-enable)
+	-- Safely iterate - check player in every iteration in case of race condition
+	-- In multiplayer, player reference can become invalid between loop iterations
+	-- for _, traitName in ipairs(safeTraits) do
+	-- 	-- Re-validate player on each iteration (defensive against race conditions)
+	-- 	if not player then
+	-- 		break
+	-- 	end
+	-- 	-- Use pcall to safely call HasTrait in case player becomes invalid
+	-- 	local success, hasTrait = pcall(function() return player:HasTrait(traitName) end)
+	-- 	if success and hasTrait then
+	-- 		table.insert(traits, traitName)
+	-- 	end
+	-- end
 
 	return { traits = traits }
 end
@@ -232,15 +240,58 @@ end
 --
 -- @return table - { condition = 0.85, fullType = "..." } immutable snapshot
 function ShopListingNPC.createItemSnapshot(item)
+	-- Default snapshot if item is nil or invalid
+	local defaultSnapshot = { condition = 1.0, fullType = "unknown", category = "unknown" }
+	
 	if not item then
-		return { condition = 1.0, fullType = "unknown" }
+		return defaultSnapshot
 	end
 
 	-- Snapshot only immutable properties safe for pricing
+	-- DISABLED: Condition-based pricing is disabled
+	-- All items priced at full condition (1.0) regardless of wear
+	local condition = 1.0  -- Always full condition, never calculate actual
+	local fullType = "unknown"
+	local category = "unknown"
+	
+	-- Condition calculation - DISABLED (commented out for potential re-enable)
+	-- if item and pcall(function() return item:getMaxCondition() end) then
+	-- 	local success1, cond = pcall(function()
+	-- 		local maxCond = item:getMaxCondition()
+	-- 		if not maxCond or maxCond <= 0 then return 1.0 end
+	-- 		local curCond = item:getCondition()
+	-- 		if not curCond then return 1.0 end
+	-- 		return curCond / maxCond
+	-- 	end)
+	-- 	if success1 and cond and type(cond) == "number" then
+	-- 		condition = cond
+	-- 	end
+	-- end
+	
+	-- Full type - call method safely
+	if item and pcall(function() return item:getFullType() end) then
+		local success2, fullTypeValue = pcall(function()
+			return item:getFullType()
+		end)
+		if success2 and fullTypeValue and type(fullTypeValue) == "string" then
+			fullType = fullTypeValue
+		end
+	end
+	
+	-- Category - call method safely
+	if item and pcall(function() return item:getType() end) then
+		local success3, categoryValue = pcall(function()
+			return item:getType()
+		end)
+		if success3 and categoryValue and type(categoryValue) == "string" then
+			category = categoryValue
+		end
+	end
+	
 	return {
-		condition = item:getCondition() / item:getMaxCondition(), -- 0-1 ratio
-		fullType = item:getFullType(),
-		category = item:getType(), -- For potential future use
+		condition = condition,
+		fullType = fullType,
+		category = category,
 	}
 end
 

@@ -124,13 +124,15 @@ function ShopBuyAction:complete()
 		return false
 	end
 
+	-- Create player snapshot once (before loop) - more efficient and safer
+	local playerSnapshot = ShopListingNPC.createPlayerSnapshot(self.character)
+
 	-- First pass: validate and compute final prices using PricingContract (Phase 1 refactor)
 	for _, entry in ipairs(ticket.items) do
 		local itemType = entry.type
 		local quantity = entry.quantity or 1
 		if itemType and Shop.Items[itemType] then
 			local basePrice = Shop.Items[itemType].basePrice or Shop.Items[itemType].price
-			local playerSnapshot = ShopListingNPC.createPlayerSnapshot(self.character)
 			local modifiers = Shop.PriceModifiers and Shop.PriceModifiers.buyModifiers or {}
 
 			-- Use PricingContract for deterministic transaction pricing (Phase 1)

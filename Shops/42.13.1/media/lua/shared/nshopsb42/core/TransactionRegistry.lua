@@ -193,4 +193,64 @@ function TransactionRegistry.markRolledBack(username, txnId)
 	end
 end
 
+-- SECURITY: Acquire exclusive lock to prevent concurrent transaction processing
+-- Lock is acquired BEFORE validating items to ensure serial processing
+-- Returns true if lock acquired, false if another transaction with same txnId is processing
+-- Lock automatically expires after timeout to prevent deadlocks
+function TransactionRegistry.acquireLock(username, txnId, timeoutSeconds)
+	if not Utilities.IsServerOrSinglePlayer() then
+		return false
+	end
+
+	timeoutSeconds = timeoutSeconds or 5 -- Default 5 second timeout
+
+	local data = TransactionRegistry.get()
+	if not data[username] then
+		data[username] = {}
+	end
+
+	local lockKey = username .. "_lock_" .. txnId
+	local existingLock = data[username][lockKey]
+
+	-- Check if lock exists and is still valid (not expired)
+	if existingLock and type(existingLock) == "table" then
+		local lockAge = os.time() - (existingLock.acquiredAt or 0)
+		if lockAge < timeoutSeconds then
+			-- Lock is held by another transaction
+			return false
+		end
+		-- Lock has expired, proceed to claim it
+	end
+
+	-- Acquire lock
+	data[username][lockKey] = {
+		acquiredAt = os.time(),
+		timeout = timeoutSeconds,
+	}
+	ModData.transmit("ShopTransactions")
+
+	SharedLogger.log("Shops", "[TransactionRegistry] Lock acquired for " .. username .. " txnId=" .. txnId)
+
+	return true
+end
+
+-- SECURITY: Release exclusive lock to allow next transaction for same txnId
+-- Should always be called in cleanup/finally block to ensure locks don't persist
+function TransactionRegistry.releaseLock(username, txnId)
+	if not Utilities.IsServerOrSinglePlayer() then
+		return
+	end
+
+	local data = TransactionRegistry.get()
+	if not data[username] then
+		return
+	end
+
+	local lockKey = username .. "_lock_" .. txnId
+	data[username][lockKey] = nil
+	ModData.transmit("ShopTransactions")
+
+	SharedLogger.log("Shops", "[TransactionRegistry] Lock released for " .. username .. " txnId=" .. txnId)
+end
+
 return TransactionRegistry

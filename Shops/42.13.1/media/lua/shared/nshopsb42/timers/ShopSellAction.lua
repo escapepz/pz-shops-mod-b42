@@ -89,6 +89,22 @@ function ShopSellAction:complete()
 		return false
 	end
 
+	-- SECURITY: Acquire exclusive lock to prevent concurrent duplicate transactions
+	-- This ensures only one transaction with the same txnId can process simultaneously
+	-- Lock is acquired BEFORE validating items to prevent the race condition window
+	---@diagnostic disable-next-line: unnecessary-if
+	if TxnRegistry then
+		local lockAcquired = TxnRegistry.acquireLock(username, txnId, 5) -- 5 second timeout
+		if not lockAcquired then
+			SharedLogger.logAction(
+				"ShopSellAction",
+				"complete",
+				"REJECTED - transaction already in progress (lock held)"
+			)
+			return false
+		end
+	end
+
 	-- Retrieve shop from world using stored coordinates
 	self.shop = Utilities.FindShopAtCoords(self.shopCoords.x, self.shopCoords.y, self.shopCoords.z, Shop.spritePrefix)
 	if not self.shop then
@@ -102,6 +118,11 @@ function ShopSellAction:complete()
 				.. ","
 				.. tostring(self.shopCoords.z)
 		)
+		---@diagnostic disable-next-line: unnecessary-if
+		-- SECURITY: Release lock on error
+		if TxnRegistry then
+			TxnRegistry.releaseLock(username, txnId)
+		end
 		return false
 	end
 
@@ -109,6 +130,11 @@ function ShopSellAction:complete()
 	local shopSquare = self.shop:getSquare()
 	local distance = self.character:DistTo(shopSquare:getX(), shopSquare:getY())
 	if distance > 2 then
+		---@diagnostic disable-next-line: unnecessary-if
+		-- SECURITY: Release lock on error
+		if TxnRegistry then
+			TxnRegistry.releaseLock(username, txnId)
+		end
 		return false
 	end
 
@@ -121,6 +147,11 @@ function ShopSellAction:complete()
 	local account = coinBalance[username]
 	if not account then
 		SharedLogger.logAction("ShopSellAction", "complete", "REJECTED - no account found for user: " .. username)
+		---@diagnostic disable-next-line: unnecessary-if
+		-- SECURITY: Release lock on error
+		if TxnRegistry then
+			TxnRegistry.releaseLock(username, txnId)
+		end
 		return false
 	end
 
@@ -356,6 +387,11 @@ function ShopSellAction:complete()
 
 	local Audit = getShopAudit()
 	if not Audit then
+		---@diagnostic disable-next-line: unnecessary-if
+		-- SECURITY: Release lock before returning
+		if TxnRegistry then
+			TxnRegistry.releaseLock(username, txnId)
+		end
 		return true
 	end
 
@@ -388,6 +424,12 @@ function ShopSellAction:complete()
 
 		items = self.sellList.items,
 	})
+
+	---@diagnostic disable-next-line: unnecessary-if
+	-- SECURITY: Release lock at transaction end
+	if TxnRegistry then
+		TxnRegistry.releaseLock(username, txnId)
+	end
 
 	SharedLogger.logAction("ShopSellAction", "complete", "SUCCESS - sell transaction processed")
 	return true

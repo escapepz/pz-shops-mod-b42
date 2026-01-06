@@ -14,14 +14,6 @@ mklink /J "C:\ZomboidClient1\mods\ShopsHooksExample" "D:\DATA\2025\ProjectZ-impr
 mklink /J "C:\ZomboidClient2\mods\ShopsHooksExample" "D:\DATA\2025\ProjectZ-improve\PZ Mods\project-zomboid-studio\Shopsb42.worktrees\wip\ShopsHooksExample"
 mklink /J "C:\Users\PC\Zomboid\mods\ShopsHooksExample" "D:\DATA\2025\ProjectZ-improve\PZ Mods\project-zomboid-studio\Shopsb42.worktrees\wip\ShopsHooksExample"
 
-rd "C:\ZomboidClient1\mods\ShopsAdminTools"
-rd "C:\ZomboidClient2\mods\ShopsAdminTools"
-rd "C:\Users\PC\Zomboid\mods\ShopsAdminTools"
-
-mklink /J "C:\ZomboidClient1\mods\ShopsAdminTools" "D:\DATA\2025\ProjectZ-improve\PZ Mods\project-zomboid-studio\Shopsb42.worktrees\wip\ShopsAdminTools"
-mklink /J "C:\ZomboidClient2\mods\ShopsAdminTools" "D:\DATA\2025\ProjectZ-improve\PZ Mods\project-zomboid-studio\Shopsb42.worktrees\wip\ShopsAdminTools"
-mklink /J "C:\Users\PC\Zomboid\mods\ShopsAdminTools" "D:\DATA\2025\ProjectZ-improve\PZ Mods\project-zomboid-studio\Shopsb42.worktrees\wip\ShopsAdminTools"
-
 mklink /J "D:\DATA\2025\ProjectZ-improve\PZ Mods\project-zomboid-studio\Shopsb42.worktrees\wip\Logs\Server" "C:\Users\PC\Zomboid\Logs"
 mklink /J "D:\DATA\2025\ProjectZ-improve\PZ Mods\project-zomboid-studio\Shopsb42.worktrees\wip\Logs\Client" "C:\ZomboidClient1\Logs"
 

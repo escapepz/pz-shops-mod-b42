@@ -193,7 +193,7 @@ end
 -- @return table - { traits = {...} } immutable snapshot
 function ShopListingNPC.createPlayerSnapshot(player)
 	local traits = {}
-	
+
 	-- Return empty snapshot if player is nil
 	if not player then
 		return { traits = traits }
@@ -242,52 +242,31 @@ end
 function ShopListingNPC.createItemSnapshot(item)
 	-- Default snapshot if item is nil or invalid
 	local defaultSnapshot = { condition = 1.0, fullType = "unknown", category = "unknown" }
-	
+
 	if not item then
 		return defaultSnapshot
 	end
 
-	-- Snapshot only immutable properties safe for pricing
-	-- DISABLED: Condition-based pricing is disabled
-	-- All items priced at full condition (1.0) regardless of wear
-	local condition = 1.0  -- Always full condition, never calculate actual
+	-- OPTIMIZATION Phase 4: Simplify snapshot creation
+	-- Since condition is always 1.0 (disabled), only need fullType for base price lookup
+	-- Consolidate multiple pcall checks into single calls, remove redundant existence checks
+
+	-- Condition: Always 1.0 (pricing disabled for condition)
+	local condition = 1.0
+
+	-- Full type: Single safe call (used for Shop.PlayerSell[itemType] lookup)
 	local fullType = "unknown"
+	local success, fullTypeValue = pcall(function()
+		return item:getFullType()
+	end)
+	if success and fullTypeValue and type(fullTypeValue) == "string" then
+		fullType = fullTypeValue
+	end
+
+	-- Category: Not used in current pricing logic
+	-- Keep for API compatibility but don't call (saves pcall overhead)
 	local category = "unknown"
-	
-	-- Condition calculation - DISABLED (commented out for potential re-enable)
-	-- if item and pcall(function() return item:getMaxCondition() end) then
-	-- 	local success1, cond = pcall(function()
-	-- 		local maxCond = item:getMaxCondition()
-	-- 		if not maxCond or maxCond <= 0 then return 1.0 end
-	-- 		local curCond = item:getCondition()
-	-- 		if not curCond then return 1.0 end
-	-- 		return curCond / maxCond
-	-- 	end)
-	-- 	if success1 and cond and type(cond) == "number" then
-	-- 		condition = cond
-	-- 	end
-	-- end
-	
-	-- Full type - call method safely
-	if item and pcall(function() return item:getFullType() end) then
-		local success2, fullTypeValue = pcall(function()
-			return item:getFullType()
-		end)
-		if success2 and fullTypeValue and type(fullTypeValue) == "string" then
-			fullType = fullTypeValue
-		end
-	end
-	
-	-- Category - call method safely
-	if item and pcall(function() return item:getType() end) then
-		local success3, categoryValue = pcall(function()
-			return item:getType()
-		end)
-		if success3 and categoryValue and type(categoryValue) == "string" then
-			category = categoryValue
-		end
-	end
-	
+
 	return {
 		condition = condition,
 		fullType = fullType,

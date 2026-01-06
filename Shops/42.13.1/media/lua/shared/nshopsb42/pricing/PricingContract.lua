@@ -73,15 +73,19 @@ function Contract.calculateBuyPrice(itemId, shopId, basePrice, playerSnapshot, m
 
 	-- Phase 5 DETERMINISM RULE: MUST sort modifiers before iteration
 	-- NEVER use pairs() on modifiers - array must be ordered for MP consistency
-	local sortedMods = {}
-	for _, mod in ipairs(modifiers) do
-		table.insert(sortedMods, mod)
+	-- OPTIMIZATION: Skip sort if modifiers are pre-sorted (marked with _isSorted flag)
+	local sortedMods = modifiers
+	if not modifiers._isSorted then
+		sortedMods = {}
+		for _, mod in ipairs(modifiers) do
+			table.insert(sortedMods, mod)
+		end
+		table.sort(sortedMods, function(a, b)
+			local priorityA = a.priority or 100
+			local priorityB = b.priority or 100
+			return priorityA < priorityB
+		end)
 	end
-	table.sort(sortedMods, function(a, b)
-		local priorityA = a.priority or 100
-		local priorityB = b.priority or 100
-		return priorityA < priorityB
-	end)
 
 	-- Apply each modifier as multiplier
 	-- Using ipairs() = deterministic (array ordered)
@@ -127,15 +131,19 @@ function Contract.calculateSellPrice(itemId, shopId, basePrice, itemSnapshot, mo
 
 	-- Phase 5 DETERMINISM RULE: MUST sort modifiers before iteration
 	-- NEVER use pairs() on modifiers - array must be ordered for MP consistency
-	local sortedMods = {}
-	for _, mod in ipairs(modifiers) do
-		table.insert(sortedMods, mod)
+	-- OPTIMIZATION: Skip sort if modifiers are pre-sorted (marked with _isSorted flag)
+	local sortedMods = modifiers
+	if not modifiers._isSorted then
+		sortedMods = {}
+		for _, mod in ipairs(modifiers) do
+			table.insert(sortedMods, mod)
+		end
+		table.sort(sortedMods, function(a, b)
+			local priorityA = a.priority or 100
+			local priorityB = b.priority or 100
+			return priorityA < priorityB
+		end)
 	end
-	table.sort(sortedMods, function(a, b)
-		local priorityA = a.priority or 100
-		local priorityB = b.priority or 100
-		return priorityA < priorityB
-	end)
 
 	-- Apply each modifier as multiplier
 	-- Using ipairs() = deterministic (array ordered)

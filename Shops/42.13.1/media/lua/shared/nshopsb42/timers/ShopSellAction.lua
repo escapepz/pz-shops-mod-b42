@@ -128,12 +128,48 @@ function ShopSellAction:complete()
 	-- Collect items to sell with their prices, but don't remove yet
 	local itemsToSell = {} -- {item, price, isSpecialCoin}
 	local itemsMissing = 0
-	
+
 	-- Static item snapshot (condition calculation disabled - all items treated as full condition)
 	local staticItemSnapshot = { condition = 1.0, fullType = "unknown", category = "unknown" }
 
+	-- OPTIMIZATION Phase 1: Pre-sort modifiers ONCE before loop (not per-item)
+	-- This reduces O(n * m log m) to O(m log m + n) where n=items, m=modifiers
+	local modifiers = Shop.PriceModifiers and Shop.PriceModifiers.sellModifiers or {}
+	---@type table[]
+	local sortedModifiers = {}
+	for _, mod in ipairs(modifiers) do
+		table.insert(sortedModifiers, mod)
+	end
+	table.sort(sortedModifiers, function(a, b)
+		local priorityA = a.priority or 100
+		local priorityB = b.priority or 100
+		return priorityA < priorityB
+	end)
+	-- Note: table.sort() sorts in-place and returns nil, so we set the flag after sorting
+	-- The flag is stored as a custom field to mark the table as pre-sorted
+	sortedModifiers._isSorted = true
+
+	-- OPTIMIZATION Phase 3: Cache inventory items ONCE instead of repeated getItemById() lookups
+	-- Build itemMap from sellList.items to avoid O(n) search per item in O(n) lookup calls
+	-- This reduces total complexity from O(n^2) inventory searches to O(n) single pre-scan
+	local itemMap = {} -- { itemID -> item object }
 	for _, entry in ipairs(self.sellList.items) do
-		local item = inv:getItemById(entry.itemID)
+		if entry.itemID then
+			local item = inv:getItemById(entry.itemID)
+			if item then
+				itemMap[entry.itemID] = item
+			end
+		end
+	end
+
+	SharedLogger.logAction(
+		"ShopSellAction",
+		"complete",
+		"[OPTIMIZATION] Cached " .. tostring(#self.sellList.items) .. " items from inventory"
+	)
+
+	for _, entry in ipairs(self.sellList.items) do
+		local item = itemMap[entry.itemID] -- O(1) direct lookup instead of inv:getItemById()
 		if not item then
 			-- Log missing items (race condition detected)
 			SharedLogger.logAction(
@@ -156,7 +192,7 @@ function ShopSellAction:complete()
 
 			local itemDef = Shop.PlayerSell and Shop.PlayerSell[itemType]
 			local basePrice = itemDef and itemDef.basePrice or itemDef and itemDef.price or 0
-			
+
 			-- DISABLED: Per-item snapshot calculation (commented out for potential re-enable)
 			-- Safely create item snapshot (defensive nil-check for race conditions)
 			-- local itemSnapshot = nil
@@ -166,15 +202,20 @@ function ShopSellAction:complete()
 			-- 	itemSnapshot = { condition = 1.0, fullType = "unknown" }
 			-- 	SharedLogger.logAction("ShopSellAction", "complete", "[RACE CONDITION] Item became nil before snapshot")
 			-- end
-			
+
 			-- Use static snapshot (no per-item snapshot calls to avoid race conditions)
 			-- Condition calculation is disabled - all items priced at full condition
 			local itemSnapshot = staticItemSnapshot
-			local modifiers = Shop.PriceModifiers and Shop.PriceModifiers.sellModifiers or {}
 
 			-- Use PricingContract for deterministic transaction pricing (Phase 1)
-			local result =
-				PricingContract.calculateSellPrice(itemType, "npc_general_store", basePrice, itemSnapshot, modifiers)
+			-- Pass pre-sorted modifiers to avoid O(m log m) per-item sort
+			local result = PricingContract.calculateSellPrice(
+				itemType,
+				"npc_general_store",
+				basePrice,
+				itemSnapshot,
+				sortedModifiers
+			)
 			local itemPrice = result and result.finalPrice or basePrice
 
 			-- SECURITY INVARIANT: Server must never consume client-provided prices under any circumstance

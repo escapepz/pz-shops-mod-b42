@@ -19,10 +19,30 @@ local Commands = {}
 function Commands.SyncShopData(data)
 	SharedLogger.log("Shops", "[ShopCommandDispatcher:SyncShopData] Received")
 
+	local Shop = SHOPSB42.Shop
+	local incomingRevision = data.revision or 0
+
+	-- Phase 1: Defensive check—reject out-of-order packets
+	if Shop.currentRevision and incomingRevision < Shop.currentRevision then
+		SharedLogger.log(
+			"Shops",
+			"[ShopCommandDispatcher:SyncShopData] WARN: Rejecting downgrade (incoming="
+				.. incomingRevision
+				.. " current="
+				.. Shop.currentRevision
+				.. ")"
+		)
+		return
+	end
+
 	-- Mark that we've received data so retry logic stops
 	SHOPSB42.hasReceivedData = true
 
-	local Shop = SHOPSB42.Shop
+	-- Phase 1: Store revision for future version tracking
+	Shop.currentRevision = incomingRevision
+	-- Phase 1: Also track in global for easy access
+	SHOPSB42.serverRevision = Shop.currentRevision
+
 	Shop.Items = data.Items or {}
 	Shop.PlayerBuy = data.PlayerBuy or {}
 	Shop.PlayerSell = data.PlayerSell or {}
@@ -41,6 +61,8 @@ function Commands.SyncShopData(data)
 			"[ShopCommandDispatcher:SyncShopData] Synced defaultPriceBroken=" .. data.defaultPriceBroken
 		)
 	end
+
+	SharedLogger.log("Shops", "[ShopCommandDispatcher:SyncShopData] Revision=" .. (Shop.currentRevision or 0))
 
 	local itemCount = 0
 	local buyCount = 0

@@ -60,6 +60,8 @@ SHOPSB42.hasRequestedData = false
 SHOPSB42.hasReceivedData = false -- Set by dispatcher when SyncShopData arrives
 SHOPSB42.requestRetryCount = 0
 SHOPSB42.lastRequestTick = 0
+-- Phase 1: Track server revision for versioning support
+SHOPSB42.serverRevision = 0
 
 -- Reset sync flags on reconnect
 local function onConnected()
@@ -68,6 +70,8 @@ local function onConnected()
 
 	SHOPSB42.serverReady = false
 	SHOPSB42.hasRequestedData = false
+	-- Phase 1: Reset revision tracking on reconnect
+	SHOPSB42.serverRevision = 0
 
 	SharedLogger.log("Shops", "[Client Init onConnected] EXIT")
 end

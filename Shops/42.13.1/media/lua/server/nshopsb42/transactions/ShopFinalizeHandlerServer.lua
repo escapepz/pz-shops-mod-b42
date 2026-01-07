@@ -191,6 +191,10 @@ function ShopFinalizeHandler.finalizeNow()
 	end
 	ShopFinalizeHandler._finalizationAttempted = true
 
+	-- Initialize revision counter for SyncShopData (Phase 1: Versioning)
+	-- Incremented on every server restart
+	Shop.Revision = (Shop.Revision or 0) + 1
+
 	-- Initialize independent revision counters (Phase 1.1)
 	Shop.BuyPriceRevision = 0
 	Shop.SellRuleRevision = 0
@@ -300,6 +304,7 @@ function ShopFinalizeHandler.sendShopDataToPlayer(player)
 
 	-- Send shop items and config (including default prices for unregistered items)
 	local shopData = {
+		revision = Shop.Revision,
 		Items = Shop.Items,
 		PlayerBuy = Shop.PlayerBuy,
 		PlayerSell = Shop.PlayerSell,

@@ -8,18 +8,18 @@ This is an enhanced version of the popular Shops mod, updated and optimized for 
 
 [b]Search & Discovery[/b] - Real-time item search with case-insensitive filtering across all tabs
 
-[b]Container Viewer (Bagception)[/b] - View and purchase items nested inside bags/containers displayed in shop UIs
+[b]Container Viewer (Bagception)[/b] - View [strike]and purchase[/strike] items nested inside bags/containers displayed in shop UIs
 
-[b]Dynamic Pricing[/b] - Drainable items adjust price based on remaining units
+[strike][b]Dynamic Pricing[/b] - Drainable items adjust price based on remaining units[/strike]
 
 [b]Offline Mailbox Transfer System[/b]
 
 When you transfer money to a player who is [b]offline[/b]:
 [list]
-[*] The transfer is stored in a "BalanceMailbox" (server-side ModData)
-[*] The recipient's account is marked with [i]hasMailbox = true[/i]
-[*] When the recipient logs in, a "Claim Offline Mailbox" option appears in their wallet context menu
-[*] Right-click wallet → "Claim Offline Mailbox" to receive all pending transfers at once
+[*] The transfer is stored in a “BalanceMailbox” (server-side ModData)
+[*] The recipient’s account is marked with [i]hasMailbox = true[/i]
+[*] When the recipient logs in, a “Claim Offline Mailbox” option appears in their wallet context menu
+[*] Right-click wallet → “Claim Offline Mailbox” to receive all pending transfers at once
 [*] The system shows a notification with total coins received and number of transfers
 [*] Support for both normal and special currency types
 [*] Each transfer is timestamped and tracked by actionId
@@ -29,8 +29,8 @@ When you transfer money to a player who is [b]offline[/b]:
 [list]
 [*] Transaction Registry prevents duplication/replay attacks
 [*] Proximity validation (2-tile purchase range on server)
-[*] Rate limiting (3 transfers per 10 seconds)
-[*] Comprehensive audit logging of all transactions (on next upload)
+[*] [strike]Rate limiting (3 transfers per 10 seconds)[/strike]
+[*] Comprehensive audit logging of all transactions (WIP)
 [/list]
 
 [h2]B42.13 MP Compatibility Notes[/h2]
@@ -38,7 +38,7 @@ When you transfer money to a player who is [b]offline[/b]:
 ✅ [b]Server-authoritative validation[/b] - All transactions validated server-side
 ✅ [b]Anti-dupe protection[/b] - Replay attack prevention built-in
 ✅ [b]Proper MP synchronization[/b] - ModData transmit calls for inventory consistency
-✅ [b]Admin tools[/b] - Admins can manage shops and transactions (on next upload)
+⬜ [b]Admin tools[/b] - Admins can manage shops and transactions (WIP)
 ✅ [b]Tested & verified[/b] - Full multiplayer stability testing completed
 
 [h2]Requirements[/h2]
@@ -46,7 +46,7 @@ When you transfer money to a player who is [b]offline[/b]:
 [list]
 [*] Project Zomboid Build 42.13.1+
 [*] Multiplayer compatible (server/client architecture)
-[*] Single-player supported (for quick test)
+[*] [s]Single-player supported (for quick test)[/s]
 [/list]
 
 [hr][/hr]

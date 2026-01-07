@@ -27,9 +27,66 @@ end
 -- SHOP COMMANDS (from ShopCommandHandlerServer)
 -- =============================================================================
 
+-- Phase 4: Query listing revision only (lightweight handshake)
+function Commands.QueryListingRevision(player, args)
+	if not player then
+		return
+	end
+	local username = player and player:getUsername() or "unknown"
+	local clientRevision = args and args.clientRevision or 0
+
+	SharedLogger.log(
+		"Shops",
+		"[ShopCommandDispatcher:QueryListingRevision] from "
+			.. username
+			.. " (client revision="
+			.. clientRevision
+			.. ")"
+	)
+
+	-- Compare revisions
+	local Shop = SHOPSB42.Shop
+	local serverRevision = Shop.Revision or 0
+
+	if clientRevision == serverRevision then
+		-- Revisions match: no data sync needed
+		SharedLogger.log("Shops", "[ShopCommandDispatcher:QueryListingRevision] Revision match, suppressing full sync")
+		Utilities.SendServerCommandTo(player, "nshopsb42", "ListingRevisionOK", {
+			serverRevision = serverRevision,
+		})
+	else
+		-- Revisions mismatch: send full snapshot
+		SharedLogger.log(
+			"Shops",
+			"[ShopCommandDispatcher:QueryListingRevision] Revision mismatch (server="
+				.. serverRevision
+				.. "), sending full sync"
+		)
+
+		-- Migrate player inventory on login (lazy-migrate old save data)
+		if player then
+			LazyMigration.migratePlayerInventory(player)
+		end
+
+		-- Send full snapshot with new revision
+		local ShopFinalizeHandler = require("nshopsb42/transactions/ShopFinalizeHandlerServer")
+		local success, err = pcall(function()
+			ShopFinalizeHandler.sendShopDataToPlayer(player)
+		end)
+
+		if not success then
+			SharedLogger.log("Shops", "[ShopCommandDispatcher:QueryListingRevision] ERROR: " .. tostring(err))
+		end
+	end
+end
+
+-- Phase 4 DEPRECATED: RequestShopData (kept for backward compatibility with old clients)
 function Commands.RequestShopData(player, args)
 	local username = player and player:getUsername() or "unknown"
-	SharedLogger.log("Shops", "[ShopCommandDispatcher:RequestShopData] from " .. username)
+	SharedLogger.log(
+		"Shops",
+		"[ShopCommandDispatcher:RequestShopData] from " .. username .. " (DEPRECATED - using old client?)"
+	)
 
 	-- Migrate player inventory on login (lazy-migrate old save data)
 	if player then

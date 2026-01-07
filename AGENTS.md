@@ -46,6 +46,27 @@ the agent MUST:
 - **Core APIs**: `.libraries/library/lua/` (PZ engine type definitions); `tmp/Vanilla/` (reference vanilla code)
 - **Docs**: `./docs/B42.13_MP_Project_Zomboid_API_for_Inventory_Items.md` and `B42.13_MP_Migration_Guide.md`
 
+## Listing Data Contract (Phases 1-3)
+
+This documents the versioned content distribution system for shop listings:
+
+- **Listings are versioned content**: Every listing snapshot has a monotonically-increasing revision number
+- **Listings are immutable per server session**: Revisions only change on server restart
+- **Listings are cached client-side**: Persisted to `Lua/shops/listing_snapshot_<serverId>.lua` across client restarts
+- **Listings are monotonic across disk, memory, and network**: 
+  - Disk monotonicity: enforced in `ListingCache.saveSnapshot()` (rejects downgrades)
+  - Memory monotonicity: enforced in `ShopCommandDispatcher.SyncShopData()` (rejects downgrades)
+  - Network monotonicity: server increments revision on restart, no version reuse
+- **Listings are never trusted for transactions**: 
+  - Cache is preview-only (never read for transaction validation)
+  - Server validates all prices and availability on purchase/sale
+  - Client price calculations use `PricingContract` deterministically from listing data
+
+**Bootstrap priority** (highest revision wins):
+1. Shared `ShopCatalog` (Tier 0, revision 0) - always available
+2. Disk cache (Tier 2, revision >= 1) - persisted from server
+3. Network `SyncShopData` (upgrade-only) - server sends if revision mismatch detected
+
 ## Code Style
 
 - **Language**: Lua (Kahlua JVM-based, not standard Lua)

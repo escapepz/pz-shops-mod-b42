@@ -17,6 +17,33 @@ local Commands = {}
 -- SHOP SYNC COMMANDS (from ShopSyncClient)
 -- =============================================================================
 
+-- Phase 4: Server confirms revision match (cold path - no data sync)
+function Commands.ListingRevisionOK(data)
+	SharedLogger.log("Shops", "[ShopCommandDispatcher:ListingRevisionOK] Received")
+
+	local serverRevision = data.serverRevision or 0
+	local Shop = SHOPSB42.Shop
+
+	-- Confirm revision is current
+	if serverRevision ~= Shop.currentRevision then
+		SharedLogger.log(
+			"Shops",
+			"[ShopCommandDispatcher:ListingRevisionOK] WARN: Server revision mismatch (server="
+				.. serverRevision
+				.. " local="
+				.. (Shop.currentRevision or 0)
+				.. "), ignoring"
+		)
+		return
+	end
+
+	-- Revision confirmed: no full sync needed
+	-- Mark that we've received server confirmation
+	SHOPSB42.hasReceivedData = true
+
+	SharedLogger.log("Shops", "[ShopCommandDispatcher:ListingRevisionOK] Server confirmed revision " .. serverRevision)
+end
+
 function Commands.SyncShopData(data)
 	SharedLogger.log("Shops", "[ShopCommandDispatcher:SyncShopData] Received")
 

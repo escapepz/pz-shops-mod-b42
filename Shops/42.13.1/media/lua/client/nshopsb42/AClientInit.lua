@@ -139,39 +139,35 @@ local function onGameStart()
 	SharedLogger.log("Shops", "[Client Init onGameStart] ShopSyncClient initialized")
 
 	---@diagnostic disable-next-line: unnecessary-if
-	-- TEST: Send a simple "ping" command to verify the network path works
+	-- Phase 4: Send revision query (lightweight handshake)
 	if not SHOPSB42.hasRequestedData then
 		SHOPSB42.hasRequestedData = true
 		SHOPSB42.requestRetryCount = 0
 		SHOPSB42.lastRequestTick = 0
 
-		-- First, test with a minimal command
-		local success0, err0 = pcall(function()
-			sendClientCommand("nshopsb42", "TestPing", {})
-		end)
-
-		if success0 then
-			SharedLogger.log("Shops", "[Client Init onGameStart] TestPing sent")
-		else
-			SharedLogger.log("Shops", "[Client Init onGameStart] ERROR sending TestPing: " .. tostring(err0))
-		end
-
-		-- Then send the actual request
+		-- Phase 4: Query server revision only (cold path handshake)
 		local success, err = pcall(function()
-			sendClientCommand("nshopsb42", "RequestShopData", {})
+			sendClientCommand("nshopsb42", "QueryListingRevision", {
+				clientRevision = SHOPSB42.serverRevision or 0,
+			})
 		end)
 
 		if success then
-			SharedLogger.log("Shops", "[Client Init onGameStart] RequestShopData sent (player is in-game)")
+			SharedLogger.log(
+				"Shops",
+				"[Client Init onGameStart] QueryListingRevision sent (client revision="
+					.. (SHOPSB42.serverRevision or 0)
+					.. ")"
+			)
 		else
-			SharedLogger.log("Shops", "[Client Init onGameStart] ERROR sending RequestShopData: " .. tostring(err))
+			SharedLogger.log("Shops", "[Client Init onGameStart] ERROR sending QueryListingRevision: " .. tostring(err))
 		end
 	end
 
 	SharedLogger.log("Shops", "[Client Init onGameStart] EXIT")
 end
 
--- Retry RequestShopData every 60 ticks (3 seconds) if not received from server
+-- Phase 4: Retry QueryListingRevision every 60 ticks (3 seconds) if not received from server
 -- This handles the case where the initial send was silently dropped
 local function onPlayerUpdateRetry(player)
 	if not player or SHOPSB42.hasReceivedData then
@@ -193,11 +189,13 @@ local function onPlayerUpdateRetry(player)
 		SHOPSB42.lastRequestTick = 0
 
 		local success, err = pcall(function()
-			sendClientCommand("nshopsb42", "RequestShopData", {})
+			sendClientCommand("nshopsb42", "QueryListingRevision", {
+				clientRevision = SHOPSB42.serverRevision or 0,
+			})
 		end)
 
 		if success then
-			SharedLogger.log("Shops", "[Client] RequestShopData retry #" .. SHOPSB42.requestRetryCount)
+			SharedLogger.log("Shops", "[Client] QueryListingRevision retry #" .. SHOPSB42.requestRetryCount)
 		else
 			SharedLogger.log(
 				"Shops",

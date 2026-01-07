@@ -66,15 +66,17 @@ end
 -- Safely load a Lua table from a file using dofile
 -- Returns: table on success, nil on failure
 local function deserializeFromFile(filePath)
+	if not dofile then
+		SharedLogger.log("Shops", "[ListingCache.deserializeFromFile] dofile is not available")
+		return nil
+	end
+
 	local success, result = pcall(function()
 		return dofile(filePath)
 	end)
 
 	if not success then
-		SharedLogger.log(
-			"Shops",
-			"[ListingCache.deserializeFromFile] Failed to load " .. filePath .. ": " .. tostring(result)
-		)
+		-- File doesn't exist or failed to load - this is normal for first run
 		return nil
 	end
 
@@ -91,7 +93,7 @@ end
 -- =============================================================================
 
 -- Get cache file path for a specific server
--- File stored in: ~/.../Zomboid/Lua/shops/listing_snapshot_<serverId>.lua
+-- File stored in: ~/.../Zomboid/Lua/nshopsb42/listing_snapshot_<serverId>.lua
 -- @param serverId: Stable server UUID from ModData
 -- @return string: File path for cache snapshot
 local function getCacheFilePath(serverId)
@@ -99,7 +101,7 @@ local function getCacheFilePath(serverId)
 
 	-- Use safe server ID (alphanumeric + underscore + dash + colon for UUID format)
 	local safeId = string.gsub(serverId, "[^%w_:-]", "_")
-	return "Lua/shops/listing_snapshot_" .. safeId .. ".lua"
+	return "nshopsb42/listing_snapshot_" .. safeId .. ".lua"
 end
 
 -- Write listing snapshot to disk
@@ -161,11 +163,14 @@ end
 -- Returns: table on success, nil if file doesn't exist or is invalid
 function ListingCache.loadSnapshot(serverId)
 	if not serverId then
-		SharedLogger.log("Shops", "[ListingCache.loadSnapshot] serverId is nil, aborting")
 		return nil
 	end
 
 	local filePath = getCacheFilePath(serverId)
+	if not filePath then
+		return nil
+	end
+
 	local snapshot = deserializeFromFile(filePath)
 
 	if snapshot then

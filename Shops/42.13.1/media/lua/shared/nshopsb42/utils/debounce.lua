@@ -1,17 +1,14 @@
 -- @author Marat Azizov <etomarat+lua@gmail.com>
 -- https://github.com/etomarat
 
-
 ---@class debounceEntry
 ---@field func function @ Callback function. Will be executed after timeout
 ---@field ticks integer @ Ticks after last call
 ---@field acc any[] @ List of all passed args
 ---@field onTick function @ Internal clocking
 
-
 ---@type table<string, debounceEntry> @ Dict of debounced tasks
 local debounceDict = {}
-
 
 ---Useful for implementing behavior that should only happen after a repeated action has completed.
 ---
@@ -39,42 +36,42 @@ local debounceDict = {}
 ---@param func function @ Callback function. Will be executed after timeout
 ---@param args any | nil @ Arguments for callback
 local debounceFn = function(name, delay, func, args)
-    ---@diagnostic disable-next-line: unnecessary-if
-    if debounceDict[name] then
-        debounceDict[name].func = func
-        debounceDict[name].ticks = 0
-        table.insert(debounceDict[name].acc, args)
-        ---@diagnostic disable-next-line: param-type-mismatch
-        Events.OnTick.Remove(debounceDict[name].onTick);
-    else
-        debounceDict[name] = {
-            func = func,
-            ticks = 0,
-            acc = { args },
-        }
-    end
+	---@diagnostic disable-next-line: unnecessary-if
+	if debounceDict[name] then
+		debounceDict[name].func = func
+		debounceDict[name].ticks = 0
+		table.insert(debounceDict[name].acc, args)
+		---@diagnostic disable-next-line: param-type-mismatch
+		Events.OnTick.Remove(debounceDict[name].onTick)
+	else
+		debounceDict[name] = {
+			func = func,
+			ticks = 0,
+			acc = { args },
+		}
+	end
 
-    debounceDict[name].onTick = function()
-        if not debounceDict[name] then
-            return
-        end
-        local ticks = debounceDict[name].ticks
+	debounceDict[name].onTick = function()
+		if not debounceDict[name] then
+			return
+		end
+		local ticks = debounceDict[name].ticks
 
-        if ticks < delay then
-            ticks = ticks + 1;
-            debounceDict[name].ticks = ticks
-        else
-            debounceDict[name].func(args, debounceDict[name].acc)
-            ---@diagnostic disable-next-line: param-type-mismatch
-            Events.OnTick.Remove(debounceDict[name].onTick);
-            debounceDict[name] = nil
-        end
-    end
+		if ticks < delay then
+			ticks = ticks + 1
+			debounceDict[name].ticks = ticks
+		else
+			debounceDict[name].func(args, debounceDict[name].acc)
+			---@diagnostic disable-next-line: param-type-mismatch
+			Events.OnTick.Remove(debounceDict[name].onTick)
+			debounceDict[name] = nil
+		end
+	end
 
-    Events.OnTick.Add(debounceDict[name].onTick);
+	Events.OnTick.Add(debounceDict[name].onTick)
 end
 
 return {
-    debounceFn = debounceFn,
-    debounceDict = debounceDict
+	debounceFn = debounceFn,
+	debounceDict = debounceDict,
 }

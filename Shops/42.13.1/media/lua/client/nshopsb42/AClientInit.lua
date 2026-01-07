@@ -200,8 +200,8 @@ local function onGameStart()
 			SharedLogger.log(
 				"Shops",
 				"[Client Init onGameStart] QueryListingRevision sent (client revision="
-				.. (SHOPSB42.serverRevision or 0)
-				.. ")"
+					.. (SHOPSB42.serverRevision or 0)
+					.. ")"
 			)
 		else
 			SharedLogger.log("Shops", "[Client Init onGameStart] ERROR sending QueryListingRevision: " .. tostring(err))

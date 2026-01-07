@@ -15,6 +15,9 @@ local ListingCache = require("nshopsb42/listing/ListingCache")
 -- Phase 3: Load bootstrap module for offline-ready UI initialization
 local ListingBootstrap = require("nshopsb42/listing/ListingBootstrap")
 
+-- Debounce utility for coalescing noisy startup events
+local Debounce = require("nshopsb42/utils/debounce")
+
 -- Module initialization
 local PSClient = require("nshopsb42/PlayerShopClient")
 
@@ -75,18 +78,66 @@ SHOPSB42.cachedRevision = 0
 SHOPSB42.listingBootstrapComplete = false
 
 -- Helper: Get the server UUID from ModData (stable across restarts)
--- Used during bootstrap (onConnected/onGameStart) to load cached listings before SyncShopData arrives
--- Once SyncShopData is received, the UUID is also embedded in the command payload
--- @return string: Server UUID
--- @error: Fails if server has not transmitted ShopsServerIdentity
-local function getShopsServerUUID()
-	-- Bootstrap path: Get UUID from ModData (transmitted via Events.OnConnected or ModData.transmit)
-	-- This is used before SyncShopData arrives, to restore cached listings
+-- Returns nil if UUID is not yet available (race condition with server transmission)
+-- @return string or nil: Server UUID, or nil if not yet transmitted
+local function tryGetShopsServerUUID()
 	local data = ModData.get("ShopsServerIdentity")
-	if not data or not data.uuid then
-		error("[Shops] Server failed to transmit ShopsServerIdentity - cache key cannot be resolved")
+	if data and data.uuid then
+		return data.uuid
 	end
-	return data.uuid
+	return nil
+end
+
+-- Debounced bootstrap attempt: loads cache (if UUID available) and initializes UI
+-- Safe to call multiple times; still checks for state availability before loading
+local function debouncedBootstrapAttempt()
+	local SharedLogger = SHOPSB42.SharedLogger
+	SharedLogger.log("Shops", "[DebouncedBootstrap] Attempting bootstrap")
+
+	-- Phase 2: Load cached listing from disk (if server UUID is available)
+	-- UUID may still not be available due to async ModData delivery - graceful skip if not ready
+	if not SHOPSB42.cachedListing then
+		local serverId = tryGetShopsServerUUID()
+		if serverId then
+			SHOPSB42.cachedListing = ListingCache.loadSnapshot(serverId)
+			if SHOPSB42.cachedListing then
+				SHOPSB42.cachedRevision = SHOPSB42.cachedListing.revision or 0
+				SharedLogger.log(
+					"Shops",
+					"[DebouncedBootstrap] Loaded cached listing revision " .. SHOPSB42.cachedRevision
+				)
+			else
+				SHOPSB42.cachedRevision = 0
+				SharedLogger.log("Shops", "[DebouncedBootstrap] No cached listing found")
+			end
+		else
+			SharedLogger.log("Shops", "[DebouncedBootstrap] Server UUID not yet available, will retry on next event")
+		end
+	end
+
+	---@diagnostic disable-next-line: unnecessary-if
+	-- Phase 3: Bootstrap listing from cache or shared default (UI ready immediately)
+	if not SHOPSB42.listingBootstrapComplete then
+		SharedLogger.log("Shops", "[DebouncedBootstrap] Bootstrap phase 3 - initializing from cache/default...")
+		local ShopSpriteCursorUIModule = require("nshopsb42/transactions/ShopSpriteCursorUI")
+		ShopSpriteCursorUIModule.ensureInitialized()
+		SharedLogger.log("Shops", "[DebouncedBootstrap] ShopSpriteCursorUI loaded and initialized")
+
+		local bootstrapSuccess = ListingBootstrap.bootstrap()
+		if bootstrapSuccess then
+			SharedLogger.log("Shops", "[DebouncedBootstrap] Bootstrap successful, initializing UI...")
+			ListingBootstrap.initializeUI()
+			SharedLogger.log("Shops", "[DebouncedBootstrap] UI initialized and ready")
+		else
+			SharedLogger.log("Shops", "[DebouncedBootstrap] WARNING: Bootstrap failed, will use server SyncShopData")
+		end
+	end
+end
+
+-- Schedule debounced bootstrap from noisy startup events
+-- Coalesces multiple early triggers (OnConnected, OnGameStart, OnPlayerUpdate) into single execution
+local function scheduleBootstrap()
+	Debounce.debounceFn("ShopsBootstrap", 120, debouncedBootstrapAttempt)
 end
 
 -- Reset sync flags on reconnect
@@ -102,15 +153,8 @@ local function onConnected()
 	SHOPSB42.hasRequestedData = false
 	-- Phase 1: Reset revision tracking on reconnect
 	SHOPSB42.serverRevision = 0
-	-- Phase 2: Reload cached listing (in case server changed)
-	-- Use stable server UUID from ModData (or fallback to connection ID)
-	local serverId = getShopsServerUUID()
-	SHOPSB42.cachedListing = ListingCache.loadSnapshot(serverId)
-	if SHOPSB42.cachedListing then
-		SHOPSB42.cachedRevision = SHOPSB42.cachedListing.revision or 0
-	else
-		SHOPSB42.cachedRevision = 0
-	end
+	-- Schedule debounced bootstrap attempt (ModData may be syncing after reconnect)
+	scheduleBootstrap()
 
 	---@diagnostic disable-next-line: unnecessary-if
 	if SharedLogger then
@@ -124,37 +168,13 @@ local function onGameStart()
 	local SharedLogger = SHOPSB42.SharedLogger
 	SharedLogger.log("Shops", "[Client Init onGameStart] ENTRY")
 
-	-- Phase 2: Load cached listing from disk (if exists)
-	-- Use stable server UUID from ModData (or fallback to connection ID)
-	local serverId = getShopsServerUUID()
-	SHOPSB42.cachedListing = ListingCache.loadSnapshot(serverId)
-	if SHOPSB42.cachedListing then
-		SHOPSB42.cachedRevision = SHOPSB42.cachedListing.revision or 0
-		SharedLogger.log(
-			"Shops",
-			"[Client Init onGameStart] Loaded cached listing revision " .. SHOPSB42.cachedRevision
-		)
-	else
-		SHOPSB42.cachedRevision = 0
-		SharedLogger.log("Shops", "[Client Init onGameStart] No cached listing found")
-	end
-
-	local ShopSpriteCursorUIModule = require("nshopsb42/transactions/ShopSpriteCursorUI")
-	ShopSpriteCursorUIModule.ensureInitialized()
-	SharedLogger.log("Shops", "[Client Init] ShopSpriteCursorUI loaded and initialized")
-
-	-- Phase 3: Bootstrap listing from cache or shared default (UI ready immediately)
-	SharedLogger.log("Shops", "[Client Init onGameStart] Bootstrap phase 3 - initializing from cache/default...")
-	local bootstrapSuccess = ListingBootstrap.bootstrap()
-	if bootstrapSuccess then
-		SharedLogger.log("Shops", "[Client Init onGameStart] Bootstrap successful, initializing UI...")
-		ListingBootstrap.initializeUI()
-		SharedLogger.log("Shops", "[Client Init onGameStart] UI initialized and ready (no network wait)")
-	else
-		SharedLogger.log("Shops", "[Client Init onGameStart] WARNING: Bootstrap failed, will use server SyncShopData")
-		-- Fallback: wait for SyncShopData from server
-		-- This is the pre-Phase 3 behavior if bootstrap somehow fails
-	end
+	-- Phase 2: Load cached listing from disk (if server UUID is available)
+	-- UUID comes from ModData transmitted by server, may not be available yet due to race condition
+	-- If UUID is unavailable, skip cache load (UI will bootstrap from shared default)
+	-- Once SyncShopData arrives, the transmitted UUID will be used for cache persistence
+	-- Schedule debounced bootstrap (will coalesce with other early events)
+	-- Debouncing gives ModData time to sync from server while still being safe if it hasn't
+	scheduleBootstrap()
 
 	-- Initialize shop sync client
 	SharedLogger.log("Shops", "[Client Init onGameStart] Initializing ShopSyncClient...")
@@ -180,8 +200,8 @@ local function onGameStart()
 			SharedLogger.log(
 				"Shops",
 				"[Client Init onGameStart] QueryListingRevision sent (client revision="
-					.. (SHOPSB42.serverRevision or 0)
-					.. ")"
+				.. (SHOPSB42.serverRevision or 0)
+				.. ")"
 			)
 		else
 			SharedLogger.log("Shops", "[Client Init onGameStart] ERROR sending QueryListingRevision: " .. tostring(err))

@@ -136,23 +136,35 @@ end
 
 **Location**: `Shops/42.13.1/media/lua/client/nshopsb42/AClientInit.lua`
 
-Uses `getShopsServerUUID()` helper in `onConnected()` and `onGameStart()` to load cached listings before SyncShopData arrives:
+Uses `tryGetShopsServerUUID()` helper in `onGameStart()` to **optionally** load cached listings:
 
 ```lua
-local function getShopsServerUUID()
+local function tryGetShopsServerUUID()
     local data = ModData.get("ShopsServerIdentity")
-    if not data or not data.uuid then
-        error("[Shops] Server failed to transmit ShopsServerIdentity - cache key cannot be resolved")
+    if data and data.uuid then
+        return data.uuid
     end
-    return data.uuid
+    return nil  -- Race condition: ModData not yet synced
 end
 ```
 
-**In `onConnected()` and `onGameStart()`**:
+**Important**: Cache loading is opportunistic, not mandatory.
+
+ModData arrival in MP is asynchronous and not guaranteed by `onGameStart()`. Rather than blocking or asserting, the system gracefully skips cache loading if UUID is unavailable:
+
 ```lua
-local serverId = getShopsServerUUID()
-SHOPSB42.cachedListing = ListingCache.loadSnapshot(serverId)
+local serverId = tryGetShopsServerUUID()
+if serverId then
+    SHOPSB42.cachedListing = ListingCache.loadSnapshot(serverId)
+    -- Cache successfully loaded
+else
+    -- UUID not yet available: this is expected and safe
+    -- UI will bootstrap from shared default
+    -- Cache will be populated later when SyncShopData arrives
+end
 ```
+
+This pattern is **MP-idiomatic**: cache usage is an optimization, not a requirement.
 
 ### 4. Client-Side SyncShopData Handler (ShopCommandDispatcherClient)
 

@@ -94,8 +94,10 @@ function Commands.SyncShopData(data)
 
 	SharedLogger.log("Shops", "[ShopCommandDispatcher:SyncShopData] Revision=" .. (Shop.currentRevision or 0))
 
-	-- Phase 2: Persist to disk cache
-	local serverId = getServer() and getServer():getLocalServerIdentifier() or "unknown"
+	-- Phase 2: Persist to disk cache (using server UUID transmitted in SyncShopData)
+	local serverId = data.serverUUID
+	assert(serverId, "[ShopCommandDispatcher:SyncShopData] Server UUID missing from SyncShopData")
+
 	local cacheSnapshot = {
 		revision = Shop.currentRevision,
 		Items = Shop.Items,

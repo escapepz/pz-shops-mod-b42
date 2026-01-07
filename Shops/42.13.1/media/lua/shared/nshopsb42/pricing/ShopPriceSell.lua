@@ -16,6 +16,7 @@ function Shop.canPlayerSell(fullType)
 		return cfg.enabled and not cfg.blacklisted
 	end
 
+	---@diagnostic disable-next-line: unnecessary-if
 	-- Item not registered - check mode
 	-- In whitelist mode: only registered items can be sold (default NO)
 	-- In blacklist mode: all items can be sold except those explicitly blacklisted (default YES)

@@ -23,6 +23,7 @@ local function selectBestListing()
 	local selectedRevision = 0
 	local selectedSource = "shared"
 
+	---@diagnostic disable-next-line: unnecessary-if
 	-- Tier 1/2: Disk cache (if exists and valid)
 	if SHOPSB42.cachedListing and ListingCache.isValidSnapshot(SHOPSB42.cachedListing) then
 		local cachedRevision = SHOPSB42.cachedListing.revision or 0
@@ -65,6 +66,7 @@ function ListingBootstrap.bootstrap()
 	-- Phase 3: Populate Shop namespace with highest-revision listing
 	local Shop = SHOPSB42.Shop
 
+	---@diagnostic disable-next-line: unnecessary-if
 	-- Phase 3: Apply monotonicity check in memory
 	-- Only accept listing if revision >= current
 	if Shop.currentRevision and selectedRevision < Shop.currentRevision then
@@ -102,6 +104,7 @@ end
 function ListingBootstrap.initializeUI()
 	SharedLogger.log("Shops", "[ListingBootstrap.initializeUI] ENTRY")
 
+	---@diagnostic disable-next-line: unnecessary-if
 	if not SHOPSB42.listingBootstrapComplete then
 		SharedLogger.log("Shops", "[ListingBootstrap.initializeUI] ERROR: Bootstrap not complete, aborting")
 		return false
@@ -109,6 +112,7 @@ function ListingBootstrap.initializeUI()
 
 	-- Initialize ClientShopListingService for deterministic preview pricing
 	local ClientShopListingService = SHOPSB42.ClientShopListingService
+	---@diagnostic disable-next-line: unnecessary-if
 	if ClientShopListingService and ClientShopListingService.initialize then
 		ClientShopListingService.initialize()
 		SharedLogger.log("Shops", "[ListingBootstrap.initializeUI] ClientShopListingService initialized")

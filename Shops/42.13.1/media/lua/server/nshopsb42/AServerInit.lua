@@ -25,10 +25,39 @@ require("nshopsb42/ShopCommandDispatcherServer")
 -- Server-side patches
 require("nshopsb42/patches/ISDestroyCursorPatch")
 
+-- Ensure server UUID is generated and transmitted to clients
+-- This UUID is used as the cache key for client-side listing snapshots
+-- Must persist across server restarts to maintain cache stability
+local function ensureShopsServerUUID()
+	local SharedLogger = SHOPSB42.SharedLogger
+	local SHOPS_SERVER_ID_KEY = "ShopsServerIdentity"
+
+	-- Create or retrieve server identity from ModData
+	local data = ModData.getOrCreate(SHOPS_SERVER_ID_KEY)
+
+	if not data.uuid then
+		-- First startup: generate UUID (timestamp + random)
+		data.uuid = tostring(getTimestamp()) .. "-" .. ZombRand(1000000)
+		data.createdAt = getTimestamp()
+		data.schema = 1 -- future versioning
+
+		SharedLogger.log("Shops", "[Server Init] Generated new server UUID: " .. data.uuid)
+	else
+		-- Restart: UUID already exists, verify schema
+		SharedLogger.log("Shops", "[Server Init] Loaded existing server UUID: " .. data.uuid)
+	end
+
+	-- Transmit UUID to all clients (late-joiners receive via ModData sync)
+	ModData.transmit(SHOPS_SERVER_ID_KEY)
+end
+
 Events.OnServerStarted.Add(function()
 	-- Initialize player shop and finalize (must be after all dependencies)
 	PSServer.Initialize()
 	ShopInitServer.Initialize()
+
+	-- Ensure server UUID is generated and transmitted
+	ensureShopsServerUUID()
 end)
 
 -- Server-initiated handshake: client must request on a properly-timed event

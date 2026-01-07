@@ -303,6 +303,8 @@ function ShopFinalizeHandler.sendShopDataToPlayer(player)
 	SharedLogger.log("Shops", "[ShopFinalizeHandler] Preparing SyncShopData with " .. itemCount .. " items")
 
 	-- Send shop items and config (including default prices for unregistered items)
+	-- Include server UUID for stable cache keying (required)
+	local serverIdentity = ModData.get("ShopsServerIdentity") or {}
 	local shopData = {
 		revision = Shop.Revision,
 		Items = Shop.Items,
@@ -313,6 +315,8 @@ function ShopFinalizeHandler.sendShopDataToPlayer(player)
 		-- Phase 4 Fix: Sync default prices for fallback calculations on client
 		defaultPrice = Shop.defaultPrice,
 		defaultPriceBroken = Shop.defaultPriceBroken,
+		-- Server UUID for stable cache keying (transmitted in every SyncShopData)
+		serverUUID = serverIdentity.uuid,
 	}
 
 	SharedLogger.log("Shops", "[ShopFinalizeHandler.sendShopDataToPlayer] SENDING SyncShopData...")

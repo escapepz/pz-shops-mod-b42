@@ -92,9 +92,13 @@ end
 
 -- Get cache file path for a specific server
 -- File stored in: ~/.../Zomboid/Lua/shops/listing_snapshot_<serverId>.lua
+-- @param serverId: Stable server UUID from ModData
+-- @return string: File path for cache snapshot
 local function getCacheFilePath(serverId)
-	-- Use safe server ID (alphanumeric + underscore only)
-	local safeId = string.gsub(serverId, "[^%w_]", "_")
+	assert(serverId, "[ListingCache] serverId is required (server UUID must be transmitted)")
+
+	-- Use safe server ID (alphanumeric + underscore + dash + colon for UUID format)
+	local safeId = string.gsub(serverId, "[^%w_:-]", "_")
 	return "Lua/shops/listing_snapshot_" .. safeId .. ".lua"
 end
 

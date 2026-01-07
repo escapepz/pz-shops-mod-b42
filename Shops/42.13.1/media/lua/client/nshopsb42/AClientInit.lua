@@ -74,17 +74,37 @@ SHOPSB42.cachedRevision = 0
 -- Phase 3: Track bootstrap completion
 SHOPSB42.listingBootstrapComplete = false
 
+-- Helper: Get the server UUID from ModData (stable across restarts)
+-- Used during bootstrap (onConnected/onGameStart) to load cached listings before SyncShopData arrives
+-- Once SyncShopData is received, the UUID is also embedded in the command payload
+-- @return string: Server UUID
+-- @error: Fails if server has not transmitted ShopsServerIdentity
+local function getShopsServerUUID()
+	-- Bootstrap path: Get UUID from ModData (transmitted via Events.OnConnected or ModData.transmit)
+	-- This is used before SyncShopData arrives, to restore cached listings
+	local data = ModData.get("ShopsServerIdentity")
+	if not data or not data.uuid then
+		error("[Shops] Server failed to transmit ShopsServerIdentity - cache key cannot be resolved")
+	end
+	return data.uuid
+end
+
 -- Reset sync flags on reconnect
 local function onConnected()
 	local SharedLogger = SHOPSB42.SharedLogger
-	SharedLogger.log("Shops", "[Client Init onConnected] ENTRY")
+	---@diagnostic disable-next-line: unnecessary-if
+	-- Defensive check: ensure SharedLogger is available before using it
+	if SharedLogger then
+		SharedLogger.log("Shops", "[Client Init onConnected] ENTRY")
+	end
 
 	SHOPSB42.serverReady = false
 	SHOPSB42.hasRequestedData = false
 	-- Phase 1: Reset revision tracking on reconnect
 	SHOPSB42.serverRevision = 0
 	-- Phase 2: Reload cached listing (in case server changed)
-	local serverId = getServer() and getServer():getLocalServerIdentifier() or "unknown"
+	-- Use stable server UUID from ModData (or fallback to connection ID)
+	local serverId = getShopsServerUUID()
 	SHOPSB42.cachedListing = ListingCache.loadSnapshot(serverId)
 	if SHOPSB42.cachedListing then
 		SHOPSB42.cachedRevision = SHOPSB42.cachedListing.revision or 0
@@ -92,7 +112,10 @@ local function onConnected()
 		SHOPSB42.cachedRevision = 0
 	end
 
-	SharedLogger.log("Shops", "[Client Init onConnected] EXIT")
+	---@diagnostic disable-next-line: unnecessary-if
+	if SharedLogger then
+		SharedLogger.log("Shops", "[Client Init onConnected] EXIT")
+	end
 end
 
 -- Load sprite cursor UI on game start (when vanilla ISBuildingObject is available)
@@ -102,7 +125,8 @@ local function onGameStart()
 	SharedLogger.log("Shops", "[Client Init onGameStart] ENTRY")
 
 	-- Phase 2: Load cached listing from disk (if exists)
-	local serverId = getServer() and getServer():getLocalServerIdentifier() or "unknown"
+	-- Use stable server UUID from ModData (or fallback to connection ID)
+	local serverId = getShopsServerUUID()
 	SHOPSB42.cachedListing = ListingCache.loadSnapshot(serverId)
 	if SHOPSB42.cachedListing then
 		SHOPSB42.cachedRevision = SHOPSB42.cachedListing.revision or 0

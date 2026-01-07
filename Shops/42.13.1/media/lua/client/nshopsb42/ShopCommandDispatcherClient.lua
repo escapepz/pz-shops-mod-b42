@@ -23,7 +23,9 @@ function Commands.SyncShopData(data)
 	local Shop = SHOPSB42.Shop
 	local incomingRevision = data.revision or 0
 
-	-- Phase 1: Defensive check—reject out-of-order packets
+	-- Phase 1/3: Defensive check—reject out-of-order packets
+	-- Phase 3: Monotonicity enforced in memory (same rule as disk cache)
+	-- If bootstrap loaded cached listing, this guard prevents server from downgrading
 	if Shop.currentRevision and incomingRevision < Shop.currentRevision then
 		SharedLogger.log(
 			"Shops",

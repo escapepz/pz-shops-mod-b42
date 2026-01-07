@@ -12,6 +12,9 @@ require("nshopsb42/sales/ShopSellEvents")
 -- Phase 2: Load disk cache module (for persistence support)
 local ListingCache = require("nshopsb42/listing/ListingCache")
 
+-- Phase 3: Load bootstrap module for offline-ready UI initialization
+local ListingBootstrap = require("nshopsb42/listing/ListingBootstrap")
+
 -- Module initialization
 local PSClient = require("nshopsb42/PlayerShopClient")
 
@@ -68,6 +71,8 @@ SHOPSB42.serverRevision = 0
 -- Phase 2: Track cached listing status
 SHOPSB42.cachedListing = nil -- Will be populated by ListingCache.loadSnapshot() in onGameStart
 SHOPSB42.cachedRevision = 0
+-- Phase 3: Track bootstrap completion
+SHOPSB42.listingBootstrapComplete = false
 
 -- Reset sync flags on reconnect
 local function onConnected()
@@ -114,14 +119,17 @@ local function onGameStart()
 	ShopSpriteCursorUIModule.ensureInitialized()
 	SharedLogger.log("Shops", "[Client Init] ShopSpriteCursorUI loaded and initialized")
 
-	-- Phase 3: Initialize client-side listing service
-	SharedLogger.log("Shops", "[Client Init onGameStart] Initializing ClientShopListingService...")
-	---@diagnostic disable-next-line: unnecessary-if
-	if SHOPSB42.ClientShopListingService and SHOPSB42.ClientShopListingService.initialize then
-		SHOPSB42.ClientShopListingService.initialize()
-		SharedLogger.log("Shops", "[Client Init onGameStart] ClientShopListingService initialized")
+	-- Phase 3: Bootstrap listing from cache or shared default (UI ready immediately)
+	SharedLogger.log("Shops", "[Client Init onGameStart] Bootstrap phase 3 - initializing from cache/default...")
+	local bootstrapSuccess = ListingBootstrap.bootstrap()
+	if bootstrapSuccess then
+		SharedLogger.log("Shops", "[Client Init onGameStart] Bootstrap successful, initializing UI...")
+		ListingBootstrap.initializeUI()
+		SharedLogger.log("Shops", "[Client Init onGameStart] UI initialized and ready (no network wait)")
 	else
-		SharedLogger.log("Shops", "[Client Init onGameStart] ERROR: ClientShopListingService not available")
+		SharedLogger.log("Shops", "[Client Init onGameStart] WARNING: Bootstrap failed, will use server SyncShopData")
+		-- Fallback: wait for SyncShopData from server
+		-- This is the pre-Phase 3 behavior if bootstrap somehow fails
 	end
 
 	-- Initialize shop sync client

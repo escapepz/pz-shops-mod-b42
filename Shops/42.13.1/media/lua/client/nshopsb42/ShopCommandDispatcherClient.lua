@@ -8,6 +8,7 @@ if not isClient() then
 end
 
 local SharedLogger = require("nshopsb42/utils/SharedLogger")
+local ListingCache = require("nshopsb42/listing/ListingCache")
 
 local Dispatcher = {}
 local Commands = {}
@@ -63,6 +64,34 @@ function Commands.SyncShopData(data)
 	end
 
 	SharedLogger.log("Shops", "[ShopCommandDispatcher:SyncShopData] Revision=" .. (Shop.currentRevision or 0))
+
+	-- Phase 2: Persist to disk cache
+	local serverId = getServer() and getServer():getLocalServerIdentifier() or "unknown"
+	local cacheSnapshot = {
+		revision = Shop.currentRevision,
+		Items = Shop.Items,
+		PlayerBuy = Shop.PlayerBuy,
+		PlayerSell = Shop.PlayerSell,
+		BuyIsWhitelist = Shop.BuyIsWhitelist,
+		SellIsWhitelist = Shop.SellIsWhitelist,
+		defaultPrice = Shop.defaultPrice,
+		defaultPriceBroken = Shop.defaultPriceBroken,
+	}
+	local cacheSaved = ListingCache.saveSnapshot(cacheSnapshot, serverId)
+	if cacheSaved then
+		SharedLogger.log(
+			"Shops",
+			"[ShopCommandDispatcher:SyncShopData] Cached revision "
+				.. Shop.currentRevision
+				.. " to disk for server="
+				.. serverId
+		)
+	else
+		SharedLogger.log(
+			"Shops",
+			"[ShopCommandDispatcher:SyncShopData] WARNING: Cache save rejected (downgrade or I/O error)"
+		)
+	end
 
 	local itemCount = 0
 	local buyCount = 0

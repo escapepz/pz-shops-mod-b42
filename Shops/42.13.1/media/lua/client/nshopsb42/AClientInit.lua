@@ -9,6 +9,9 @@ require("nshopsb42/sales/ShopSellRegistry")
 require("nshopsb42/events/ShopEvents")
 require("nshopsb42/sales/ShopSellEvents")
 
+-- Phase 2: Load disk cache module (for persistence support)
+local ListingCache = require("nshopsb42/listing/ListingCache")
+
 -- Module initialization
 local PSClient = require("nshopsb42/PlayerShopClient")
 
@@ -62,6 +65,9 @@ SHOPSB42.requestRetryCount = 0
 SHOPSB42.lastRequestTick = 0
 -- Phase 1: Track server revision for versioning support
 SHOPSB42.serverRevision = 0
+-- Phase 2: Track cached listing status
+SHOPSB42.cachedListing = nil -- Will be populated by ListingCache.loadSnapshot() in onGameStart
+SHOPSB42.cachedRevision = 0
 
 -- Reset sync flags on reconnect
 local function onConnected()
@@ -72,6 +78,14 @@ local function onConnected()
 	SHOPSB42.hasRequestedData = false
 	-- Phase 1: Reset revision tracking on reconnect
 	SHOPSB42.serverRevision = 0
+	-- Phase 2: Reload cached listing (in case server changed)
+	local serverId = getServer() and getServer():getLocalServerIdentifier() or "unknown"
+	SHOPSB42.cachedListing = ListingCache.loadSnapshot(serverId)
+	if SHOPSB42.cachedListing then
+		SHOPSB42.cachedRevision = SHOPSB42.cachedListing.revision or 0
+	else
+		SHOPSB42.cachedRevision = 0
+	end
 
 	SharedLogger.log("Shops", "[Client Init onConnected] EXIT")
 end
@@ -81,6 +95,20 @@ end
 local function onGameStart()
 	local SharedLogger = SHOPSB42.SharedLogger
 	SharedLogger.log("Shops", "[Client Init onGameStart] ENTRY")
+
+	-- Phase 2: Load cached listing from disk (if exists)
+	local serverId = getServer() and getServer():getLocalServerIdentifier() or "unknown"
+	SHOPSB42.cachedListing = ListingCache.loadSnapshot(serverId)
+	if SHOPSB42.cachedListing then
+		SHOPSB42.cachedRevision = SHOPSB42.cachedListing.revision or 0
+		SharedLogger.log(
+			"Shops",
+			"[Client Init onGameStart] Loaded cached listing revision " .. SHOPSB42.cachedRevision
+		)
+	else
+		SHOPSB42.cachedRevision = 0
+		SharedLogger.log("Shops", "[Client Init onGameStart] No cached listing found")
+	end
 
 	local ShopSpriteCursorUIModule = require("nshopsb42/transactions/ShopSpriteCursorUI")
 	ShopSpriteCursorUIModule.ensureInitialized()

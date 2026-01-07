@@ -21,6 +21,7 @@ local function selectBestListing()
 	local ShopCatalog = require("nshopsb42/listing/ShopCatalog")
 	local selectedListing = ShopCatalog
 	local selectedRevision = 0
+	local selectedSource = "shared"
 
 	-- Tier 1/2: Disk cache (if exists and valid)
 	if SHOPSB42.cachedListing and ListingCache.isValidSnapshot(SHOPSB42.cachedListing) then
@@ -28,16 +29,20 @@ local function selectBestListing()
 		if cachedRevision > selectedRevision then
 			selectedListing = SHOPSB42.cachedListing
 			selectedRevision = cachedRevision
+			selectedSource = "cache"
 			SharedLogger.log(
 				"Shops",
 				"[ListingBootstrap.selectBestListing] Selected cached listing (revision " .. selectedRevision .. ")"
 			)
 		end
 	else
-		SharedLogger.log("Shops", "[ListingBootstrap.selectBestListing] No valid cache, using shared default")
+		SharedLogger.log(
+			"Shops",
+			"[ListingBootstrap.selectBestListing] No valid cache, using shared default (revision 0)"
+		)
 	end
 
-	return selectedListing, selectedRevision
+	return selectedListing, selectedRevision, selectedSource
 end
 
 -- Bootstrap Shop namespace from selected listing
@@ -45,7 +50,17 @@ end
 function ListingBootstrap.bootstrap()
 	SharedLogger.log("Shops", "[ListingBootstrap.bootstrap] ENTRY")
 
-	local selectedListing, selectedRevision = selectBestListing()
+	local selectedListing, selectedRevision, selectedSource = selectBestListing()
+
+	-- Phase 3: Log which tier was selected (for debugging and audits)
+	SharedLogger.log(
+		"Shops",
+		"[ListingBootstrap.bootstrap] Using catalog from: "
+			.. selectedSource
+			.. " (revision "
+			.. selectedRevision
+			.. ")"
+	)
 
 	-- Phase 3: Populate Shop namespace with highest-revision listing
 	local Shop = SHOPSB42.Shop

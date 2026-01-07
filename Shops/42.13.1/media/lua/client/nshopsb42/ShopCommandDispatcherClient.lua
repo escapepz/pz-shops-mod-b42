@@ -125,7 +125,13 @@ function Commands.SyncShopData(data)
 		SharedLogger.log("Shops", "[ShopCommandDispatcher:SyncShopData] Base.Apple found (price=" .. price .. ")")
 	end
 
-	-- Mark initial sync complete so ShopUI can open
+	-- Phase 3: Mark initial sync complete so ShopUI can rebuild if needed
+	-- NOTE: This call is idempotent and safe to invoke multiple times
+	-- (e.g., on reconnect or server upgrade) because:
+	-- - It only rebuilds active tabs if revision changed
+	-- - It is safe to call when UI is not visible
+	-- - It is safe when called during loading
+	-- Future contributors: do not optimize this away; keep it explicit
 	local ShopSyncClient = SHOPSB42.ShopSyncClient
 	---@diagnostic disable-next-line: unnecessary-if
 	if ShopSyncClient and ShopSyncClient.handleSyncInitialComplete then

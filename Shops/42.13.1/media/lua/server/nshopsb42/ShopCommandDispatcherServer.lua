@@ -49,18 +49,29 @@ function Commands.QueryListingRevision(player, args)
 	local serverRevision = Shop.Revision or 0
 
 	if clientRevision == serverRevision then
-		-- Revisions match: no data sync needed
-		SharedLogger.log("Shops", "[ShopCommandDispatcher:QueryListingRevision] Revision match, suppressing full sync")
+		-- Revisions match: no data sync needed (cold path)
+		SharedLogger.log(
+			"Shops",
+			"[ShopCommandDispatcher:QueryListingRevision] Client "
+				.. username
+				.. " revision OK (rev "
+				.. serverRevision
+				.. ")"
+		)
 		Utilities.SendServerCommandTo(player, "nshopsb42", "ListingRevisionOK", {
 			serverRevision = serverRevision,
 		})
 	else
-		-- Revisions mismatch: send full snapshot
+		-- Revisions mismatch: send full snapshot (warm path)
 		SharedLogger.log(
 			"Shops",
-			"[ShopCommandDispatcher:QueryListingRevision] Revision mismatch (server="
+			"[ShopCommandDispatcher:QueryListingRevision] Client "
+				.. username
+				.. " revision mismatch ("
+				.. clientRevision
+				.. " → "
 				.. serverRevision
-				.. "), sending full sync"
+				.. "), sending snapshot"
 		)
 
 		-- Migrate player inventory on login (lazy-migrate old save data)
@@ -77,29 +88,6 @@ function Commands.QueryListingRevision(player, args)
 		if not success then
 			SharedLogger.log("Shops", "[ShopCommandDispatcher:QueryListingRevision] ERROR: " .. tostring(err))
 		end
-	end
-end
-
--- Phase 4 DEPRECATED: RequestShopData (kept for backward compatibility with old clients)
-function Commands.RequestShopData(player, args)
-	local username = player and player:getUsername() or "unknown"
-	SharedLogger.log(
-		"Shops",
-		"[ShopCommandDispatcher:RequestShopData] from " .. username .. " (DEPRECATED - using old client?)"
-	)
-
-	-- Migrate player inventory on login (lazy-migrate old save data)
-	if player then
-		LazyMigration.migratePlayerInventory(player)
-	end
-
-	local ShopFinalizeHandler = require("nshopsb42/transactions/ShopFinalizeHandlerServer")
-	local success, err = pcall(function()
-		ShopFinalizeHandler.sendShopDataToPlayer(player)
-	end)
-
-	if not success then
-		SharedLogger.log("Shops", "[ShopCommandDispatcher:RequestShopData] ERROR: " .. tostring(err))
 	end
 end
 

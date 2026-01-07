@@ -100,6 +100,7 @@ local function debouncedBootstrapAttempt()
 		local serverId = tryGetShopsServerUUID()
 		if serverId then
 			SHOPSB42.cachedListing = ListingCache.loadSnapshot(serverId)
+			---@diagnostic disable-next-line: unnecessary-if
 			if SHOPSB42.cachedListing then
 				SHOPSB42.cachedRevision = SHOPSB42.cachedListing.revision or 0
 				SharedLogger.log(

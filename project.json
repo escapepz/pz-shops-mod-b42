@@ -1,17 +1,27 @@
 {
-  "$schema": "https://raw.githubusercontent.com/Konijima/project-zomboid-studio/master/pzstudio.schema.json",
-  "title": "[UNOFFICIAL] Shops B42",
-  "authors": [],
-  "workshop": {
-    "id": 3631768689,
-    "visibility": "unlisted",
-    "tags": ["Build 42", "Multiplayer", "Interface", "Silly/Fun", "Textures"],
-    "excludes": []
-  },
-  "mods": {
-    "Shops": {
-      "name": "Shopsb42",
-      "description": ""
+    "$schema": "https://raw.githubusercontent.com/Konijima/project-zomboid-studio/master/pzstudio.schema.json",
+    "title": "[UNOFFICIAL] Shops B42",
+    "authors": [],
+    "workshop": {
+        "id": 3631768689,
+        "visibility": "unlisted",
+        "tags": [
+            "Build 42",
+            "Multiplayer",
+            "Interface",
+            "Silly/Fun",
+            "Textures"
+        ],
+        "excludes": []
+    },
+    "mods": {
+        "nshopsb42": {
+            "name": "Shops B42",
+            "description": "",
+            "tiledef": ["npcshop 1212","playershop 1313"],
+            "poster": "poster.png",
+			"icon": "icon.png",
+            "pack": ["npcshop","playershop"]
+        }
     }
-  }
 }

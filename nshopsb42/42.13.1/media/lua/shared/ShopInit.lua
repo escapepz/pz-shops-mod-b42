@@ -13,10 +13,12 @@ local function validateItem(id, def)
 end
 
 local function loadDefaultItems()
-	require("ShopItems/Food")
-	require("ShopItems/Weapons")
-	require("ShopItems/FirstAid")
-	require("ShopItems/Vehicles")
+    pcall(function()
+		require("ShopItems/Food")()
+		require("ShopItems/Weapons")()
+		require("ShopItems/FirstAid")()
+		require("ShopItems/Vehicles")()
+	end)
 end
 
 local function migrateLegacyShopTables()

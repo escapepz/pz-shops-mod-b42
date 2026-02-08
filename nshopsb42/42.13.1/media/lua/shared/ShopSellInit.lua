@@ -8,7 +8,7 @@ local function validateSellItem(id, def)
 end
 
 local function loadDefaultSellItems()
-    require("ShopItems.ForSell")
+    pcall(function() require("ShopItems/ForSell")() end)
 end
 
 function Shop.FinalizeSellRegistry()

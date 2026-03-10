@@ -55,5 +55,9 @@ When you transfer money to a player who is [b]offline[/b]:
 
 [hr][/hr]
 
+[i]Latest status: NPC Shop might not work.[/i]
+
+[b]This mod is now archived; there will be no future updates.[/b]
+Source code: https://github.com/escapepz/pz-shops-mod-b42
 
 _____

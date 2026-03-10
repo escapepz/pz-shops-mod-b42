@@ -1,0 +1,5 @@
+update 260310
+- add support for 42.15.0
+- released Just Another Shop Mod https://steamcommunity.com/sharedfiles/filedetails/?id=3681786362
+
+https://github.com/escapepz/pz-shops-mod-b42/releases/tag/260310

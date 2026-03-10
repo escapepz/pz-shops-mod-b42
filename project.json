@@ -1,10 +1,10 @@
 {
-    "$schema": "https://raw.githubusercontent.com/Konijima/project-zomboid-studio/master/pzstudio.schema.json",
+    "$schema": "https://raw.githubusercontent.com/escapepz/project-zomboid-studio/refs/heads/b42.13.1/pzstudio.schema.json",
     "title": "[UNOFFICIAL] Shops B42",
     "authors": [],
     "workshop": {
         "id": 3631768689,
-        "visibility": "unlisted",
+        "visibility": "public",
         "tags": [
             "Build 42",
             "Multiplayer",
@@ -18,10 +18,10 @@
         "nshopsb42": {
             "name": "Shops B42",
             "description": "",
-            "tiledef": ["npcshop 1212","playershop 1313"],
+            "tiledef": ["npcshop 1212", "playershop 1313"],
             "poster": "poster.png",
-			"icon": "icon.png",
-            "pack": ["npcshop","playershop"]
+            "icon": "icon.png",
+            "pack": ["npcshop", "playershop"]
         }
     }
 }

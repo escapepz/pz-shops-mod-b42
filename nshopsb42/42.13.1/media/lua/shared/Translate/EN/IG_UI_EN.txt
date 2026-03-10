@@ -12,7 +12,7 @@ IGUI_EN = {
 
     IGUI_AddPlayerShop = "Add Player Shop",
     IGUI_AddPlayerShopFreezer = "Add Player Shop (Freezer)",
-    IGUI_RemoveShop = "Remove Player Shop",
+    IGUI_RemovePlayerShop = "Remove Player Shop",
     IGUI_RemoveItemsPlayerShop = "Remove all items in shop container",
     IGUI_RemoveIncomePlayerShop = "Remove all income in shop container",
     IGUI_ViewIncomePlayerShop = "View Income",
